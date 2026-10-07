@@ -52,7 +52,7 @@ export function plan(input, settings, holidays, choices = {}) {
   const clinicOK = open(S.clinicDays);
   const labOK = open(S.labDays);
   const chemoOK = open(S.chemoDays);
-  const why = (n) => (ph.has(n) ? { t: 'ph', name: ph.get(n) } : closed.has(n) ? { t: 'closed' } : { t: 'off' });
+  const why = (n, ctx) => (ph.has(n) ? { t: 'ph', name: ph.get(n) } : closed.has(n) ? { t: 'closed' } : { t: 'off', ctx });
 
   const step = (from, dir, okFn, limit = 60) => {
     for (let n = from + dir, i = 0; i < limit; n += dir, i++) if (okFn(n)) return n;
@@ -63,9 +63,9 @@ export function plan(input, settings, holidays, choices = {}) {
     if (chemoOK(p)) return { date: p, flags: [] };
     if (S.chemoPH === 'forward') {
       const f = step(p, 1, chemoOK);
-      if (f !== null) return { date: f, flags: [why(p), { t: 'moved', from: p }] };
+      if (f !== null) return { date: f, flags: [why(p, 'chemo'), { t: 'moved', from: p }] };
     }
-    return { date: p, flags: [why(p)] };
+    return { date: p, flags: [why(p, 'chemo')] };
   };
 
   const computeLabs = (T) => {
@@ -73,9 +73,9 @@ export function plan(input, settings, holidays, choices = {}) {
     while (!S.labDays.includes(weekday(c)) && c > T - 14) c--; // weekend: back to Friday
     if (!shut(c)) return { date: c, flags: [] };
     const f = step(c, 1, labOK);
-    if (f !== null && f < T) return { date: f, flags: [why(c), { t: 'moved', from: c }] };
+    if (f !== null && f < T) return { date: f, flags: [why(c, 'labs'), { t: 'moved', from: c }] };
     const b = step(c, -1, labOK);
-    return { date: b, flags: [why(c), { t: 'moved', from: c }] };
+    return { date: b, flags: [why(c, 'labs'), { t: 'moved', from: c }] };
   };
 
   const scheduleReview = (p, d1, key, base) => {
@@ -83,8 +83,8 @@ export function plan(input, settings, holidays, choices = {}) {
     const options = [step(p, -1, clinicOK, 14), step(p, 1, clinicOK, 14)]
       .filter((n) => n !== null && (d1 === null || n <= d1));
     const chosen = choices[key] != null ? toDay(choices[key]) : null;
-    if (chosen !== null) return { ...base, date: chosen, flags: [why(p), { t: 'moved', from: p }] };
-    return { ...base, date: p, flags: [why(p)], pending: true, options, key };
+    if (chosen !== null) return { ...base, date: chosen, flags: [why(p, 'clinic'), { t: 'moved', from: p }] };
+    return { ...base, date: p, flags: [why(p, 'clinic')], pending: true, options, key };
   };
 
   const every = Math.max(1, Math.floor(input.every) || 1);
@@ -98,6 +98,7 @@ export function plan(input, settings, holidays, choices = {}) {
   const blocks = groupConsecutive(R.days);
   const events = [];
   let prevD1 = null;
+  let nextPlanned = null;
   let reviews = 0;
 
   for (let k = 0; k <= lastK; k++) {
@@ -109,24 +110,26 @@ export function plan(input, settings, holidays, choices = {}) {
     for (const block of blocks) {
       const p = planned + block[0] - 1;
       const first = k === 0 && block[0] === 1
-        ? { date: p, flags: chemoOK(p) ? [] : [why(p)] }
+        ? { date: p, flags: chemoOK(p) ? [] : [why(p, 'chemo')] }
         : adjustChemo(p);
       const shift = first.date - p;
       block.forEach((day, i) => {
         const date = planned + day - 1 + shift;
-        const flags = i === 0 ? [...first.flags] : chemoOK(date) ? [] : [why(date)];
+        const flags = i === 0 ? [...first.flags] : chemoOK(date) ? [] : [why(date, 'chemo')];
         treatments.push({ kind: 'chemo', date, day, cycle, k, blockStart: i === 0, flags });
       });
     }
     const d1 = treatments[0].date;
     if (prevD1 !== null && d1 - prevD1 < cd) treatments[0].flags.push({ t: 'short', days: d1 - prevD1 });
     prevD1 = d1;
+    nextPlanned = S.knockOn === 'reanchor' ? d1 + cd : planned + cd;
 
     let review = null;
     if (isReview) {
       const base = { kind: 'review', cycle, k, labs: false };
-      if (k === 0) review = { ...base, date: review0, flags: clinicOK(review0) ? [] : [why(review0)] };
-      else { review = scheduleReview(d1 - offset, d1, k, base); reviews++; }
+      if (k === 0) review = { ...base, date: review0, flags: clinicOK(review0) ? [] : [why(review0, 'clinic')] };
+      // Anchor on the planned D1, so a chemo moved off a PH doesn't drag its review with it
+      else { review = scheduleReview(planned - offset, d1, k, base); reviews++; }
       events.push(review);
     }
 
@@ -146,7 +149,7 @@ export function plan(input, settings, holidays, choices = {}) {
   }
 
   if (capped && input.cycle + lastK === input.total && reviews < S.visits) {
-    events.push(scheduleReview(prevD1 + cd - offset, null, 'eot', { kind: 'eot', labs: false }));
+    events.push(scheduleReview(nextPlanned - offset, null, 'eot', { kind: 'eot', labs: false }));
   }
 
   const order = { review: 0, eot: 0, labs: 1, chemo: 2 };
@@ -170,7 +173,7 @@ export function flagText(f, fmt) {
   switch (f.t) {
     case 'ph': return 'PH';
     case 'closed': return 'closed';
-    case 'off': return 'non-working day';
+    case 'off': return { clinic: 'no clinic', chemo: 'unit closed', labs: 'no labs' }[f.ctx] || 'closed';
     case 'moved': return `moved from ${formatDay(f.from, fmt)}`;
     case 'short': return `${f.days}d interval`;
     case 'nodata': return 'PH data unavailable';

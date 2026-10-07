@@ -75,7 +75,7 @@ function chipText(f) {
   switch (f.t) {
     case 'ph': return 'PH';
     case 'closed': return 'Closed';
-    case 'off': return 'Off day';
+    case 'off': return { clinic: 'No clinic', chemo: 'Unit closed', labs: 'No labs' }[f.ctx] || 'Closed';
     case 'moved': return `from ${formatDay(f.from, settings.dateFormat)}`;
     case 'short': return `${f.days}d`;
     case 'nodata': return 'No PH data';

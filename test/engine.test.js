@@ -168,3 +168,20 @@ test('EMR text', () => {
   assert.ok(lines.includes('- Mon 23/11/26 C6 [13d interval]'));
   assert.ok(lines.includes('- Fri 1/1/27 Review + labs pre-C9 [PH, reschedule]'));
 });
+
+test('review stays on its usual day when the chemo it precedes moves off a PH', () => {
+  const res = plan({ ...folfoxInput, every: 1, cycle: 1 }, S(), SG_HOLIDAYS);
+  // C3 planned Mon 9/11 (PH) -> Tue 10/11; review stays Fri 6/11, not Sat 7/11
+  assert.equal(fromDay(find(res, 'chemo', 3).date), '2026-11-10');
+  const r3 = find(res, 'review', 3);
+  assert.equal(fromDay(r3.date), '2026-11-06');
+  assert.deepEqual(r3.flags, []);
+  assert.equal(r3.pending, undefined);
+});
+
+test('non-clinic day flag names the reason', () => {
+  const res = plan({ ...folfoxInput, every: 1, cycle: 1 }, S({ clinicDays: [1, 2, 3, 4] }), SG_HOLIDAYS);
+  const r2 = find(res, 'review', 2);
+  assert.equal(r2.pending, true);
+  assert.deepEqual(r2.flags, [{ t: 'off', ctx: 'clinic' }]);
+});
