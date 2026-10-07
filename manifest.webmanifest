@@ -1,0 +1,9 @@
+{
+  "name": "Chemo Calculator",
+  "short_name": "Chemo",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f766e",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

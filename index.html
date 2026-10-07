@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chemo Calculator</title>
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16181b" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Chemo Calculator</h1>
+      <button id="open-settings" class="icon" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+      </button>
+    </header>
+
+    <form id="inputs" autocomplete="off">
+      <label class="wide">Regimen
+        <select id="regimen"></select>
+      </label>
+      <label>Review
+        <input type="date" id="review">
+      </label>
+      <label>Chemo
+        <input type="date" id="chemo">
+      </label>
+      <fieldset class="seg wide" id="every">
+        <legend>Review every</legend>
+        <label><input type="radio" name="every" value="1"><span>1</span></label>
+        <label><input type="radio" name="every" value="2"><span>2</span></label>
+        <label><input type="radio" name="every" value="3"><span>3</span></label>
+        <label><input type="radio" name="every" value="4"><span>4</span></label>
+        <span class="unit">cycles</span>
+      </fieldset>
+      <label>Cycle
+        <input type="number" id="cycle" min="1" inputmode="numeric">
+      </label>
+      <label>of
+        <input type="number" id="total" min="1" inputmode="numeric">
+      </label>
+      <label class="switch wide">
+        <input type="checkbox" id="labs"><span>Labs</span>
+      </label>
+    </form>
+
+    <p id="error" hidden></p>
+    <ol id="timeline"></ol>
+    <button id="copy" class="primary" hidden>Copy</button>
+  </main>
+
+  <dialog id="settings">
+    <form method="dialog" id="settings-form">
+      <header>
+        <h2>Settings</h2>
+        <button class="icon" value="close" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+
+      <section>
+        <div class="row"><span>Clinic days</span><div class="days" data-key="clinicDays"></div></div>
+        <div class="row"><span>Lab days</span><div class="days" data-key="labDays"></div></div>
+        <div class="row"><span>Chemo unit days</span><div class="days" data-key="chemoDays"></div></div>
+      </section>
+
+      <section>
+        <label class="row"><span>Labs, days before treatment</span><input type="number" min="0" max="7" data-key="labsBefore" data-num></label>
+        <label class="row"><span>Labs before reviewed cycle</span>
+          <select data-key="preCycleLabs"><option value="review">Review day</option><option value="offset">Days before</option></select></label>
+        <label class="row"><span>Labs in consecutive-day blocks</span>
+          <select data-key="blockLabs"><option value="first">First day</option><option value="each">Each day</option></select></label>
+        <label class="row"><span>Chemo on PH</span>
+          <select data-key="chemoPH"><option value="forward">Next working day</option><option value="flag">Flag only</option></select></label>
+        <label class="row"><span>After a moved cycle</span>
+          <select data-key="knockOn"><option value="original">Original schedule</option><option value="reanchor">From moved date</option></select></label>
+        <label class="row"><span>Clinic visits shown</span><input type="number" min="1" max="6" data-key="visits" data-num></label>
+        <label class="row"><span>Date format</span>
+          <select data-key="dateFormat">
+            <option value="EEE d/M/yy">Wed 14/10/26</option>
+            <option value="EEE dd/MM/yyyy">Wed 14/10/2026</option>
+            <option value="EEE d MMM yyyy">Wed 14 Oct 2026</option>
+            <option value="d MMM yyyy">14 Oct 2026</option>
+          </select></label>
+      </section>
+
+      <section>
+        <h3>Closed dates</h3>
+        <ul id="closed" class="chips"></ul>
+        <div class="add"><input type="date" id="closed-new"><button type="button" id="closed-add">Add</button></div>
+      </section>
+
+      <section>
+        <h3>Regimens</h3>
+        <table id="regimens">
+          <thead><tr><th>Name</th><th>q (d)</th><th>Days</th><th>Every</th><th>Labs</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <button type="button" id="regimen-add">Add regimen</button>
+      </section>
+
+      <section class="actions">
+        <button type="button" id="export">Export</button>
+        <label class="button">Import<input type="file" id="import" accept="application/json" hidden></label>
+        <button type="button" id="reset">Reset</button>
+      </section>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
