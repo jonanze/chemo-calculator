@@ -25,7 +25,7 @@ let lastText = '';
 
 const el = {
   regimen: $('#regimen'), review: $('#review'), chemo: $('#chemo'),
-  cycle: $('#cycle'), total: $('#total'), labs: $('#labs'),
+  cycle: $('#cycle'), labs: $('#labs'),
   error: $('#error'), timeline: $('#timeline'), copy: $('#copy'),
 };
 
@@ -65,7 +65,6 @@ function readInput() {
     every,
     labs: el.labs.checked,
     cycle: num(el.cycle),
-    total: num(el.total),
   };
 }
 
