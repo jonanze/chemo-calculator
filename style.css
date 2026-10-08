@@ -86,6 +86,11 @@ label.switch input::after {
 label.switch input:checked { background: var(--accent); }
 label.switch input:checked::after { transform: translateX(16px); }
 
+input.invalid { border-color: var(--alert); }
+.suffix { position: relative; display: block; }
+.suffix input { padding-right: 48px; }
+.suffix span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+
 /* Timeline */
 #error { color: var(--alert); margin: 0 0 16px; }
 #timeline { list-style: none; margin: 0 0 20px; padding: 0; border-top: 1px solid var(--line); }
@@ -132,19 +137,9 @@ dialog::backdrop { background: rgb(0 0 0 / .35); }
 .add { display: flex; gap: 8px; }
 .add input { width: auto; flex: 1; }
 
-#regimens { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 14px; }
-#regimens th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 0 4px 4px; }
-#regimens td { padding: 3px 2px; }
-#regimens td input { padding: 5px 6px; }
-#regimens td:nth-child(2) input, #regimens td:nth-child(4) input { width: 52px; }
-#regimens td:nth-child(3) input { width: 72px; }
-#regimens td:nth-child(5) { text-align: center; }
-#regimens td:nth-child(5) input { width: auto; }
-#regimens td button { border: none; background: none; color: var(--muted); padding: 4px; }
 .actions { display: flex; gap: 8px; }
 
 @media (max-width: 420px) {
   #timeline li { grid-template-columns: 1fr; }
   #timeline .choose { grid-column: 1; }
-  #regimens th:nth-child(4), #regimens td:nth-child(4) { display: none; }
 }

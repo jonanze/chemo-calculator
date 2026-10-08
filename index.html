@@ -21,7 +21,13 @@
 
     <form id="inputs" autocomplete="off">
       <label class="wide">Regimen
-        <select id="regimen"></select>
+        <input type="text" id="name">
+      </label>
+      <label>Frequency
+        <span class="suffix"><input type="number" id="cycleDays" min="1" inputmode="numeric"><span>days</span></span>
+      </label>
+      <label>Treatment days
+        <input type="text" id="days" placeholder="D1">
       </label>
       <label>Review
         <input type="date" id="review">
@@ -89,15 +95,6 @@
         <h3>Closed dates</h3>
         <ul id="closed" class="chips"></ul>
         <div class="add"><input type="date" id="closed-new"><button type="button" id="closed-add">Add</button></div>
-      </section>
-
-      <section>
-        <h3>Regimens</h3>
-        <table id="regimens">
-          <thead><tr><th>Name</th><th>q (d)</th><th>Days</th><th>Every</th><th>Labs</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
-        <button type="button" id="regimen-add">Add regimen</button>
       </section>
 
       <section class="actions">

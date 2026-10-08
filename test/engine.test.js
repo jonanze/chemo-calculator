@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { plan, toText, formatDay, toDay, fromDay, weekday, groupConsecutive } from '../js/engine.js';
+import { plan, toText, formatDay, toDay, fromDay, weekday, groupConsecutive, parseDays } from '../js/engine.js';
 import { SG_HOLIDAYS } from '../js/holidays.js';
 import { DEFAULT_SETTINGS } from '../js/defaults.js';
 
@@ -184,4 +184,21 @@ test('non-clinic day flag names the reason', () => {
   const r2 = find(res, 'review', 2);
   assert.equal(r2.pending, true);
   assert.deepEqual(r2.flags, [{ t: 'off', ctx: 'clinic' }]);
+});
+
+test('treatment days parsing', () => {
+  assert.deepEqual(parseDays(''), [1]);
+  assert.deepEqual(parseDays('D1'), [1]);
+  assert.deepEqual(parseDays('D1/D8'), [1, 8]);
+  assert.deepEqual(parseDays('1,8,15'), [1, 8, 15]);
+  assert.deepEqual(parseDays('D1-3'), [1, 2, 3]);
+  assert.deepEqual(parseDays('d1-3, d8'), [1, 2, 3, 8]);
+  assert.equal(parseDays('day one'), null);
+  assert.equal(parseDays('D3-1'), null);
+});
+
+test('EMR header without a regimen name', () => {
+  const input = { ...folfoxInput, regimen: { name: '', cycleDays: 21, days: [1] } };
+  const text = toText(plan(input, S(), SG_HOLIDAYS), input, S());
+  assert.equal(text.split('\n')[0], 'q21d, review every 3 cycles');
 });

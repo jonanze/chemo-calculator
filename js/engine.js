@@ -23,6 +23,20 @@ export function formatDay(n, fmt = 'EEE d/M/yy') {
   return fmt.replace(/EEE|yyyy|yy|MMM|MM|M|dd|d/g, (t) => tokens[t]);
 }
 
+// Accepts '1', 'D1/D8', '1,8,15', 'D1-3', 'd1-3, d8'. Returns sorted days, or null if invalid.
+export function parseDays(text) {
+  const src = String(text ?? '').trim() || '1';
+  const days = new Set();
+  for (const part of src.split(/[,/;\s]+/).filter(Boolean)) {
+    const m = part.match(/^d?(\d+)(?:[-–]d?(\d+))?$/i);
+    if (!m) return null;
+    const a = Number(m[1]), b = m[2] ? Number(m[2]) : a;
+    if (a < 1 || b < a || b - a > 60) return null;
+    for (let d = a; d <= b; d++) days.add(d);
+  }
+  return [...days].sort((x, y) => x - y);
+}
+
 export function groupConsecutive(days) {
   const sorted = [...new Set(days)].sort((a, b) => a - b);
   const blocks = [];
@@ -184,7 +198,7 @@ export function flagText(f, fmt) {
 export function toText(result, input, S) {
   const R = input.regimen;
   const every = Math.max(1, Math.floor(input.every) || 1);
-  const head = `${R.name} q${R.cycleDays}d${every > 1 ? `, review every ${every} cycles` : ''}`;
+  const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${every > 1 ? `, review every ${every} cycles` : ''}`;
   const lines = result.events.map((e) => {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat));
     if (e.pending) flags.push('reschedule');

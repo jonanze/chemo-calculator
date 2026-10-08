@@ -4,7 +4,7 @@ Works out the next clinic reviews, chemo dates and pre-chemo labs from the upcom
 
 - `js/engine.js`: scheduling rules (pure functions)
 - `js/holidays.js`: SG public holidays from MOM. **Update yearly.**
-- `js/defaults.js`: default settings and regimen library
+- `js/defaults.js`: default settings and regimen entry
 - `npm test`: engine tests (Node 20+)
 
 When releasing, bump `VERSION` in `sw.js`.

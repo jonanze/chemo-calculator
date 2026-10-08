@@ -1,6 +1,6 @@
-import { plan, toText, formatDay, fromDay, toDay, label } from './engine.js';
+import { plan, toText, formatDay, fromDay, toDay, label, parseDays } from './engine.js';
 import { SG_HOLIDAYS } from './holidays.js';
-import { DEFAULT_SETTINGS, DEFAULT_REGIMENS } from './defaults.js';
+import { DEFAULT_SETTINGS, DEFAULT_ENTRY } from './defaults.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -19,35 +19,32 @@ const store = {
 };
 
 let settings = { ...DEFAULT_SETTINGS, ...store.get('cc.settings', {}) };
-let regimens = store.get('cc.regimens', null) || structuredClone(DEFAULT_REGIMENS);
+const entry = { ...DEFAULT_ENTRY, ...store.get('cc.entry', {}) };
 let choices = {};
 let lastText = '';
 
 const el = {
-  regimen: $('#regimen'), review: $('#review'), chemo: $('#chemo'),
+  name: $('#name'), cycleDays: $('#cycleDays'), days: $('#days'), review: $('#review'), chemo: $('#chemo'),
   cycle: $('#cycle'), labs: $('#labs'),
   error: $('#error'), timeline: $('#timeline'), copy: $('#copy'),
 };
 
 // ---------- Inputs ----------
 
-function renderRegimenOptions() {
-  const current = el.regimen.value;
-  el.regimen.innerHTML = '';
-  regimens.forEach((r, i) => {
-    const o = document.createElement('option');
-    o.value = String(i);
-    o.textContent = `${r.name} · q${r.cycleDays}d${r.days.length > 1 ? ` · D${r.days.join(',')}` : ''}`;
-    el.regimen.append(o);
-  });
-  if (current && regimens[Number(current)]) el.regimen.value = current;
+// The regimen entry is remembered between visits; dates and cycle are not.
+function restoreEntry() {
+  el.name.value = entry.name;
+  el.cycleDays.value = entry.cycleDays;
+  el.days.value = entry.days;
+  setEvery(entry.every);
+  el.labs.checked = entry.labs;
 }
 
-function applyRegimenDefaults() {
-  const r = regimens[Number(el.regimen.value)];
-  if (!r) return;
-  setEvery(r.every || 1);
-  el.labs.checked = r.labs !== false;
+function saveEntry(input) {
+  store.set('cc.entry', {
+    name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
+    days: el.days.value.trim(), every: input.every, labs: input.labs,
+  });
 }
 
 function setEvery(n) {
@@ -58,8 +55,11 @@ function setEvery(n) {
 function readInput() {
   const every = Number($('#every input:checked')?.value || 1);
   const num = (x) => (x.value ? Math.max(1, Math.floor(Number(x.value))) : null);
+  const cycleDays = num(el.cycleDays);
+  const days = parseDays(el.days.value);
+  el.days.classList.toggle('invalid', !days);
   return {
-    regimen: regimens[Number(el.regimen.value)],
+    regimen: cycleDays && days ? { name: el.name.value.trim(), cycleDays, days } : null,
     review: el.review.value,
     chemo: el.chemo.value,
     every,
@@ -158,8 +158,8 @@ el.copy.addEventListener('click', async () => {
 });
 
 $('#inputs').addEventListener('input', (ev) => {
-  if (ev.target === el.regimen) applyRegimenDefaults();
   choices = {};
+  saveEntry(readInput());
   render();
 });
 
@@ -169,7 +169,6 @@ const dialog = $('#settings');
 
 function saveSettings() {
   store.set('cc.settings', settings);
-  store.set('cc.regimens', regimens);
 }
 
 function renderSettings() {
@@ -218,43 +217,6 @@ function renderSettings() {
     li.append(x);
     closed.append(li);
   });
-
-  const body = $('#regimens tbody');
-  body.innerHTML = '';
-  regimens.forEach((r, i) => {
-    const tr = document.createElement('tr');
-    const cell = (inputEl) => { const td = document.createElement('td'); td.append(inputEl); tr.append(td); return inputEl; };
-    const text = (value, onChange, type = 'text') => {
-      const inp = document.createElement('input');
-      inp.type = type;
-      inp.value = value;
-      inp.addEventListener('change', () => { onChange(inp.value); changed(); renderRegimenOptions(); });
-      return inp;
-    };
-    cell(text(r.name, (v) => { r.name = v.trim() || r.name; }));
-    cell(text(r.cycleDays, (v) => { r.cycleDays = Math.max(1, Number(v) || r.cycleDays); }, 'number'));
-    cell(text(r.days.join(','), (v) => {
-      const days = v.split(/[,\s]+/).map(Number).filter((n) => Number.isInteger(n) && n >= 1);
-      if (days.length) r.days = [...new Set(days)].sort((a, b) => a - b);
-    }));
-    cell(text(r.every || 1, (v) => { r.every = Math.max(1, Number(v) || 1); }, 'number'));
-    const lab = document.createElement('input');
-    lab.type = 'checkbox';
-    lab.checked = r.labs !== false;
-    lab.addEventListener('change', () => { r.labs = lab.checked; changed(); });
-    cell(lab);
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.textContent = '×';
-    del.setAttribute('aria-label', 'Delete');
-    del.addEventListener('click', () => {
-      regimens.splice(i, 1);
-      renderRegimenOptions();
-      changed(true);
-    });
-    cell(del);
-    body.append(tr);
-  });
 }
 
 function changed(rerenderSettings = false) {
@@ -272,14 +234,8 @@ $('#closed-add').addEventListener('click', () => {
   changed(true);
 });
 
-$('#regimen-add').addEventListener('click', () => {
-  regimens.push({ name: 'New regimen', cycleDays: 21, days: [1], every: 1, labs: true });
-  renderRegimenOptions();
-  changed(true);
-});
-
 $('#export').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify({ settings, regimens }, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ settings }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'chemo-calculator-settings.json';
@@ -293,8 +249,6 @@ $('#import').addEventListener('change', async (ev) => {
   try {
     const data = JSON.parse(await file.text());
     if (data.settings) settings = { ...DEFAULT_SETTINGS, ...data.settings };
-    if (Array.isArray(data.regimens) && data.regimens.length) regimens = data.regimens;
-    renderRegimenOptions();
     changed(true);
   } catch {
     alert('Invalid file');
@@ -303,18 +257,14 @@ $('#import').addEventListener('change', async (ev) => {
 });
 
 $('#reset').addEventListener('click', () => {
-  if (!confirm('Reset settings and regimens?')) return;
+  if (!confirm('Reset settings?')) return;
   settings = structuredClone(DEFAULT_SETTINGS);
-  regimens = structuredClone(DEFAULT_REGIMENS);
-  renderRegimenOptions();
-  applyRegimenDefaults();
   changed(true);
 });
 
 // ---------- Start ----------
 
-renderRegimenOptions();
-applyRegimenDefaults();
+restoreEntry();
 render();
 
 if ('serviceWorker' in navigator) {
