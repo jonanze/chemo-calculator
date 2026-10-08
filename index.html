@@ -19,6 +19,7 @@
       </button>
     </header>
 
+    <div class="layout">
     <form id="inputs" autocomplete="off">
       <label class="wide">Regimen
         <input type="text" id="name">
@@ -46,9 +47,15 @@
       </label>
     </form>
 
-    <p id="error" hidden></p>
-    <ol id="timeline"></ol>
-    <button id="copy" class="primary" hidden>Copy</button>
+    <section class="out">
+      <div class="bar">
+        <button id="copy" class="primary" hidden>Copy</button>
+        <button id="clear" type="button" hidden>Clear</button>
+      </div>
+      <p id="error" hidden></p>
+      <ol id="timeline"></ol>
+    </section>
+    </div>
   </main>
 
   <dialog id="settings">

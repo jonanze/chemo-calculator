@@ -29,7 +29,7 @@ let lastText = '';
 const el = {
   name: $('#name'), cycleDays: $('#cycleDays'), days: $('#days'), review: $('#review'), chemo: $('#chemo'),
   cycle: $('#cycle'), labTests: $('#labTests'),
-  error: $('#error'), timeline: $('#timeline'), copy: $('#copy'),
+  error: $('#error'), timeline: $('#timeline'), copy: $('#copy'), clear: $('#clear'),
 };
 
 // ---------- Inputs ----------
@@ -60,10 +60,12 @@ function readInput() {
   const cycleDays = num(el.cycleDays);
   const days = parseDays(el.days.value);
   el.days.classList.toggle('invalid', !days);
+  // A date being typed passes through years like 0002; wait for a whole one
+  const date = (x) => (x.value >= '2000' ? x.value : '');
   return {
     regimen: cycleDays && days ? { name: el.name.value.trim(), cycleDays, days } : null,
-    review: el.review.value,
-    chemo: el.chemo.value,
+    review: date(el.review),
+    chemo: date(el.chemo),
     every,
     tcuOpts,
     labOpts,
@@ -113,7 +115,7 @@ function setEdit(e, value) {
   if (value) edits[e.editKey] = value;
   else delete edits[e.editKey];
   // PH reschedule picks from this cycle on may no longer apply
-  for (const key of Object.keys(choices)) if (key === 'eot' || Number(key) >= e.k) delete choices[key];
+  for (const key of Object.keys(choices)) if (Number(key) >= e.k) delete choices[key];
   render();
 }
 
@@ -156,19 +158,43 @@ function labsControls(e, name, multiDay, input) {
   });
   box.append(b);
   if (!e.off) {
-    const tests = document.createElement('input');
-    tests.type = 'text';
-    tests.className = 'tests';
-    tests.value = e.tests || '';
-    tests.setAttribute('aria-label', 'Tests');
-    tests.addEventListener('input', () => {
-      labOpts[e.labKey] = { ...labOpts[e.labKey], tests: tests.value };
-      name.textContent = label({ ...e, tests: tests.value }, multiDay, input.labTests);
-      lastText = toText(plan(readInput(), settings, SG_HOLIDAYS, choices, edits), readInput(), settings);
-    });
-    box.append(tests);
+    const own = e.tests?.trim();
+    const t = document.createElement('button');
+    t.type = 'button';
+    t.textContent = 'Tests';
+    t.setAttribute('aria-pressed', String(!!own));
+    t.addEventListener('click', () => editTests(t, e, name, multiDay, input));
+    box.append(t);
   }
   return box;
+}
+
+// Opens with this row's tests; clearing the box, or matching the main Lab tests, drops the override.
+function editTests(button, e, name, multiDay, input) {
+  const box = document.createElement('input');
+  box.type = 'text';
+  box.className = 'tests';
+  box.setAttribute('aria-label', 'Tests');
+  box.value = e.tests?.trim() || input.labTests.trim();
+  box.addEventListener('input', () => {
+    name.textContent = label({ ...e, tests: box.value }, multiDay, input.labTests);
+  });
+  let done = false;
+  const finish = (keep) => {
+    if (done) return;
+    done = true;
+    const v = box.value.trim();
+    if (keep) labOpts[e.labKey] = { ...labOpts[e.labKey], tests: v && v !== input.labTests.trim() ? v : undefined };
+    render();
+  };
+  box.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
+    if (ev.key === 'Escape') finish(false);
+  });
+  box.addEventListener('blur', () => finish(true));
+  button.replaceWith(box);
+  box.focus();
+  box.select();
 }
 
 function render() {
@@ -176,6 +202,7 @@ function render() {
   el.timeline.innerHTML = '';
   el.copy.hidden = true;
   el.error.hidden = true;
+  el.clear.hidden = !(el.review.value || el.chemo.value || el.cycle.value);
   if (!input.regimen || !input.review || !input.chemo) return;
 
   const res = plan(input, settings, SG_HOLIDAYS, choices, edits);
@@ -262,16 +289,28 @@ el.copy.addEventListener('click', async () => {
   setTimeout(() => { el.copy.textContent = 'Copy'; }, 1200);
 });
 
+function resetPlan() {
+  choices = {};
+  edits = {};
+  tcuOpts = {};
+  labOpts = {};
+}
+
 $('#inputs').addEventListener('input', (ev) => {
   // Name and lab tests only change wording; anything else re-plans from scratch
-  if (ev.target !== el.name && ev.target !== el.labTests) {
-    choices = {};
-    edits = {};
-    tcuOpts = {};
-    labOpts = {};
-  }
+  if (ev.target !== el.name && ev.target !== el.labTests) resetPlan();
   saveEntry(readInput());
   render();
+});
+
+// Next patient: keep the regimen, clear the dates, cycle and per-visit choices
+el.clear.addEventListener('click', () => {
+  el.review.value = '';
+  el.chemo.value = '';
+  el.cycle.value = '';
+  resetPlan();
+  render();
+  el.review.focus();
 });
 
 // ---------- Settings ----------

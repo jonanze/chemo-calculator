@@ -97,7 +97,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const scheduleReview = (p, d1, key, base) => {
     if (clinicOK(p)) return { ...base, date: p, flags: [] };
     const options = [step(p, -1, clinicOK, 14), step(p, 1, clinicOK, 14)]
-      .filter((n) => n !== null && (d1 === null || n <= d1));
+      .filter((n) => n !== null && n <= d1);
     const chosen = choices[key] != null ? toDay(choices[key]) : null;
     if (chosen !== null) return { ...base, date: chosen, flags: [why(p, 'clinic'), { t: 'moved', from: p }] };
     return { ...base, date: p, flags: [why(p, 'clinic')], pending: true, options, key };
@@ -106,16 +106,11 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const every = Math.max(1, Math.floor(input.every) || 1);
   const cd = R.cycleDays;
   const multiDay = R.days.length > 1;
-  const capped = input.cycle && input.total;
-  let lastK = every * S.visits;
-  if (capped) lastK = Math.min(lastK, input.total - input.cycle);
-  if (lastK < 0) return { error: 'Cycle exceeds total', events: [] };
+  const lastK = every * S.visits;
 
   const blocks = groupConsecutive(R.days);
   const events = [];
   let prevD1 = null;
-  let nextPlanned = null;
-  let reviews = 0;
   let anchor = chemo0, anchorK = 0;
   // Per-visit options. A visit's labs setting also covers the treatment days it
   // authorises, up to the next visit. A technical visit is the investigations
@@ -159,7 +154,6 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     const d1 = treatments[0].date;
     if (prevD1 !== null && d1 - prevD1 < cd) treatments[0].flags.push({ t: 'short', days: d1 - prevD1 });
     prevD1 = d1;
-    nextPlanned = S.knockOn === 'reanchor' ? d1 + cd : planned + cd;
 
     let review = null;
     if (isReview) {
@@ -168,10 +162,9 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       else if (tcuEdit) {
         const t = toDay(tcuEdit);
         review = { ...base, date: t, flags: [...(clinicOK(t) ? [] : [why(t, 'clinic')]), { t: 'edited' }] };
-        reviews++;
       }
       // Anchor on the planned D1, so a chemo moved off a PH doesn't drag its review with it
-      else { review = scheduleReview(planned - offset, d1, k, base); reviews++; }
+      else review = scheduleReview(planned - offset, d1, k, base);
       if (k > 0 && !review.pending) review.editKey = `tcu:${k}`;
       current = optsFor(k);
       review.tech = current.tech;
@@ -206,11 +199,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     events.push(...treatments);
   }
 
-  if (capped && input.cycle + lastK === input.total && reviews < S.visits) {
-    events.push(scheduleReview(nextPlanned - offset, null, 'eot', { kind: 'eot', labs: false }));
-  }
-
-  const order = { review: 0, eot: 0, labs: 1, chemo: 2 };
+  const order = { review: 0, labs: 1, chemo: 2 };
   for (const e of events) if (e.date > covered) e.flags.push({ t: 'nodata' });
   events.sort((a, b) => a.date - b.date || order[a.kind] - order[b.kind]);
   return { error: null, events, multiDay };
@@ -232,7 +221,6 @@ export function label(e, multiDay, labTests = '') {
       if (e.labsAtScan) return `${tcu} with scan and ${labs} prior`;
       return `${tcu} with ${e.labs ? `${labs} and ` : ''}scan prior`;
     }
-    case 'eot': return 'End-of-treatment TCU';
     case 'labs': return `Labs${tests}${multiDay ? ` pre-D${e.day}` : ''}`;
     default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;
   }
@@ -260,7 +248,7 @@ export function toText(result, input, S) {
     if (e.pending) flags.push('reschedule');
     const date = formatDay(e.date, S.dateFormat);
     const line = `- ${date} ${label(e, result.multiDay, input.labTests)}${flags.length ? ` [${flags.join(', ')}]` : ''}`;
-    return e.kind === 'review' || e.kind === 'eot' ? ['', line] : [line];
+    return e.kind === 'review' ? ['', line] : [line];
   });
   return [head, ...lines].join('\n');
 }

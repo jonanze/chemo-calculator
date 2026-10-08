@@ -135,14 +135,6 @@ test('saturday chemo gets Friday labs', () => {
   assert.equal(fromDay(find(res, 'labs', 2).date), '2026-10-23');
 });
 
-test('total cycles caps output and adds end-of-treatment review', () => {
-  const res = plan({ ...folfoxInput, every: 1, cycle: 5, total: 6 }, S(), SG_HOLIDAYS);
-  assert.deepEqual(res.events.filter((e) => e.kind === 'chemo').map((e) => e.cycle), [5, 6]);
-  const eot = res.events.at(-1);
-  assert.equal(eot.kind, 'eot');
-  assert.equal(fromDay(eot.date), '2026-11-06'); // C6 Mon 26/10 + 14 - 3
-});
-
 test('labs off produces no labs', () => {
   const off = { labs: false };
   const res = plan({ ...folfoxInput, tcuOpts: { 0: off, 3: off, 6: off } }, S(), SG_HOLIDAYS);
@@ -151,7 +143,6 @@ test('labs off produces no labs', () => {
 
 test('errors', () => {
   assert.equal(plan({ ...folfoxInput, chemo: '2026-10-08' }, S(), SG_HOLIDAYS).error, 'Chemo date is before TCU date');
-  assert.equal(plan({ ...folfoxInput, cycle: 7, total: 6 }, S(), SG_HOLIDAYS).error, 'Cycle exceeds total');
 });
 
 test('dates beyond PH coverage are flagged', () => {
