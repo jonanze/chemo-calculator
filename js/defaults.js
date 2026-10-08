@@ -6,7 +6,6 @@ export const DEFAULT_SETTINGS = {
   labDays: [1, 2, 3, 4, 5],
   chemoDays: [1, 2, 3, 4, 5, 6],
   labsBefore: 1,            // days before a treatment day
-  scanDaysBefore: 2,        // working days between scan and the visit it is for
   scanLabs: 'tcu',          // labs for a TCU with a scan: 'tcu' day or 'scan' day
   preCycleLabs: 'review',   // 'review' = same day as the review, 'offset' = labsBefore rule
   blockLabs: 'first',       // consecutive-day blocks: 'first' day only, or 'each'

@@ -177,20 +177,16 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       review.tech = current.tech;
       review.scan = current.scan;
       review.opts = current;
-      // Scan goes S.scanDaysBefore working days before the visit, to allow time to report
+      // A physical TCU's scan is undated ("prior"), so it can be booked flexibly.
       // A technical visit's scan is on the visit day itself.
-      if (current.scan && !current.tech) {
-        let s = review.date;
-        for (let n = 0; n < S.scanDaysBefore; ) { s--; if (labOK(s)) n++; }
-        review.scanDate = s;
-      }
+      review.scanPrior = current.scan && !current.tech;
       events.push(review);
     }
 
     if (current.labs) {
       for (const t of treatments) {
         if (S.blockLabs === 'first' && !t.blockStart) continue;
-        if (t.day === treatments[0].day && review?.scanDate != null && S.scanLabs === 'scan') {
+        if (t.day === treatments[0].day && review?.scanPrior && S.scanLabs === 'scan') {
           review.labsAtScan = true;
           continue;
         }
@@ -227,10 +223,9 @@ export function label(e, multiDay, labTests = '') {
         const what = [e.labs && labs, e.scan && 'scan'].filter(Boolean).join(' and ');
         return `Technical visit${what ? ` for ${what}` : ''}${pre}`;
       }
-      if (e.scanDate == null) return `TCU${e.labs ? ` with ${labs}` : ''}${pre}`;
-      const prior = `${e.date - e.scanDate} days prior`;
-      if (e.labsAtScan) return `TCU with scan and ${labs} ${prior}${pre}`;
-      return `TCU with ${e.labs ? `${labs} and ` : ''}scan ${prior}${pre}`;
+      if (!e.scanPrior) return `TCU${e.labs ? ` with ${labs}` : ''}${pre}`;
+      if (e.labsAtScan) return `TCU with scan and ${labs} prior${pre}`;
+      return `TCU with ${e.labs ? `${labs} and ` : ''}scan prior${pre}`;
     }
     case 'eot': return 'End-of-treatment TCU';
     case 'labs': return `Labs${tests}${e.cycle ? ` pre-C${e.cycle}${dayTag}` : dayTag ? ` pre${dayTag}` : ''}`;

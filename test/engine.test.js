@@ -289,22 +289,20 @@ test('technical visit with labs off is scan only, and drops labs until the next 
   assert.equal(find(res, 'labs', 7), undefined);
 });
 
-test('scan goes 2 working days before the TCU and reads as one TCU line', () => {
+test('scan before a TCU is undated, stated as prior, on one TCU line', () => {
   const input = { ...folfoxInput, labTests: 'FBC', tcuOpts: { 3: { scan: true } } };
   const res = plan(input, S(), SG_HOLIDAYS);
   const r6 = find(res, 'review', 6);
-  assert.equal(fromDay(r6.scanDate), '2026-11-18'); // TCU Fri 20/11 -> Wed 18/11
+  assert.equal(r6.scanPrior, true);
   assert.equal(res.events.some((e) => e.kind === 'scan'), false);
   const lines = toText(res, input, S()).split('\n');
-  assert.ok(lines.includes('- Fri 20/11/26 TCU with labs (FBC) and scan 2 days prior pre-C6'));
+  assert.ok(lines.includes('- Fri 20/11/26 TCU with labs (FBC) and scan prior pre-C6'));
 });
 
-test('scan before a Tuesday TCU skips the weekend', () => {
+test('scan-only TCU reads as scan prior', () => {
   const input = { regimen: R.gemcis, review: '2026-10-13', chemo: '2026-10-14', every: 1, cycle: 1, tcuOpts: { 1: { scan: true, labs: false } } };
   const res = plan(input, S(), SG_HOLIDAYS);
-  const r2 = find(res, 'review', 2);
-  assert.equal(fromDay(r2.scanDate), '2026-10-30'); // TCU Tue 3/11 -> Fri 30/10
-  assert.ok(toText(res, input, S()).split('\n').includes('- Tue 3/11/26 TCU with scan 4 days prior pre-C2'));
+  assert.ok(toText(res, input, S()).split('\n').includes('- Tue 3/11/26 TCU with scan prior pre-C2'));
 });
 
 test('labs can go with the scan instead of the TCU', () => {
@@ -314,7 +312,7 @@ test('labs can go with the scan instead of the TCU', () => {
   assert.equal(r6.labs, false);
   assert.equal(r6.labsAtScan, true);
   const lines = toText(res, input, S({ scanLabs: 'scan' })).split('\n');
-  assert.ok(lines.includes('- Fri 20/11/26 TCU with scan and labs (FBC) 2 days prior pre-C6'));
+  assert.ok(lines.includes('- Fri 20/11/26 TCU with scan and labs (FBC) prior pre-C6'));
   assert.ok(find(res, 'labs', 7));
 });
 
