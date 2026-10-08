@@ -164,7 +164,8 @@ test('EMR text', () => {
   const text = toText(res, folfoxInput, S());
   const lines = text.split('\n');
   assert.equal(lines[0], 'FOLFOX q14d, TCU every 3 cycles');
-  assert.equal(lines[1], '- Fri 9/10/26 TCU with labs');
+  assert.equal(lines[1], '');
+  assert.equal(lines[2], '- Fri 9/10/26 TCU with labs');
   assert.ok(lines.includes('- Tue 10/11/26 C5 [PH, moved from Mon 9/11/26]'));
   assert.ok(lines.includes('- Mon 23/11/26 C6 [13d interval]'));
   assert.ok(lines.includes('- Fri 1/1/27 TCU with labs [PH, reschedule]'));
@@ -255,7 +256,7 @@ test('edited dates are not annotated in EMR text', () => {
 test('lab tests are named on every labs entry and in EMR text', () => {
   const input = { ...folfoxInput, labTests: 'FBC, RP, LFT, CEA' };
   const lines = toText(plan(input, S(), SG_HOLIDAYS), input, S()).split('\n');
-  assert.equal(lines[1], '- Fri 9/10/26 TCU with labs (FBC, RP, LFT, CEA)');
+  assert.equal(lines[2], '- Fri 9/10/26 TCU with labs (FBC, RP, LFT, CEA)');
   assert.ok(lines.includes('- Fri 23/10/26 Labs (FBC, RP, LFT, CEA)'));
   assert.ok(lines.includes('- Mon 26/10/26 C4'));
 });

@@ -250,11 +250,13 @@ export function toText(result, input, S) {
   const R = input.regimen;
   const every = Math.max(1, Math.floor(input.every) || 1);
   const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${every > 1 ? `, TCU every ${every} cycles` : ''}`;
-  const lines = result.events.map((e) => {
+  // A blank line before each TCU groups it with the chemo that follows
+  const lines = result.events.flatMap((e) => {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
     if (e.pending) flags.push('reschedule');
     const date = formatDay(e.date, S.dateFormat);
-    return `- ${date} ${label(e, result.multiDay, input.labTests)}${flags.length ? ` [${flags.join(', ')}]` : ''}`;
+    const line = `- ${date} ${label(e, result.multiDay, input.labTests)}${flags.length ? ` [${flags.join(', ')}]` : ''}`;
+    return e.kind === 'review' || e.kind === 'eot' ? ['', line] : [line];
   });
   return [head, ...lines].join('\n');
 }
