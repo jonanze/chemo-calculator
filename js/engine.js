@@ -121,7 +121,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   // authorises, up to the next visit. A technical visit is the investigations
   // themselves (labs and/or scan on that day) with no appointment, so it has
   // no separate scan date.
-  const optsFor = (k) => ({ labs: true, tech: false, scan: false, scanLabs: false, ...(input.tcuOpts?.[k] || {}) });
+  const optsFor = (k) => ({ labs: true, tech: false, scan: false, ...(input.tcuOpts?.[k] || {}) });
   let current = optsFor(0);
 
   for (let k = 0; k <= lastK; k++) {
@@ -190,7 +190,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     if (current.labs) {
       for (const t of treatments) {
         if (S.blockLabs === 'first' && !t.blockStart) continue;
-        if (t.day === treatments[0].day && review?.scanDate != null && current.scanLabs) {
+        if (t.day === treatments[0].day && review?.scanDate != null && S.scanLabs === 'scan') {
           review.labsAtScan = true;
           continue;
         }

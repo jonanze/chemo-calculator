@@ -271,7 +271,7 @@ test('labs off at one TCU drops its labs and the labs it covers, and only those'
 });
 
 test('technical visit is the investigations themselves, with no separate scan date', () => {
-  const input = { ...folfoxInput, labTests: 'FBC', tcuOpts: { 3: { tech: true, scan: true, scanLabs: true } } };
+  const input = { ...folfoxInput, labTests: 'FBC', tcuOpts: { 3: { tech: true, scan: true } } };
   const res = plan(input, S({ preCycleLabs: 'offset' }), SG_HOLIDAYS);
   const r6 = find(res, 'review', 6);
   assert.equal(r6.tech, true);
@@ -308,12 +308,12 @@ test('scan before a Tuesday TCU skips the weekend', () => {
 });
 
 test('labs can go with the scan instead of the TCU', () => {
-  const input = { ...folfoxInput, labTests: 'FBC', tcuOpts: { 3: { scan: true, scanLabs: true } } };
-  const res = plan(input, S(), SG_HOLIDAYS);
+  const input = { ...folfoxInput, labTests: 'FBC', tcuOpts: { 3: { scan: true } } };
+  const res = plan(input, S({ scanLabs: 'scan' }), SG_HOLIDAYS);
   const r6 = find(res, 'review', 6);
   assert.equal(r6.labs, false);
   assert.equal(r6.labsAtScan, true);
-  const lines = toText(res, input, S()).split('\n');
+  const lines = toText(res, input, S({ scanLabs: 'scan' })).split('\n');
   assert.ok(lines.includes('- Fri 20/11/26 TCU with scan and labs (FBC) 2 days prior pre-C6'));
   assert.ok(find(res, 'labs', 7));
 });
