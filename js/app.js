@@ -23,6 +23,7 @@ const entry = { ...DEFAULT_ENTRY, ...store.get('cc.entry', {}) };
 let choices = {};
 let edits = {};
 let tcuOpts = {};
+let labOpts = {};
 let lastText = '';
 
 const el = {
@@ -65,6 +66,7 @@ function readInput() {
     chemo: el.chemo.value,
     every,
     tcuOpts,
+    labOpts,
     labTests: el.labTests.value,
     cycle: num(el.cycle),
   };
@@ -139,6 +141,37 @@ function tcuToggles(e) {
   return box;
 }
 
+// A labs row can be switched off (dropped from the copy text) or given its own tests.
+// Typing updates the row in place so the field keeps focus.
+function labsControls(e, name, multiDay, input) {
+  const box = document.createElement('div');
+  box.className = 'toggles';
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = 'Labs';
+  b.setAttribute('aria-pressed', String(!e.off));
+  b.addEventListener('click', () => {
+    labOpts[e.labKey] = { ...labOpts[e.labKey], off: !e.off };
+    render();
+  });
+  box.append(b);
+  if (!e.off) {
+    const tests = document.createElement('input');
+    tests.type = 'text';
+    tests.className = 'tests';
+    tests.placeholder = input.labTests.trim() || 'Tests';
+    tests.value = e.tests || '';
+    tests.setAttribute('aria-label', 'Tests');
+    tests.addEventListener('input', () => {
+      labOpts[e.labKey] = { ...labOpts[e.labKey], tests: tests.value };
+      name.textContent = label({ ...e, tests: tests.value }, multiDay, input.labTests);
+      lastText = toText(plan(readInput(), settings, SG_HOLIDAYS, choices, edits), readInput(), settings);
+    });
+    box.append(tests);
+  }
+  return box;
+}
+
 function render() {
   const input = readInput();
   el.timeline.innerHTML = '';
@@ -185,6 +218,10 @@ function render() {
     li.append(date, what);
 
     if (e.kind === 'review') li.append(tcuToggles(e));
+    if (e.kind === 'labs') {
+      li.classList.toggle('off', e.off);
+      li.append(labsControls(e, name, res.multiDay, input));
+    }
 
     if (e.pending) {
       const choose = document.createElement('div');
@@ -232,6 +269,7 @@ $('#inputs').addEventListener('input', (ev) => {
     choices = {};
     edits = {};
     tcuOpts = {};
+    labOpts = {};
   }
   saveEntry(readInput());
   render();

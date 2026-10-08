@@ -114,6 +114,8 @@ button.chip { border: none; cursor: pointer; font: inherit; font-size: 12px; }
 #timeline .toggles { grid-column: 2; display: flex; gap: 6px; flex-wrap: wrap; }
 #timeline .toggles button { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: none; color: var(--muted); }
 #timeline .toggles button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+#timeline .toggles input.tests { width: auto; flex: 1 1 8em; font-size: 12px; padding: 2px 9px; border-radius: 999px; }
+#timeline li.labs.off .what, #timeline li.labs.off .date { text-decoration: line-through; }
 #timeline .choose { grid-column: 2; display: flex; gap: 6px; flex-wrap: wrap; }
 #timeline .choose button { padding: 4px 10px; font-size: 13px; }
 

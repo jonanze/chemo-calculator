@@ -333,3 +333,17 @@ test('labs before a later treatment day name the day', () => {
   assert.ok(lines.some((l) => / Labs pre-D8$/.test(l)), lines.join('\n'));
   assert.ok(lines.every((l) => !/pre-C/.test(l)));
 });
+
+test('a labs row can be switched off or given its own tests', () => {
+  const input = { regimen: R.gemcis, review: '2026-10-13', chemo: '2026-10-14', every: 1, cycle: 1, labTests: 'FBC, RP, LFT' };
+  const base = plan(input, S(), SG_HOLIDAYS);
+  const d8 = base.events.filter((e) => e.kind === 'labs' && e.day === 8);
+  assert.ok(d8.length >= 2);
+  const withOpts = { ...input, labOpts: { [d8[0].labKey]: { tests: 'FBC' }, [d8[1].labKey]: { off: true } } };
+  const res = plan(withOpts, S(), SG_HOLIDAYS);
+  const lines = toText(res, withOpts, S()).split('\n');
+  const labLines = lines.filter((l) => / Labs /.test(l));
+  assert.equal(labLines.length, base.events.filter((e) => e.kind === 'labs').length - 1);
+  assert.ok(labLines.some((l) => l.endsWith('Labs (FBC) pre-D8')));
+  assert.ok(lines.some((l) => l.includes('TCU with labs (FBC, RP, LFT)')));
+});

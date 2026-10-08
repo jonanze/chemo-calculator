@@ -197,7 +197,10 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
           continue;
         }
         const L = computeLabs(t.date);
-        events.push({ kind: 'labs', date: L.date, flags: L.flags, cycle, k, day: t.day });
+        // Each standalone labs row can be switched off or given its own tests
+        const labKey = `${k}:${t.day}`;
+        const lo = input.labOpts?.[labKey] || {};
+        events.push({ kind: 'labs', date: L.date, flags: L.flags, cycle, k, day: t.day, labKey, off: !!lo.off, tests: lo.tests });
       }
     }
     events.push(...treatments);
@@ -215,7 +218,8 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
 
 export function label(e, multiDay, labTests = '') {
   const dayTag = multiDay ? ` D${e.day}` : '';
-  const tests = labTests.trim() ? ` (${labTests.trim()})` : '';
+  const own = e.kind === 'labs' && e.tests?.trim();
+  const tests = own ? ` (${own})` : labTests.trim() ? ` (${labTests.trim()})` : '';
   switch (e.kind) {
     case 'review': {
       const labs = `labs${tests}`;
@@ -251,7 +255,7 @@ export function toText(result, input, S) {
   const every = Math.max(1, Math.floor(input.every) || 1);
   const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${every > 1 ? `, TCU every ${every} cycles` : ''}`;
   // A blank line before each TCU groups it with the chemo that follows
-  const lines = result.events.flatMap((e) => {
+  const lines = result.events.filter((e) => !e.off).flatMap((e) => {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
     if (e.pending) flags.push('reschedule');
     const date = formatDay(e.date, S.dateFormat);
