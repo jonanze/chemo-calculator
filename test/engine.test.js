@@ -279,13 +279,13 @@ test('technical visit is the investigations themselves, with no separate scan da
   assert.equal(r6.scan, true);
   assert.equal(res.events.some((e) => e.kind === 'scan'), false);
   assert.equal(find(res, 'labs', 6), undefined);
-  assert.ok(toText(res, input, S()).split('\n').includes('- Fri 20/11/26 Technical visit with labs (FBC) and scan pre-C6'));
+  assert.ok(toText(res, input, S()).split('\n').includes('- Fri 20/11/26 Technical visit for labs (FBC) and scan pre-C6'));
 });
 
 test('technical visit with labs off is scan only, and drops labs until the next visit', () => {
   const input = { ...folfoxInput, tcuOpts: { 3: { tech: true, labs: false, scan: true } } };
   const res = plan(input, S(), SG_HOLIDAYS);
-  assert.ok(toText(res, input, S()).split('\n').includes('- Fri 20/11/26 Technical visit with scan pre-C6'));
+  assert.ok(toText(res, input, S()).split('\n').includes('- Fri 20/11/26 Technical visit for scan pre-C6'));
   assert.equal(find(res, 'labs', 7), undefined);
 });
 

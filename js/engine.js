@@ -225,7 +225,7 @@ export function label(e, multiDay, labTests = '') {
       const labs = `labs${tests}`;
       if (e.tech) {
         const what = [e.labs && labs, e.scan && 'scan'].filter(Boolean).join(' and ');
-        return `Technical visit${what ? ` with ${what}` : ''}${pre}`;
+        return `Technical visit${what ? ` for ${what}` : ''}${pre}`;
       }
       if (e.scanDate == null) return `TCU${e.labs ? ` with ${labs}` : ''}${pre}`;
       const prior = `${e.date - e.scanDate} days prior`;
