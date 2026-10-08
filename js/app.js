@@ -26,7 +26,7 @@ let lastText = '';
 
 const el = {
   name: $('#name'), cycleDays: $('#cycleDays'), days: $('#days'), review: $('#review'), chemo: $('#chemo'),
-  cycle: $('#cycle'), labs: $('#labs'),
+  cycle: $('#cycle'), labs: $('#labs'), labTests: $('#labTests'), labTestsField: $('#lab-tests-field'),
   error: $('#error'), timeline: $('#timeline'), copy: $('#copy'),
 };
 
@@ -39,12 +39,13 @@ function restoreEntry() {
   el.days.value = entry.days;
   setEvery(entry.every);
   el.labs.checked = entry.labs;
+  el.labTests.value = entry.labTests;
 }
 
 function saveEntry(input) {
   store.set('cc.entry', {
     name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
-    days: el.days.value.trim(), every: input.every, labs: input.labs,
+    days: el.days.value.trim(), every: input.every, labs: input.labs, labTests: input.labTests,
   });
 }
 
@@ -65,6 +66,7 @@ function readInput() {
     chemo: el.chemo.value,
     every,
     labs: el.labs.checked,
+    labTests: el.labTests.value,
     cycle: num(el.cycle),
   };
 }
@@ -116,6 +118,7 @@ function setEdit(e, value) {
 
 function render() {
   const input = readInput();
+  el.labTestsField.hidden = !input.labs;
   el.timeline.innerHTML = '';
   el.copy.hidden = true;
   el.error.hidden = true;
@@ -144,7 +147,7 @@ function render() {
     const what = document.createElement('span');
     what.className = 'what';
     const name = document.createElement('span');
-    name.textContent = label(e, res.multiDay);
+    name.textContent = label(e, res.multiDay, input.labTests);
     what.append(name);
     for (const f of e.flags) {
       const c = document.createElement(f.t === 'edited' ? 'button' : 'span');

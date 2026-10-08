@@ -195,13 +195,14 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   return { error: null, events, multiDay };
 }
 
-export function label(e, multiDay) {
+export function label(e, multiDay, labTests = '') {
   const pre = e.cycle ? ` pre-C${e.cycle}` : '';
   const dayTag = multiDay ? ` D${e.day}` : '';
+  const tests = labTests.trim() ? ` (${labTests.trim()})` : '';
   switch (e.kind) {
-    case 'review': return `TCU${e.labs ? ' + labs' : ''}${pre}`;
+    case 'review': return `TCU${e.labs ? ` + labs${tests}` : ''}${pre}`;
     case 'eot': return 'End-of-treatment TCU';
-    case 'labs': return `Labs${e.cycle ? ` pre-C${e.cycle}${dayTag}` : dayTag ? ` pre${dayTag}` : ''}`;
+    case 'labs': return `Labs${tests}${e.cycle ? ` pre-C${e.cycle}${dayTag}` : dayTag ? ` pre${dayTag}` : ''}`;
     default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;
   }
 }
@@ -226,7 +227,7 @@ export function toText(result, input, S) {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
     if (e.pending) flags.push('reschedule');
     const date = formatDay(e.date, S.dateFormat);
-    return `- ${date} ${label(e, result.multiDay)}${flags.length ? ` [${flags.join(', ')}]` : ''}`;
+    return `- ${date} ${label(e, result.multiDay, input.labTests)}${flags.length ? ` [${flags.join(', ')}]` : ''}`;
   });
   return [head, ...lines].join('\n');
 }
