@@ -202,3 +202,51 @@ test('EMR header without a regimen name', () => {
   const text = toText(plan(input, S(), SG_HOLIDAYS), input, S());
   assert.equal(text.split('\n')[0], 'q21d, TCU every 3 cycles');
 });
+
+test('editing a chemo D1 re-anchors that cycle and everything after', () => {
+  const res = plan(folfoxInput, S(), SG_HOLIDAYS, {}, { 'chemo:1:1': '2026-11-02' });
+  const c4 = find(res, 'chemo', 4);
+  assert.equal(fromDay(c4.date), '2026-11-02');
+  assert.deepEqual(c4.flags, [{ t: 'edited' }]);
+  assert.equal(fromDay(find(res, 'labs', 4).date), '2026-10-30');
+  assert.equal(fromDay(find(res, 'chemo', 5).date), '2026-11-16');
+  assert.equal(fromDay(find(res, 'review', 6).date), '2026-11-27');
+  assert.equal(fromDay(find(res, 'chemo', 6).date), '2026-11-30');
+  assert.deepEqual(find(res, 'chemo', 6).flags, []);
+});
+
+test('editing a TCU moves its chemo by the same gap and re-anchors the rest', () => {
+  const res = plan(folfoxInput, S(), SG_HOLIDAYS, {}, { 'tcu:3': '2026-11-27' });
+  const r6 = find(res, 'review', 6);
+  assert.equal(fromDay(r6.date), '2026-11-27');
+  assert.ok(r6.flags.some((f) => f.t === 'edited'));
+  assert.equal(fromDay(find(res, 'chemo', 6).date), '2026-11-30');
+  assert.equal(fromDay(find(res, 'chemo', 8).date), '2026-12-28');
+  assert.equal(fromDay(find(res, 'review', 9).date), '2027-01-08');
+  assert.equal(fromDay(find(res, 'chemo', 9).date), '2027-01-11');
+  // Earlier cycles are untouched
+  assert.equal(fromDay(find(res, 'chemo', 5).date), '2026-11-10');
+});
+
+test('editing a D8 moves only that treatment day', () => {
+  const input = { regimen: R.gemcis, review: '2026-10-13', chemo: '2026-10-14', every: 1, labs: true, cycle: 1 };
+  const res = plan(input, S(), SG_HOLIDAYS, {}, { 'chemo:1:8': '2026-11-12' });
+  assert.equal(fromDay(find(res, 'chemo', 2, 8).date), '2026-11-12');
+  assert.equal(fromDay(find(res, 'labs', 2, 8).date), '2026-11-11');
+  assert.equal(fromDay(find(res, 'chemo', 3).date), '2026-11-25');
+});
+
+test('editable rows carry an edit key; keyed C1 and pending TCUs do not', () => {
+  const res = plan(folfoxInput, S(), SG_HOLIDAYS);
+  assert.equal(find(res, 'chemo', 3).editKey, undefined);
+  assert.equal(find(res, 'review', 3).editKey, undefined);
+  assert.equal(find(res, 'chemo', 4).editKey, 'chemo:1:1');
+  assert.equal(find(res, 'review', 6).editKey, 'tcu:3');
+  assert.equal(find(res, 'review', 9).editKey, undefined); // pending PH choice
+});
+
+test('edited dates are not annotated in EMR text', () => {
+  const edits = { 'chemo:1:1': '2026-11-02' };
+  const text = toText(plan(folfoxInput, S(), SG_HOLIDAYS, {}, edits), folfoxInput, S());
+  assert.ok(text.split('\n').includes('- Mon 2/11/26 C4'));
+});

@@ -21,6 +21,7 @@ const store = {
 let settings = { ...DEFAULT_SETTINGS, ...store.get('cc.settings', {}) };
 const entry = { ...DEFAULT_ENTRY, ...store.get('cc.entry', {}) };
 let choices = {};
+let edits = {};
 let lastText = '';
 
 const el = {
@@ -78,8 +79,39 @@ function chipText(f) {
     case 'moved': return `from ${formatDay(f.from, settings.dateFormat)}`;
     case 'short': return `${f.days}d`;
     case 'nodata': return 'No PH data';
+    case 'edited': return 'Edited ×';
     default: return '';
   }
+}
+
+// Swap a date for a picker; a new date re-anchors that cycle and the ones after it.
+function editDate(button, e) {
+  const picker = document.createElement('input');
+  picker.type = 'date';
+  picker.className = 'date-picker';
+  picker.value = fromDay(e.date);
+  // Typing a date fires change on every valid intermediate value, so wait for a pause,
+  // Enter or blur before committing.
+  let timer;
+  const commit = () => {
+    clearTimeout(timer);
+    if (picker.value && picker.value !== fromDay(e.date) && picker.value >= '2000') setEdit(e, picker.value);
+    else render();
+  };
+  picker.addEventListener('change', () => { clearTimeout(timer); timer = setTimeout(commit, 900); });
+  picker.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); commit(); } if (ev.key === 'Escape') render(); });
+  picker.addEventListener('blur', commit);
+  button.replaceWith(picker);
+  picker.focus();
+  try { picker.showPicker(); } catch { /* not supported */ }
+}
+
+function setEdit(e, value) {
+  if (value) edits[e.editKey] = value;
+  else delete edits[e.editKey];
+  // PH reschedule picks from this cycle on may no longer apply
+  for (const key of Object.keys(choices)) if (key === 'eot' || Number(key) >= e.k) delete choices[key];
+  render();
 }
 
 function render() {
@@ -89,7 +121,7 @@ function render() {
   el.error.hidden = true;
   if (!input.regimen || !input.review || !input.chemo) return;
 
-  const res = plan(input, settings, SG_HOLIDAYS, choices);
+  const res = plan(input, settings, SG_HOLIDAYS, choices, edits);
   if (res.error) {
     el.error.textContent = res.error;
     el.error.hidden = false;
@@ -100,9 +132,14 @@ function render() {
     const li = document.createElement('li');
     li.className = e.kind + (e.pending ? ' pending' : '');
 
-    const date = document.createElement('span');
+    const date = document.createElement(e.editKey ? 'button' : 'span');
     date.className = 'date';
     date.textContent = formatDay(e.date, settings.dateFormat);
+    if (e.editKey) {
+      date.type = 'button';
+      date.classList.add('editable');
+      date.addEventListener('click', () => editDate(date, e));
+    }
 
     const what = document.createElement('span');
     what.className = 'what';
@@ -110,9 +147,14 @@ function render() {
     name.textContent = label(e, res.multiDay);
     what.append(name);
     for (const f of e.flags) {
-      const c = document.createElement('span');
+      const c = document.createElement(f.t === 'edited' ? 'button' : 'span');
       c.className = `chip ${f.t}`;
       c.textContent = chipText(f);
+      if (f.t === 'edited') {
+        c.type = 'button';
+        c.setAttribute('aria-label', 'Undo edit');
+        c.addEventListener('click', () => setEdit(e, null));
+      }
       what.append(c);
     }
     li.append(date, what);
@@ -159,6 +201,7 @@ el.copy.addEventListener('click', async () => {
 
 $('#inputs').addEventListener('input', (ev) => {
   choices = {};
+  edits = {};
   saveEntry(readInput());
   render();
 });

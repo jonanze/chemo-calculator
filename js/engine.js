@@ -48,7 +48,9 @@ export function groupConsecutive(days) {
   return blocks;
 }
 
-export function plan(input, settings, holidays, choices = {}) {
+// edits: manual dates keyed 'tcu:<k>' or 'chemo:<k>:<day>'. An edited TCU or D1 re-anchors
+// that cycle and every cycle after it; an edited later day (e.g. D8) moves only that block.
+export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const S = settings;
   const R = input.regimen;
   if (!R || !input.review || !input.chemo) return { error: 'incomplete', events: [] };
@@ -114,23 +116,38 @@ export function plan(input, settings, holidays, choices = {}) {
   let prevD1 = null;
   let nextPlanned = null;
   let reviews = 0;
+  let anchor = chemo0, anchorK = 0;
 
   for (let k = 0; k <= lastK; k++) {
-    const planned = S.knockOn === 'reanchor' && k > 0 ? prevD1 + cd : chemo0 + k * cd;
+    let planned = S.knockOn === 'reanchor' && k > 0 ? prevD1 + cd : anchor + (k - anchorK) * cd;
     const cycle = input.cycle ? input.cycle + k : null;
     const isReview = k % every === 0;
+    const tcuEdit = isReview && k > 0 ? edits[`tcu:${k}`] : undefined;
+    const d1Edit = k > 0 ? edits[`chemo:${k}:${blocks[0][0]}`] : undefined;
+    if (d1Edit || tcuEdit) {
+      planned = d1Edit ? toDay(d1Edit) : toDay(tcuEdit) + offset;
+      anchor = planned;
+      anchorK = k;
+    }
 
     const treatments = [];
     for (const block of blocks) {
-      const p = planned + block[0] - 1;
-      const first = k === 0 && block[0] === 1
-        ? { date: p, flags: chemoOK(p) ? [] : [why(p, 'chemo')] }
-        : adjustChemo(p);
+      const editKey = `chemo:${k}:${block[0]}`;
+      const isKeyed = k === 0 && block[0] === blocks[0][0];
+      let p = planned + block[0] - 1;
+      let first;
+      if (isKeyed) first = { date: p, flags: chemoOK(p) ? [] : [why(p, 'chemo')] };
+      else if (edits[editKey]) {
+        p = toDay(edits[editKey]);
+        first = { date: p, flags: [...(chemoOK(p) ? [] : [why(p, 'chemo')]), { t: 'edited' }] };
+      } else first = adjustChemo(p);
       const shift = first.date - p;
       block.forEach((day, i) => {
-        const date = planned + day - 1 + shift;
+        const date = p + day - block[0] + shift;
         const flags = i === 0 ? [...first.flags] : chemoOK(date) ? [] : [why(date, 'chemo')];
-        treatments.push({ kind: 'chemo', date, day, cycle, k, blockStart: i === 0, flags });
+        const t = { kind: 'chemo', date, day, cycle, k, blockStart: i === 0, flags };
+        if (i === 0 && !isKeyed) t.editKey = editKey;
+        treatments.push(t);
       });
     }
     const d1 = treatments[0].date;
@@ -142,8 +159,14 @@ export function plan(input, settings, holidays, choices = {}) {
     if (isReview) {
       const base = { kind: 'review', cycle, k, labs: false };
       if (k === 0) review = { ...base, date: review0, flags: clinicOK(review0) ? [] : [why(review0, 'clinic')] };
+      else if (tcuEdit) {
+        const t = toDay(tcuEdit);
+        review = { ...base, date: t, flags: [...(clinicOK(t) ? [] : [why(t, 'clinic')]), { t: 'edited' }] };
+        reviews++;
+      }
       // Anchor on the planned D1, so a chemo moved off a PH doesn't drag its review with it
       else { review = scheduleReview(planned - offset, d1, k, base); reviews++; }
+      if (k > 0 && !review.pending) review.editKey = `tcu:${k}`;
       events.push(review);
     }
 
@@ -159,7 +182,7 @@ export function plan(input, settings, holidays, choices = {}) {
         events.push({ kind: 'labs', date: L.date, flags: L.flags, cycle, k, day: t.day });
       }
     }
-    events.push(...treatments.map(({ blockStart, ...t }) => t));
+    events.push(...treatments);
   }
 
   if (capped && input.cycle + lastK === input.total && reviews < S.visits) {
@@ -200,7 +223,7 @@ export function toText(result, input, S) {
   const every = Math.max(1, Math.floor(input.every) || 1);
   const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${every > 1 ? `, TCU every ${every} cycles` : ''}`;
   const lines = result.events.map((e) => {
-    const flags = e.flags.map((f) => flagText(f, S.dateFormat));
+    const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
     if (e.pending) flags.push('reschedule');
     const date = formatDay(e.date, S.dateFormat);
     return `- ${date} ${label(e, result.multiDay)}${flags.length ? ` [${flags.join(', ')}]` : ''}`;
