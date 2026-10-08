@@ -280,13 +280,30 @@ test('technical TCU is a labs visit, even with labs-before set to days before', 
   assert.ok(text.includes('- Fri 20/11/26 Technical visit + labs (FBC) pre-C6'));
 });
 
-test('scan before a TCU is listed by the TCU date', () => {
+test('scan goes 2 working days before the TCU', () => {
   const input = { ...folfoxInput, tcuOpts: { 3: { scan: true } } };
   const res = plan(input, S(), SG_HOLIDAYS);
   const scan = res.events.find((e) => e.kind === 'scan');
-  assert.equal(fromDay(scan.date), '2026-11-20');
+  assert.equal(fromDay(scan.date), '2026-11-18'); // TCU Fri 20/11 -> Wed 18/11
+  assert.equal(find(res, 'review', 6).labs, true);
   const lines = toText(res, input, S()).split('\n');
-  const i = lines.indexOf('- By Fri 20/11/26 Scan before TCU pre-C6');
-  assert.ok(i > 0);
-  assert.equal(lines[i + 1], '- Fri 20/11/26 TCU + labs pre-C6');
+  assert.ok(lines.includes('- Wed 18/11/26 Scan before TCU pre-C6'));
+});
+
+test('scan before a Tuesday TCU skips the weekend', () => {
+  const input = { regimen: R.gemcis, review: '2026-10-13', chemo: '2026-10-14', every: 1, cycle: 1, tcuOpts: { 1: { scan: true } } };
+  const scan = plan(input, S(), SG_HOLIDAYS).events.find((e) => e.kind === 'scan');
+  assert.equal(fromDay(scan.date), '2026-10-30'); // TCU Tue 3/11 -> Fri 30/10
+});
+
+test('labs can go with the scan instead of the TCU', () => {
+  const input = { ...folfoxInput, labTests: 'FBC', tcuOpts: { 3: { scan: true, scanLabs: true } } };
+  const res = plan(input, S(), SG_HOLIDAYS);
+  assert.equal(find(res, 'review', 6).labs, false);
+  assert.equal(res.events.find((e) => e.kind === 'scan').labs, true);
+  const lines = toText(res, input, S()).split('\n');
+  assert.ok(lines.includes('- Wed 18/11/26 Scan + labs (FBC) before TCU pre-C6'));
+  assert.ok(lines.includes('- Fri 20/11/26 TCU pre-C6'));
+  // Labs for the cycles after still follow the usual rule
+  assert.ok(find(res, 'labs', 7));
 });

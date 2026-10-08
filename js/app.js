@@ -115,12 +115,13 @@ function setEdit(e, value) {
   render();
 }
 
-const TOGGLES = [['labs', 'Labs'], ['tech', 'Technical'], ['scan', 'Scan']];
+const TOGGLES = [['labs', 'Labs'], ['tech', 'Technical'], ['scan', 'Scan'], ['scanLabs', 'Labs with scan']];
 
 function tcuToggles(e) {
   const box = document.createElement('div');
   box.className = 'toggles';
   for (const [key, text] of TOGGLES) {
+    if (key === 'scanLabs' && !(e.opts.scan && (e.opts.labs || e.opts.tech))) continue;
     const b = document.createElement('button');
     b.type = 'button';
     b.textContent = text;
