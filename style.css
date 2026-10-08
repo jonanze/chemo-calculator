@@ -111,6 +111,10 @@ button.chip { border: none; cursor: pointer; font: inherit; font-size: 12px; }
 #timeline li.chemo .date, #timeline li.review .date, #timeline li.eot .date { color: var(--text); }
 #timeline li.labs { color: var(--muted); }
 #timeline li.pending .date { text-decoration: line-through; color: var(--muted); }
+#timeline .toggles { grid-column: 2; display: flex; gap: 6px; flex-wrap: wrap; }
+#timeline .toggles button { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: none; color: var(--muted); }
+#timeline .toggles button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+#timeline li.scan .date::before { content: "By "; }
 #timeline .choose { grid-column: 2; display: flex; gap: 6px; flex-wrap: wrap; }
 #timeline .choose button { padding: 4px 10px; font-size: 13px; }
 
@@ -148,5 +152,5 @@ dialog::backdrop { background: rgb(0 0 0 / .35); }
 
 @media (max-width: 420px) {
   #timeline li { grid-template-columns: 1fr; }
-  #timeline .choose { grid-column: 1; }
+  #timeline .choose, #timeline .toggles { grid-column: 1; }
 }

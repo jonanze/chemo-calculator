@@ -144,7 +144,8 @@ test('total cycles caps output and adds end-of-treatment review', () => {
 });
 
 test('labs off produces no labs', () => {
-  const res = plan({ ...folfoxInput, labs: false }, S(), SG_HOLIDAYS);
+  const off = { labs: false };
+  const res = plan({ ...folfoxInput, tcuOpts: { 0: off, 3: off, 6: off } }, S(), SG_HOLIDAYS);
   assert.equal(res.events.some((e) => e.kind === 'labs' || e.labs), false);
 });
 
@@ -257,4 +258,35 @@ test('lab tests are named on every labs entry and in EMR text', () => {
   assert.equal(lines[1], '- Fri 9/10/26 TCU + labs (FBC, RP, LFT, CEA) pre-C3');
   assert.ok(lines.includes('- Fri 23/10/26 Labs (FBC, RP, LFT, CEA) pre-C4'));
   assert.ok(lines.includes('- Mon 26/10/26 C4'));
+});
+
+test('labs off at one TCU drops its labs and the labs it covers, and only those', () => {
+  const res = plan({ ...folfoxInput, tcuOpts: { 3: { labs: false } } }, S(), SG_HOLIDAYS);
+  assert.equal(find(res, 'review', 3).labs, true);
+  assert.ok(find(res, 'labs', 4));
+  assert.equal(find(res, 'review', 6).labs, false);
+  assert.equal(find(res, 'labs', 7), undefined);
+  assert.equal(find(res, 'labs', 8), undefined);
+  assert.equal(find(res, 'review', 9).labs, true);
+});
+
+test('technical TCU is a labs visit, even with labs-before set to days before', () => {
+  const res = plan({ ...folfoxInput, tcuOpts: { 3: { tech: true, labs: false } } }, S({ preCycleLabs: 'offset' }), SG_HOLIDAYS);
+  const r6 = find(res, 'review', 6);
+  assert.equal(r6.tech, true);
+  assert.equal(r6.labs, true);
+  assert.equal(find(res, 'labs', 6), undefined);
+  const text = toText(res, { ...folfoxInput, labTests: 'FBC' }, S());
+  assert.ok(text.includes('- Fri 20/11/26 Technical TCU + labs (FBC) pre-C6'));
+});
+
+test('scan before a TCU is listed by the TCU date', () => {
+  const input = { ...folfoxInput, tcuOpts: { 3: { ct: true, mri: true } } };
+  const res = plan(input, S(), SG_HOLIDAYS);
+  const scan = res.events.find((e) => e.kind === 'scan');
+  assert.equal(fromDay(scan.date), '2026-11-20');
+  const lines = toText(res, input, S()).split('\n');
+  const i = lines.indexOf('- By Fri 20/11/26 CT + MRI before TCU pre-C6');
+  assert.ok(i > 0);
+  assert.equal(lines[i + 1], '- Fri 20/11/26 TCU + labs pre-C6');
 });

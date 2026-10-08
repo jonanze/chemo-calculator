@@ -22,11 +22,12 @@ let settings = { ...DEFAULT_SETTINGS, ...store.get('cc.settings', {}) };
 const entry = { ...DEFAULT_ENTRY, ...store.get('cc.entry', {}) };
 let choices = {};
 let edits = {};
+let tcuOpts = {};
 let lastText = '';
 
 const el = {
   name: $('#name'), cycleDays: $('#cycleDays'), days: $('#days'), review: $('#review'), chemo: $('#chemo'),
-  cycle: $('#cycle'), labs: $('#labs'), labTests: $('#labTests'), labTestsField: $('#lab-tests-field'),
+  cycle: $('#cycle'), labTests: $('#labTests'),
   error: $('#error'), timeline: $('#timeline'), copy: $('#copy'),
 };
 
@@ -38,14 +39,13 @@ function restoreEntry() {
   el.cycleDays.value = entry.cycleDays;
   el.days.value = entry.days;
   setEvery(entry.every);
-  el.labs.checked = entry.labs;
   el.labTests.value = entry.labTests;
 }
 
 function saveEntry(input) {
   store.set('cc.entry', {
     name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
-    days: el.days.value.trim(), every: input.every, labs: input.labs, labTests: input.labTests,
+    days: el.days.value.trim(), every: input.every, labTests: input.labTests,
   });
 }
 
@@ -64,7 +64,7 @@ function readInput() {
     review: el.review.value,
     chemo: el.chemo.value,
     every,
-    labs: el.labs.checked,
+    tcuOpts,
     labTests: el.labTests.value,
     cycle: num(el.cycle),
   };
@@ -115,9 +115,32 @@ function setEdit(e, value) {
   render();
 }
 
+const TOGGLES = [['labs', 'Labs'], ['tech', 'Technical'], ['ct', 'CT'], ['mri', 'MRI']];
+
+function tcuToggles(e) {
+  const box = document.createElement('div');
+  box.className = 'toggles';
+  for (const [key, text] of TOGGLES) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    const on = key === 'labs' ? e.opts.labs || e.opts.tech : e.opts[key];
+    b.setAttribute('aria-pressed', String(on));
+    b.addEventListener('click', () => {
+      const next = { ...e.opts, [key]: !on };
+      // A technical visit is a labs visit
+      if (key === 'tech' && next.tech) next.labs = true;
+      if (key === 'labs' && !next.labs) next.tech = false;
+      tcuOpts[e.k] = next;
+      render();
+    });
+    box.append(b);
+  }
+  return box;
+}
+
 function render() {
   const input = readInput();
-  el.labTestsField.hidden = !input.labs;
   el.timeline.innerHTML = '';
   el.copy.hidden = true;
   el.error.hidden = true;
@@ -161,6 +184,8 @@ function render() {
     }
     li.append(date, what);
 
+    if (e.kind === 'review') li.append(tcuToggles(e));
+
     if (e.pending) {
       const choose = document.createElement('div');
       choose.className = 'choose';
@@ -202,8 +227,12 @@ el.copy.addEventListener('click', async () => {
 });
 
 $('#inputs').addEventListener('input', (ev) => {
-  choices = {};
-  edits = {};
+  // Name and lab tests only change wording; anything else re-plans from scratch
+  if (ev.target !== el.name && ev.target !== el.labTests) {
+    choices = {};
+    edits = {};
+    tcuOpts = {};
+  }
   saveEntry(readInput());
   render();
 });

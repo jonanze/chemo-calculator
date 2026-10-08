@@ -1,5 +1,5 @@
 // Weekdays: 0 = Sun … 6 = Sat
-export const DEFAULT_ENTRY = { name: '', cycleDays: 21, days: 'D1', every: 1, labs: true, labTests: '' };
+export const DEFAULT_ENTRY = { name: '', cycleDays: 21, days: 'D1', every: 1, labTests: '' };
 
 export const DEFAULT_SETTINGS = {
   clinicDays: [1, 2, 3, 4, 5],
