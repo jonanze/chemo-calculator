@@ -214,7 +214,6 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
 }
 
 export function label(e, multiDay, labTests = '') {
-  const pre = e.cycle ? ` pre-C${e.cycle}` : '';
   const dayTag = multiDay ? ` D${e.day}` : '';
   const tests = labTests.trim() ? ` (${labTests.trim()})` : '';
   switch (e.kind) {
@@ -222,15 +221,15 @@ export function label(e, multiDay, labTests = '') {
       const labs = `labs${tests}`;
       if (e.tech) {
         const what = [e.labs && labs, e.scan && 'scan'].filter(Boolean).join(' and ');
-        return `Technical visit${what ? ` for ${what}` : ''}${pre}`;
+        return `Technical visit${what ? ` for ${what}` : ''}`;
       }
       const tcu = e.tele ? 'TCU (teleconsult)' : 'TCU';
-      if (!e.scanPrior) return `${tcu}${e.labs ? ` with ${labs}` : ''}${pre}`;
-      if (e.labsAtScan) return `${tcu} with scan and ${labs} prior${pre}`;
-      return `${tcu} with ${e.labs ? `${labs} and ` : ''}scan prior${pre}`;
+      if (!e.scanPrior) return `${tcu}${e.labs ? ` with ${labs}` : ''}`;
+      if (e.labsAtScan) return `${tcu} with scan and ${labs} prior`;
+      return `${tcu} with ${e.labs ? `${labs} and ` : ''}scan prior`;
     }
     case 'eot': return 'End-of-treatment TCU';
-    case 'labs': return `Labs${tests}${e.cycle ? ` pre-C${e.cycle}${dayTag}` : dayTag ? ` pre${dayTag}` : ''}`;
+    case 'labs': return `Labs${tests}${multiDay ? ` pre-D${e.day}` : ''}`;
     default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;
   }
 }
