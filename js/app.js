@@ -121,17 +121,14 @@ function tcuToggles(e) {
   const box = document.createElement('div');
   box.className = 'toggles';
   for (const [key, text] of TOGGLES) {
-    if (key === 'scanLabs' && !(e.opts.scan && (e.opts.labs || e.opts.tech))) continue;
+    if (key === 'scanLabs' && !(e.opts.scan && e.opts.labs && !e.opts.tech)) continue;
     const b = document.createElement('button');
     b.type = 'button';
     b.textContent = text;
-    const on = key === 'labs' ? e.opts.labs || e.opts.tech : e.opts[key];
+    const on = e.opts[key];
     b.setAttribute('aria-pressed', String(on));
     b.addEventListener('click', () => {
       const next = { ...e.opts, [key]: !on };
-      // A technical visit is a labs visit
-      if (key === 'tech' && next.tech) next.labs = true;
-      if (key === 'labs' && !next.labs) next.tech = false;
       tcuOpts[e.k] = next;
       render();
     });
