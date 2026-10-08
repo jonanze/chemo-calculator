@@ -162,7 +162,6 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     nextPlanned = S.knockOn === 'reanchor' ? d1 + cd : planned + cd;
 
     let review = null;
-    let scan = null;
     if (isReview) {
       const base = { kind: 'review', cycle, k, labs: false };
       if (k === 0) review = { ...base, date: review0, flags: clinicOK(review0) ? [] : [why(review0, 'clinic')] };
@@ -176,14 +175,14 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       if (k > 0 && !review.pending) review.editKey = `tcu:${k}`;
       current = optsFor(k);
       review.tech = current.tech;
-      review.scan = current.tech && current.scan;
+      review.scan = current.scan;
       review.opts = current;
       // Scan goes S.scanDaysBefore working days before the visit, to allow time to report
+      // A technical visit's scan is on the visit day itself.
       if (current.scan && !current.tech) {
         let s = review.date;
         for (let n = 0; n < S.scanDaysBefore; ) { s--; if (labOK(s)) n++; }
-        scan = { kind: 'scan', date: s, cycle, k, tech: current.tech, labs: false, flags: [] };
-        events.push(scan);
+        review.scanDate = s;
       }
       events.push(review);
     }
@@ -191,8 +190,8 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     if (current.labs) {
       for (const t of treatments) {
         if (S.blockLabs === 'first' && !t.blockStart) continue;
-        if (t.day === treatments[0].day && scan && current.scanLabs && !current.tech) {
-          scan.labs = true;
+        if (t.day === treatments[0].day && review?.scanDate != null && current.scanLabs) {
+          review.labsAtScan = true;
           continue;
         }
         if (t.day === treatments[0].day && review && (S.preCycleLabs === 'review' || review.tech)
@@ -211,7 +210,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     events.push(scheduleReview(nextPlanned - offset, null, 'eot', { kind: 'eot', labs: false }));
   }
 
-  const order = { scan: 0, review: 0, eot: 0, labs: 1, chemo: 2 };
+  const order = { review: 0, eot: 0, labs: 1, chemo: 2 };
   for (const e of events) if (e.date > covered) e.flags.push({ t: 'nodata' });
   events.sort((a, b) => a.date - b.date || order[a.kind] - order[b.kind]);
   return { error: null, events, multiDay };
@@ -223,11 +222,16 @@ export function label(e, multiDay, labTests = '') {
   const tests = labTests.trim() ? ` (${labTests.trim()})` : '';
   switch (e.kind) {
     case 'review': {
-      if (!e.tech) return `TCU${e.labs ? ` + labs${tests}` : ''}${pre}`;
-      const what = [e.labs && `labs${tests}`, e.scan && 'scan'].filter(Boolean).join(' + ');
-      return `Technical visit${what ? `: ${what}` : ''}${pre}`;
+      const labs = `labs${tests}`;
+      if (e.tech) {
+        const what = [e.labs && labs, e.scan && 'scan'].filter(Boolean).join(' and ');
+        return `Technical visit${what ? ` with ${what}` : ''}${pre}`;
+      }
+      if (e.scanDate == null) return `TCU${e.labs ? ` with ${labs}` : ''}${pre}`;
+      const prior = `${e.date - e.scanDate} days prior`;
+      if (e.labsAtScan) return `TCU with scan and ${labs} ${prior}${pre}`;
+      return `TCU with ${e.labs ? `${labs} and ` : ''}scan ${prior}${pre}`;
     }
-    case 'scan': return `Scan${e.labs ? ` + labs${tests}` : ''} before TCU${pre}`;
     case 'eot': return 'End-of-treatment TCU';
     case 'labs': return `Labs${tests}${e.cycle ? ` pre-C${e.cycle}${dayTag}` : dayTag ? ` pre${dayTag}` : ''}`;
     default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;
