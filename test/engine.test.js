@@ -277,16 +277,16 @@ test('technical TCU is a labs visit, even with labs-before set to days before', 
   assert.equal(r6.labs, true);
   assert.equal(find(res, 'labs', 6), undefined);
   const text = toText(res, { ...folfoxInput, labTests: 'FBC' }, S());
-  assert.ok(text.includes('- Fri 20/11/26 Technical TCU + labs (FBC) pre-C6'));
+  assert.ok(text.includes('- Fri 20/11/26 Technical visit + labs (FBC) pre-C6'));
 });
 
 test('scan before a TCU is listed by the TCU date', () => {
-  const input = { ...folfoxInput, tcuOpts: { 3: { ct: true, mri: true } } };
+  const input = { ...folfoxInput, tcuOpts: { 3: { scan: true } } };
   const res = plan(input, S(), SG_HOLIDAYS);
   const scan = res.events.find((e) => e.kind === 'scan');
   assert.equal(fromDay(scan.date), '2026-11-20');
   const lines = toText(res, input, S()).split('\n');
-  const i = lines.indexOf('- By Fri 20/11/26 CT + MRI before TCU pre-C6');
+  const i = lines.indexOf('- By Fri 20/11/26 Scan before TCU pre-C6');
   assert.ok(i > 0);
   assert.equal(lines[i + 1], '- Fri 20/11/26 TCU + labs pre-C6');
 });

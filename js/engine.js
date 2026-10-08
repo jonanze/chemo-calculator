@@ -119,7 +119,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   let anchor = chemo0, anchorK = 0;
   // Per-TCU options. A TCU's labs setting also covers the treatment days it
   // authorises, up to the next TCU. A technical TCU is a labs-only visit.
-  const optsFor = (k) => ({ labs: true, tech: false, ct: false, mri: false, ...(input.tcuOpts?.[k] || {}) });
+  const optsFor = (k) => ({ labs: true, tech: false, scan: false, ...(input.tcuOpts?.[k] || {}) });
   let current = optsFor(0);
 
   for (let k = 0; k <= lastK; k++) {
@@ -174,8 +174,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       current = optsFor(k);
       review.tech = current.tech;
       review.opts = current;
-      const scans = [current.ct && 'CT', current.mri && 'MRI'].filter(Boolean);
-      if (scans.length) events.push({ kind: 'scan', date: review.date, cycle, k, scans, flags: [] });
+      if (current.scan) events.push({ kind: 'scan', date: review.date, cycle, k, tech: current.tech, flags: [] });
       events.push(review);
     }
 
@@ -209,8 +208,8 @@ export function label(e, multiDay, labTests = '') {
   const dayTag = multiDay ? ` D${e.day}` : '';
   const tests = labTests.trim() ? ` (${labTests.trim()})` : '';
   switch (e.kind) {
-    case 'review': return e.tech ? `Technical TCU + labs${tests}${pre}` : `TCU${e.labs ? ` + labs${tests}` : ''}${pre}`;
-    case 'scan': return `${e.scans.join(' + ')} before TCU${pre}`;
+    case 'review': return e.tech ? `Technical visit + labs${tests}${pre}` : `TCU${e.labs ? ` + labs${tests}` : ''}${pre}`;
+    case 'scan': return `Scan before ${e.tech ? 'technical visit' : 'TCU'}${pre}`;
     case 'eot': return 'End-of-treatment TCU';
     case 'labs': return `Labs${tests}${e.cycle ? ` pre-C${e.cycle}${dayTag}` : dayTag ? ` pre${dayTag}` : ''}`;
     default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;

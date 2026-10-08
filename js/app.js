@@ -115,7 +115,7 @@ function setEdit(e, value) {
   render();
 }
 
-const TOGGLES = [['labs', 'Labs'], ['tech', 'Technical'], ['ct', 'CT'], ['mri', 'MRI']];
+const TOGGLES = [['labs', 'Labs'], ['tech', 'Technical'], ['scan', 'Scan']];
 
 function tcuToggles(e) {
   const box = document.createElement('div');
