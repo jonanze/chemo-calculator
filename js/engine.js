@@ -56,7 +56,7 @@ export function plan(input, settings, holidays, choices = {}) {
   const review0 = toDay(input.review);
   const chemo0 = toDay(input.chemo);
   const offset = chemo0 - review0;
-  if (offset < 0) return { error: 'Chemo date is before review date', events: [] };
+  if (offset < 0) return { error: 'Chemo date is before TCU date', events: [] };
 
   const ph = new Map(Object.entries(holidays.dates).map(([d, name]) => [toDay(d), name]));
   const closed = new Set((S.closedDates || []).map(toDay));
@@ -176,8 +176,8 @@ export function label(e, multiDay) {
   const pre = e.cycle ? ` pre-C${e.cycle}` : '';
   const dayTag = multiDay ? ` D${e.day}` : '';
   switch (e.kind) {
-    case 'review': return `Review${e.labs ? ' + labs' : ''}${pre}`;
-    case 'eot': return 'End-of-treatment review';
+    case 'review': return `TCU${e.labs ? ' + labs' : ''}${pre}`;
+    case 'eot': return 'End-of-treatment TCU';
     case 'labs': return `Labs${e.cycle ? ` pre-C${e.cycle}${dayTag}` : dayTag ? ` pre${dayTag}` : ''}`;
     default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;
   }
@@ -198,7 +198,7 @@ export function flagText(f, fmt) {
 export function toText(result, input, S) {
   const R = input.regimen;
   const every = Math.max(1, Math.floor(input.every) || 1);
-  const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${every > 1 ? `, review every ${every} cycles` : ''}`;
+  const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${every > 1 ? `, TCU every ${every} cycles` : ''}`;
   const lines = result.events.map((e) => {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat));
     if (e.pending) flags.push('reschedule');

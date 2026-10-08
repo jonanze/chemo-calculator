@@ -149,7 +149,7 @@ test('labs off produces no labs', () => {
 });
 
 test('errors', () => {
-  assert.equal(plan({ ...folfoxInput, chemo: '2026-10-08' }, S(), SG_HOLIDAYS).error, 'Chemo date is before review date');
+  assert.equal(plan({ ...folfoxInput, chemo: '2026-10-08' }, S(), SG_HOLIDAYS).error, 'Chemo date is before TCU date');
   assert.equal(plan({ ...folfoxInput, cycle: 7, total: 6 }, S(), SG_HOLIDAYS).error, 'Cycle exceeds total');
 });
 
@@ -162,11 +162,11 @@ test('EMR text', () => {
   const res = plan(folfoxInput, S(), SG_HOLIDAYS);
   const text = toText(res, folfoxInput, S());
   const lines = text.split('\n');
-  assert.equal(lines[0], 'FOLFOX q14d, review every 3 cycles');
-  assert.equal(lines[1], '- Fri 9/10/26 Review + labs pre-C3');
+  assert.equal(lines[0], 'FOLFOX q14d, TCU every 3 cycles');
+  assert.equal(lines[1], '- Fri 9/10/26 TCU + labs pre-C3');
   assert.ok(lines.includes('- Tue 10/11/26 C5 [PH, moved from Mon 9/11/26]'));
   assert.ok(lines.includes('- Mon 23/11/26 C6 [13d interval]'));
-  assert.ok(lines.includes('- Fri 1/1/27 Review + labs pre-C9 [PH, reschedule]'));
+  assert.ok(lines.includes('- Fri 1/1/27 TCU + labs pre-C9 [PH, reschedule]'));
 });
 
 test('review stays on its usual day when the chemo it precedes moves off a PH', () => {
@@ -200,5 +200,5 @@ test('treatment days parsing', () => {
 test('EMR header without a regimen name', () => {
   const input = { ...folfoxInput, regimen: { name: '', cycleDays: 21, days: [1] } };
   const text = toText(plan(input, S(), SG_HOLIDAYS), input, S());
-  assert.equal(text.split('\n')[0], 'q21d, review every 3 cycles');
+  assert.equal(text.split('\n')[0], 'q21d, TCU every 3 cycles');
 });

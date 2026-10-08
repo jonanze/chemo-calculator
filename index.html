@@ -29,14 +29,14 @@
       <label>Treatment days
         <input type="text" id="days" placeholder="D1">
       </label>
-      <label>Review
+      <label>TCU
         <input type="date" id="review">
       </label>
       <label>Chemo
         <input type="date" id="chemo">
       </label>
       <fieldset class="seg wide" id="every">
-        <legend>Review every</legend>
+        <legend>TCU every</legend>
         <label><input type="radio" name="every" value="1"><span>1</span></label>
         <label><input type="radio" name="every" value="2"><span>2</span></label>
         <label><input type="radio" name="every" value="3"><span>3</span></label>
@@ -73,8 +73,8 @@
 
       <section>
         <label class="row"><span>Labs, days before treatment</span><input type="number" min="0" max="7" data-key="labsBefore" data-num></label>
-        <label class="row"><span>Labs before reviewed cycle</span>
-          <select data-key="preCycleLabs"><option value="review">Review day</option><option value="offset">Days before</option></select></label>
+        <label class="row"><span>Labs before TCU cycle</span>
+          <select data-key="preCycleLabs"><option value="review">TCU day</option><option value="offset">Days before</option></select></label>
         <label class="row"><span>Labs in consecutive-day blocks</span>
           <select data-key="blockLabs"><option value="first">First day</option><option value="each">Each day</option></select></label>
         <label class="row"><span>Chemo on PH</span>
