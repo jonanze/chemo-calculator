@@ -159,7 +159,6 @@ function labsControls(e, name, multiDay, input) {
     const tests = document.createElement('input');
     tests.type = 'text';
     tests.className = 'tests';
-    tests.placeholder = input.labTests.trim() || 'Tests';
     tests.value = e.tests || '';
     tests.setAttribute('aria-label', 'Tests');
     tests.addEventListener('input', () => {
