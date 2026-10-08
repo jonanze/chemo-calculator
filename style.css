@@ -75,7 +75,7 @@ fieldset.seg label input:checked + span { background: var(--accent); color: var(
 fieldset.seg label input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
 fieldset.seg .unit { color: var(--muted); font-size: 13px; margin-left: 4px; }
 
-label.switch { flex-direction: row !important; align-items: center; align-self: end; min-height: 40px; gap: 10px !important; color: var(--text) !important; font-size: 15px !important; cursor: pointer; }
+label.switch { flex-direction: row !important; align-items: center; min-height: 32px; gap: 10px !important; color: var(--text) !important; font-size: 15px !important; cursor: pointer; }
 label.switch input {
   appearance: none; width: 38px; height: 22px; padding: 0; border-radius: 11px;
   background: var(--line); border: none; position: relative; cursor: pointer; flex: none;
@@ -90,6 +90,7 @@ label.switch input:checked::after { transform: translateX(16px); }
 input.invalid { border-color: var(--alert); }
 .suffix { position: relative; display: block; }
 .suffix input { padding-right: 48px; }
+.wide-suffix input { padding-right: 62px; }
 .suffix span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
 
 /* Timeline */

@@ -50,12 +50,11 @@ function saveEntry(input) {
 }
 
 function setEvery(n) {
-  const radio = $(`#every input[value="${n}"]`);
-  if (radio) radio.checked = true;
+  $('#every').value = n;
 }
 
 function readInput() {
-  const every = Number($('#every input:checked')?.value || 1);
+  const every = Math.max(1, Math.floor(Number($('#every').value)) || 1);
   const num = (x) => (x.value ? Math.max(1, Math.floor(Number(x.value))) : null);
   const cycleDays = num(el.cycleDays);
   const days = parseDays(el.days.value);

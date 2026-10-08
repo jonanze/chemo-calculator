@@ -35,18 +35,13 @@
       <label>Chemo
         <input type="date" id="chemo">
       </label>
-      <fieldset class="seg wide" id="every">
-        <legend>TCU every</legend>
-        <label><input type="radio" name="every" value="1"><span>1</span></label>
-        <label><input type="radio" name="every" value="2"><span>2</span></label>
-        <label><input type="radio" name="every" value="3"><span>3</span></label>
-        <label><input type="radio" name="every" value="4"><span>4</span></label>
-        <span class="unit">cycles</span>
-      </fieldset>
+      <label>TCU every
+        <span class="suffix wide-suffix"><input type="number" id="every" min="1" inputmode="numeric"><span>cycles</span></span>
+      </label>
       <label>Cycle
         <input type="number" id="cycle" min="1" inputmode="numeric">
       </label>
-      <label class="switch">
+      <label class="switch wide">
         <input type="checkbox" id="labs"><span>Labs</span>
       </label>
       <label class="wide" id="lab-tests-field">Lab tests
