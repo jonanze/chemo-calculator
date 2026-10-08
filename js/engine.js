@@ -121,7 +121,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   // authorises, up to the next visit. A technical visit is the investigations
   // themselves (labs and/or scan on that day) with no appointment, so it has
   // no separate scan date.
-  const optsFor = (k) => ({ labs: true, tech: false, scan: false, ...(input.tcuOpts?.[k] || {}) });
+  const optsFor = (k) => ({ labs: true, tech: false, tele: false, scan: false, ...(input.tcuOpts?.[k] || {}) });
   let current = optsFor(0);
 
   for (let k = 0; k <= lastK; k++) {
@@ -175,6 +175,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       if (k > 0 && !review.pending) review.editKey = `tcu:${k}`;
       current = optsFor(k);
       review.tech = current.tech;
+      review.tele = current.tele && !current.tech;
       review.scan = current.scan;
       review.opts = current;
       // A physical TCU's scan is undated ("prior"), so it can be booked flexibly.
@@ -223,9 +224,10 @@ export function label(e, multiDay, labTests = '') {
         const what = [e.labs && labs, e.scan && 'scan'].filter(Boolean).join(' and ');
         return `Technical visit${what ? ` for ${what}` : ''}${pre}`;
       }
-      if (!e.scanPrior) return `TCU${e.labs ? ` with ${labs}` : ''}${pre}`;
-      if (e.labsAtScan) return `TCU with scan and ${labs} prior${pre}`;
-      return `TCU with ${e.labs ? `${labs} and ` : ''}scan prior${pre}`;
+      const tcu = e.tele ? 'TCU (teleconsult)' : 'TCU';
+      if (!e.scanPrior) return `${tcu}${e.labs ? ` with ${labs}` : ''}${pre}`;
+      if (e.labsAtScan) return `${tcu} with scan and ${labs} prior${pre}`;
+      return `${tcu} with ${e.labs ? `${labs} and ` : ''}scan prior${pre}`;
     }
     case 'eot': return 'End-of-treatment TCU';
     case 'labs': return `Labs${tests}${e.cycle ? ` pre-C${e.cycle}${dayTag}` : dayTag ? ` pre${dayTag}` : ''}`;

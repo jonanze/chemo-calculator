@@ -316,3 +316,12 @@ test('labs can go with the scan instead of the TCU', () => {
   assert.ok(find(res, 'labs', 7));
 });
 
+
+test('teleconsult TCU reads TCU (teleconsult)', () => {
+  const input = { ...folfoxInput, labTests: 'FBC', tcuOpts: { 3: { tele: true, scan: true } } };
+  const res = plan(input, S(), SG_HOLIDAYS);
+  const lines = toText(res, input, S()).split('\n');
+  assert.ok(lines.includes('- Fri 20/11/26 TCU (teleconsult) with labs (FBC) and scan prior pre-C6'));
+  const off = { ...folfoxInput, tcuOpts: { 3: { tele: true, labs: false } } };
+  assert.ok(toText(plan(off, S(), SG_HOLIDAYS), off, S()).split('\n').includes('- Fri 20/11/26 TCU (teleconsult) pre-C6'));
+});

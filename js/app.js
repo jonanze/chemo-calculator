@@ -115,7 +115,9 @@ function setEdit(e, value) {
   render();
 }
 
-const TOGGLES = [['labs', 'Labs'], ['scan', 'Scan'], ['tech', 'Technical']];
+const TOGGLES = [['labs', 'Labs'], ['scan', 'Scan'], ['tech', 'Technical'], ['tele', 'Teleconsult']];
+// A visit is either technical or a teleconsult, never both
+const EXCLUSIVE = { tech: 'tele', tele: 'tech' };
 
 function tcuToggles(e) {
   const box = document.createElement('div');
@@ -128,6 +130,7 @@ function tcuToggles(e) {
     b.setAttribute('aria-pressed', String(on));
     b.addEventListener('click', () => {
       const next = { ...e.opts, [key]: !on };
+      if (!on && EXCLUSIVE[key]) next[EXCLUSIVE[key]] = false;
       tcuOpts[e.k] = next;
       render();
     });
