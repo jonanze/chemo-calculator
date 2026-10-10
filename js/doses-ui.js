@@ -32,21 +32,24 @@ function ink(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.18 ? '#ffffff' : '#16181b';
 }
 
+// The unit heads the dose-level column, so "mg/m²" sits over 175, 150… and not over the mg doses
 function card(title, fill, unit) {
   const c = document.createElement('section');
   c.className = 'drug';
   if (fill) { c.style.background = fill; c.style.color = ink(fill); c.classList.add('filled'); }
   const h = document.createElement('h3');
   h.textContent = title;
-  if (unit) {
-    const u = document.createElement('span');
-    u.textContent = unit;
-    h.append(u);
-  }
   c.append(h);
   const t = document.createElement('table');
+  const th = t.createTHead().insertRow();
+  for (const text of [unit, 'mg']) {
+    const cell = document.createElement('th');
+    cell.textContent = text;
+    th.append(cell);
+  }
+  t.createTBody();
   c.append(t);
-  return { c, t };
+  return { c, t: t.tBodies[0], head: th };
 }
 
 function row(t, cells, cls = '') {
@@ -54,8 +57,9 @@ function row(t, cells, cls = '') {
   tr.className = cls;
   for (const [text, k] of cells) {
     const td = tr.insertCell();
-    td.textContent = text;
     if (k) td.className = k;
+    // mg values sit in a span so an over-cap highlight hugs the number
+    if (k === 'mg') { const v = document.createElement('span'); v.textContent = text; td.append(v); } else td.textContent = text;
   }
 }
 
@@ -89,17 +93,24 @@ function renderDoses() {
   const grid = $('#drugs');
   grid.innerHTML = '';
   const cb = card('Carboplatin', null, 'AUC');
+  cb.head.append(document.createElement('th'));
   for (const x of r.carbo) {
-    row(cb.t, [[`AUC${x.auc}`], [x.mg == null ? '' : `${mg(x.mg)} mg`, 'mg'], [`max ${x.max}`, x.over ? 'note over' : 'note']]);
+    row(cb.t, [[String(x.auc)], [x.mg == null ? '' : mg(x.mg), 'mg'], [`max ${x.max}`, x.over ? 'note over' : 'note']]);
   }
   grid.append(cb.c);
   for (const d of r.drugs) {
     const { c, t } = card(d.name, d.fill, UNIT[d.per]);
     for (const x of d.rows) {
-      // A card with a cap note keeps a note cell on every row so the mg column lines up
-      const note = !d.cap ? null : d.cap.dose === x.dose ? [d.cap.label, x.over ? 'note over' : 'note'] : ['', 'note'];
-      row(t, [[`${x.dose}${d.suffix || ''}`], [x.mg == null ? '' : `${mg(x.mg)} mg`, 'mg'], ...(note ? [note] : [])],
-        d.bold?.includes(x.dose) ? 'bold' : '');
+      const cls = [d.bold?.includes(x.dose) && 'bold', x.over && 'over'].filter(Boolean).join(' ');
+      row(t, [[`${x.dose}${d.suffix || ''}`], [x.mg == null ? '' : mg(x.mg), 'mg']], cls);
+    }
+    // The cap note sits under the table so it never squeezes the mg column
+    if (d.cap) {
+      const p = document.createElement('p');
+      const over = d.rows.some((x) => x.over);
+      p.className = `cap${over ? ' over' : ''}`;
+      p.textContent = `${d.cap.label} (${d.cap.dose} ${UNIT[d.per]})`;
+      c.append(p);
     }
     grid.append(c);
   }

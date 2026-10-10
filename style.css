@@ -146,19 +146,24 @@ button.chip { border: none; cursor: pointer; font: inherit; font-size: 12px; }
 #derived dt { color: var(--muted); }
 #derived dd { margin: 0; text-align: right; }
 #derived dd.flag { color: var(--alert); font-weight: 600; }
-#drugs { columns: 3 220px; column-gap: 12px; }
+#drugs { columns: 3 200px; column-gap: 12px; }
 .drug { break-inside: avoid; margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); }
 .drug.filled { border-color: transparent; }
-.drug h3 { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 6px; color: inherit; text-transform: none; letter-spacing: 0; font-size: 14px; }
-.drug h3 span { font-weight: 400; font-size: 12px; opacity: .75; white-space: nowrap; }
+.drug h3 { margin: 0 0 4px; color: inherit; text-transform: none; letter-spacing: 0; font-size: 14px; }
+.drug th { padding: 0 0 2px; font-size: 12px; font-weight: 400; opacity: .75; text-align: left; white-space: nowrap; }
+.drug th:nth-child(2) { text-align: right; }
 .drug table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .drug td { padding: 2px 0; }
-.drug td:first-child { width: 1%; white-space: nowrap; padding-right: 16px; }
+.drug td:first-child, .drug th:first-child { width: 1%; white-space: nowrap; padding-right: 16px; }
 .drug td.mg { text-align: right; font-weight: 600; }
 .drug td.note { width: 1%; text-align: right; padding-left: 12px; font-size: 12px; opacity: .8; white-space: nowrap; }
 .drug td.note.over { opacity: 1; font-weight: 700; color: var(--alert); }
 .drug.filled td.note.over { color: #a12a2a; background: #fff; border-radius: 4px; padding: 0 4px; }
 .drug tr.bold td:first-child { font-weight: 700; }
+.drug tr.over td.mg { color: var(--alert); }
+.drug.filled tr.over td.mg span { color: #a12a2a; background: #fff; border-radius: 4px; padding: 0 4px; }
+.drug .cap { margin: 6px 0 0; font-size: 12px; opacity: .85; }
+.drug .cap.over { opacity: 1; font-weight: 700; }
 
 /* Settings */
 dialog {
@@ -194,6 +199,16 @@ dialog::backdrop { background: rgb(0 0 0 / .35); }
   main { padding: 16px; }
   .layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .layout > #inputs, #doses-view .side { position: static; }
+  /* iOS zooms into inputs under 16px */
+  input, select { font-size: 16px; }
+  header { gap: 16px; }
+  #doses-view .side { justify-items: stretch; }
+  #derived { grid-template-columns: 1fr auto; }
+  /* Two narrow card columns halve the scroll on a phone */
+  #drugs { columns: 2; column-gap: 8px; }
+  .drug { padding: 8px 10px; margin-bottom: 8px; font-size: 14px; }
+  .drug td:first-child, .drug th:first-child { padding-right: 8px; }
+  .drug td.note { font-size: 11px; padding-left: 6px; }
   #timeline li { grid-template-columns: 8.5em minmax(0, 1fr); }
   #timeline .toggles { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
 }
