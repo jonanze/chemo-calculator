@@ -42,7 +42,12 @@ main { max-width: 1120px; margin: 0 auto; padding: 24px 32px 48px; }
 .layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 48px; align-items: start; }
 .layout > #inputs { position: sticky; top: 24px; }
 
-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+header { display: flex; align-items: center; gap: 32px; margin-bottom: 20px; }
+header #open-settings { margin-left: auto; }
+.tabs { display: flex; gap: 4px; }
+.tabs button { background: none; border: none; border-radius: 8px; padding: 6px 12px; color: var(--muted); }
+.tabs button:hover { color: var(--text); }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--text); font-weight: 600; }
 h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 h2 { font-size: 16px; font-weight: 600; margin: 0; }
 h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -57,9 +62,10 @@ button.icon:hover { color: var(--text); }
 button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); padding: 8px 22px; font-weight: 600; }
 
 /* Inputs */
-#inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+#inputs, .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fields .wide { grid-column: 1 / -1; }
 #inputs .wide { grid-column: 1 / -1; }
-#inputs > label, fieldset legend { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+#inputs > label, .fields > label, fieldset legend { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
 input, select {
   font: inherit; color: var(--text); background: var(--bg);
   border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; width: 100%;
@@ -76,6 +82,7 @@ fieldset.seg label span {
 }
 fieldset.seg label input:checked + span { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 fieldset.seg label input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
+fieldset.seg.words label span { width: auto; padding: 0 14px; }
 fieldset.seg .unit { color: var(--muted); font-size: 13px; margin-left: 4px; }
 
 label.switch { flex-direction: row !important; align-items: center; min-height: 32px; gap: 10px !important; color: var(--text) !important; font-size: 15px !important; cursor: pointer; }
@@ -132,6 +139,27 @@ button.chip { border: none; cursor: pointer; font: inherit; font-size: 12px; }
 .chip.ph, .chip.closed, .chip.off, .chip.nodata { background: var(--warn-bg); color: var(--warn); }
 .chip.short, .chip.reschedule { background: var(--alert-bg); color: var(--alert); }
 
+/* Doses */
+#doses-view .side { position: sticky; top: 24px; display: grid; gap: 20px; justify-items: start; }
+#doses-view .fields { width: 100%; }
+#derived { display: grid; grid-template-columns: auto auto; gap: 6px 24px; margin: 0; font-variant-numeric: tabular-nums; }
+#derived dt { color: var(--muted); }
+#derived dd { margin: 0; text-align: right; }
+#derived dd.flag { color: var(--alert); font-weight: 600; }
+#drugs { columns: 3 220px; column-gap: 12px; }
+.drug { break-inside: avoid; margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); }
+.drug.filled { border-color: transparent; }
+.drug h3 { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 6px; color: inherit; text-transform: none; letter-spacing: 0; font-size: 14px; }
+.drug h3 span { font-weight: 400; font-size: 12px; opacity: .75; white-space: nowrap; }
+.drug table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.drug td { padding: 2px 0; }
+.drug td:first-child { width: 1%; white-space: nowrap; padding-right: 16px; }
+.drug td.mg { text-align: right; font-weight: 600; }
+.drug td.note { width: 1%; text-align: right; padding-left: 12px; font-size: 12px; opacity: .8; white-space: nowrap; }
+.drug td.note.over { opacity: 1; font-weight: 700; color: var(--alert); }
+.drug.filled td.note.over { color: #a12a2a; background: #fff; border-radius: 4px; padding: 0 4px; }
+.drug tr.bold td:first-child { font-weight: 700; }
+
 /* Settings */
 dialog {
   border: 1px solid var(--line); border-radius: 14px; padding: 0; width: min(560px, calc(100vw - 32px));
@@ -165,7 +193,7 @@ dialog::backdrop { background: rgb(0 0 0 / .35); }
 @media (max-width: 860px) {
   main { padding: 16px; }
   .layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-  .layout > #inputs { position: static; }
+  .layout > #inputs, #doses-view .side { position: static; }
   #timeline li { grid-template-columns: 8.5em minmax(0, 1fr); }
   #timeline .toggles { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
 }
