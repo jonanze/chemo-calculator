@@ -23,17 +23,18 @@ test('doses multiply BSA, weight or AIBW as in the workbook', () => {
   near(d('Capecitabine').rows.find((x) => x.dose === 1250).mg, 1250 * bsa(160, 70));
 });
 
-test('female CrCl floors creatinine at 62 µmol/L; male uses measured', () => {
+test('CrCl floors creatinine at 62 µmol/L for both sexes', () => {
   near(crcl({ age: 60, wt: 70, cr: 50, sex: 'F' }).value, 1.04 * 80 * 70 / 62);
   near(crcl({ age: 60, wt: 70, cr: 90, sex: 'F' }).value, 1.04 * 80 * 70 / 90);
-  near(crcl({ age: 60, wt: 70, cr: 50, sex: 'M' }).value, 1.23 * 80 * 70 / 50);
+  near(crcl({ age: 60, wt: 70, cr: 50, sex: 'M' }).value, 1.23 * 80 * 70 / 62);
+  near(crcl({ age: 60, wt: 70, cr: 90, sex: 'M' }).value, 1.23 * 80 * 70 / 90);
 });
 
 test('carboplatin is Calvert and flags doses above the max', () => {
   near(carbo(100, 5), 625);
-  const r = compute({ ht: 175, wt: 70, sex: 'M', age: 60, cr: 50 });
+  const r = compute({ ht: 175, wt: 80, sex: 'M', age: 40, cr: 70 });
   const auc5 = r.carbo.find((x) => x.auc === 5);
-  near(auc5.mg, (1.23 * 80 * 70 / 50 + 25) * 5);
+  near(auc5.mg, (1.23 * 100 * 80 / 70 + 25) * 5);
   assert.equal(auc5.max, 750);
   assert.equal(auc5.over, true);
 });

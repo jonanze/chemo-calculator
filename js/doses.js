@@ -7,10 +7,11 @@ export const ibwMirv = (ht) => 0.9 * ht - 92; // mirvetuximab label (female)
 export const devine = (ht, sex) => (sex === 'M' ? 50 : 45.5) + 0.91 * (ht - 152.4);
 export const adjusted = (ibw, wt) => ibw + 0.4 * (wt - ibw);
 
-// Cockcroft-Gault in SI units. Female creatinine is floored at 62 µmol/L, as in the workbook.
-export const CR_FLOOR_F = 62;
+// Cockcroft-Gault in SI units. Creatinine is floored at 62 µmol/L for both sexes
+// (the workbook floored women only; Jonan chose both, 10 Oct 2026).
+export const CR_FLOOR = 62;
 export function crcl({ age, wt, cr, sex }) {
-  const used = sex === 'F' ? Math.max(cr, CR_FLOOR_F) : cr;
+  const used = Math.max(cr, CR_FLOOR);
   return { value: ((sex === 'F' ? 1.04 : 1.23) * (140 - age) * wt) / used, crUsed: used };
 }
 

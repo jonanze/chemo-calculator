@@ -1,4 +1,4 @@
-import { compute, mg, UNIT, CR_FLOOR_F } from './doses.js';
+import { compute, mg, UNIT, CR_FLOOR } from './doses.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -82,7 +82,7 @@ function renderDoses() {
     const dd = document.createElement('dd');
     dd.textContent = v ? `${v} ${u}`.trim() : '';
     if (k === 'BMI' && r.bmi > 25) dd.classList.add('flag');
-    if (k === 'CrCl' && v && sex === 'F' && r.crUsed === CR_FLOOR_F && num('#cr') < CR_FLOOR_F) dd.textContent += ` (Cr ${CR_FLOOR_F})`;
+    if (k === 'CrCl' && v && num('#cr') < CR_FLOOR) dd.textContent += ` (Cr ${CR_FLOOR})`;
     list.append(dt, dd);
   }
 
