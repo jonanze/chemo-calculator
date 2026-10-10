@@ -4,29 +4,45 @@
   --line: #e3e5e8;
   --text: #16181b;
   --muted: #6b7178;
-  --accent: #0f766e;
+  --accent: #3a6cc4;
   --accent-ink: #ffffff;
   --warn-bg: #fdf3e1;
   --warn: #8a5a00;
   --alert-bg: #fbe9e9;
   --alert: #a12a2a;
   --radius: 10px;
-  color-scheme: light dark;
+  color-scheme: light;
 }
+/* Dark follows the system unless the header switch has picked a theme */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #16181b;
     --surface: #1f2226;
     --line: #2e3237;
     --text: #e8eaed;
     --muted: #9aa0a6;
-    --accent: #2dd4bf;
-    --accent-ink: #0b1f1d;
+    --accent: #7aa6e7;
+    --accent-ink: #0e1a2e;
     --warn-bg: #3a2e14;
     --warn: #f2c66d;
     --alert-bg: #3b1d1d;
     --alert: #f19c9c;
+    color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #16181b;
+  --surface: #1f2226;
+  --line: #2e3237;
+  --text: #e8eaed;
+  --muted: #9aa0a6;
+  --accent: #7aa6e7;
+  --accent-ink: #0e1a2e;
+  --warn-bg: #3a2e14;
+  --warn: #f2c66d;
+  --alert-bg: #3b1d1d;
+  --alert: #f19c9c;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -43,7 +59,9 @@ main { max-width: 1120px; margin: 0 auto; padding: 24px 32px 48px; }
 .layout > #inputs { position: sticky; top: 24px; }
 
 header { display: flex; align-items: center; gap: 32px; margin-bottom: 20px; }
-header #open-settings { margin-left: auto; }
+header .tools { margin-left: auto; display: flex; gap: 2px; }
+#theme .moon, :root[data-dark] #theme .sun { display: none; }
+:root[data-dark] #theme .moon { display: block; }
 .tabs { display: flex; gap: 4px; }
 .tabs button { background: none; border: none; border-radius: 8px; padding: 6px 12px; color: var(--muted); }
 .tabs button:hover { color: var(--text); }
