@@ -398,8 +398,9 @@ test('edit pickers carry the earliest date that keeps the order', () => {
   const res = plan({ regimen: R.gemcis, review: '2026-10-12', chemo: '2026-10-13', every: 1, labs: false, cycle: 1 }, S({ visits: 1 }), SG_HOLIDAYS);
   const d8 = find(res, 'chemo', 1, 8);
   assert.equal(fromDay(d8.minDate), '2026-10-14');
+  // C2 D1 can't go before its own TCU (Mon 2 Nov), which is later than the day after C1 D8
   const c2 = find(res, 'chemo', 2);
-  assert.equal(fromDay(c2.minDate), '2026-10-21');
+  assert.equal(fromDay(c2.minDate), '2026-11-02');
   // TCU 1 day before chemo: the TCU can't go below the previous D8, so its D1 lands after it
   const tcu = res.events.find((e) => e.kind === 'review' && e.k === 1);
   assert.equal(fromDay(tcu.minDate), '2026-10-20');
@@ -462,4 +463,15 @@ test('after a PH TCU move, D8 and D15 keep their planned days', () => {
   // A tighter floor still pushes D8 out rather than break the shortest interval
   const tight = plan(input, S({ minGap: 7 }), SG_HOLIDAYS, { 1: '2026-11-10' });
   assert.equal(fromDay(find(tight, 'chemo', 2, 8).date), '2026-11-18');
+});
+
+test('editing a D1 moves only what comes after it, not its own TCU', () => {
+  const before = plan(folfoxInput, S(), SG_HOLIDAYS);
+  assert.equal(fromDay(find(before, 'review', 6).date), '2026-11-20');
+  assert.equal(fromDay(find(before, 'chemo', 6).date), '2026-11-23');
+  const res = plan(folfoxInput, S(), SG_HOLIDAYS, {}, { 'chemo:3:1': '2026-11-25' });
+  assert.equal(fromDay(find(res, 'review', 6).date), '2026-11-20');
+  assert.equal(fromDay(find(res, 'chemo', 6).date), '2026-11-25');
+  assert.equal(fromDay(find(res, 'chemo', 7).date), '2026-12-09');
+  assert.equal(fromDay(find(res, 'chemo', 6).minDate), '2026-11-20');
 });

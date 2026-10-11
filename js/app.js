@@ -320,8 +320,8 @@ function setEdit(e, value) {
       if (kind === 'chemo' && Number(k) >= e.k && Number(day) !== first) delete edits[key];
     }
   }
-  // PH reschedule picks from this cycle on may no longer apply
-  for (const key of Object.keys(choices)) if (Number(key) >= e.k) delete choices[key];
+  // PH reschedule picks after this date may no longer apply; this cycle's own TCU pick is upstream of its D1
+  for (const key of Object.keys(choices)) if (Number(key) > e.k) delete choices[key];
   render();
 }
 

@@ -207,7 +207,11 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       else if (phPick) {
         const from = scheduled - offset;
         review = { ...base, date: toDay(phPick), flags: [why(from, 'clinic'), { t: 'moved', from }] };
-      } else review = scheduleReview(planned - offset, cycleStart, k, base);
+      // An edited D1 moves only what comes after it, so its TCU stays where it was planned
+      } else review = scheduleReview((d1Edit ? scheduled : planned) - offset, cycleStart, k, base);
+      // A D1 can't be moved before its own TCU
+      const t0 = treatments[0];
+      if (t0.editKey && !review.pending) t0.minDate = Math.max(t0.minDate ?? -Infinity, review.date);
       if (k > 0 && !review.pending) {
         review.editKey = `tcu:${k}`;
         // Its D1 (TCU + the usual gap) must stay after the previous cycle
