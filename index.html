@@ -128,7 +128,8 @@
         <label class="row"><span>Labs in consecutive-day blocks</span>
           <select data-key="blockLabs"><option value="first">First day</option><option value="each">Each day</option></select></label>
         <label class="row"><span>Chemo on PH</span>
-          <select data-key="chemoPH"><option value="forward">Next working day</option><option value="flag">Flag only</option></select></label>
+          <select data-key="chemoPH"><option value="forward">Next working day</option><option value="back">Previous working day</option><option value="flag">Flag only</option></select></label>
+        <label class="row"><span>Shortest interval, days</span><input type="number" min="1" max="28" data-key="minGap" data-num></label>
         <label class="row"><span>After a moved cycle</span>
           <select data-key="knockOn"><option value="original">Original schedule</option><option value="reanchor">From moved date</option></select></label>
         <label class="row"><span>Clinic visits shown</span><input type="number" min="1" max="6" data-key="visits" data-num></label>

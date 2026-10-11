@@ -95,12 +95,14 @@ function editDate(button, e) {
   picker.type = 'date';
   picker.className = 'date-picker';
   picker.value = fromDay(e.date);
+  // A cycle can't be moved onto or before the treatment that comes before it
+  if (e.minDate != null) picker.min = fromDay(e.minDate);
   // Typing a date fires change on every valid intermediate value, so wait for a pause,
   // Enter or blur before committing.
   let timer;
   const commit = () => {
     clearTimeout(timer);
-    if (picker.value && picker.value !== fromDay(e.date) && picker.value >= '2000') setEdit(e, picker.value);
+    if (picker.value && picker.value !== fromDay(e.date) && picker.value >= (picker.min || '2000')) setEdit(e, picker.value);
     else render();
   };
   picker.addEventListener('change', () => { clearTimeout(timer); timer = setTimeout(commit, 900); });

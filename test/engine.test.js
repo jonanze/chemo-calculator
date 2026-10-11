@@ -358,3 +358,49 @@ test('a consecutive block moves as a whole when any of its days is closed', () =
   assert.equal(fromDay(d1.flags[1].from), '2027-05-18');
   assert.equal(fromDay(find(res, 'chemo', 3).date), '2027-06-08');
 });
+
+test('shortest interval: a PH move never brings the next treatment closer than the floor', () => {
+  const wk = { name: 'wPac', cycleDays: 7, days: [1] };
+  const res = plan({ regimen: wk, review: '2026-02-02', chemo: '2026-02-03', every: 4, labs: false, cycle: 1 }, S({ visits: 1 }), SG_HOLIDAYS);
+  // CNY 2026 moves C3 Tue 17 to Thu 19 Feb; C4 Tue 24 would be 5 days later, so it goes to Wed 25
+  assert.equal(fromDay(find(res, 'chemo', 3).date), '2026-02-19');
+  const c4 = find(res, 'chemo', 4);
+  assert.equal(fromDay(c4.date), '2026-02-25');
+  assert.equal(fromDay(c4.flags.find((f) => f.t === 'moved').from), '2026-02-24');
+  // The week after is back on the usual Tuesday
+  assert.equal(fromDay(find(res, 'chemo', 5).date), '2026-03-03');
+  // Within a cycle too: D1/D8/D15 with D8 on CNY
+  const w3 = { name: 'wPac', cycleDays: 28, days: [1, 8, 15] };
+  const r3 = plan({ regimen: w3, review: '2026-02-09', chemo: '2026-02-10', every: 1, labs: false, cycle: 1 }, S({ visits: 1 }), SG_HOLIDAYS);
+  assert.deepEqual(r3.events.filter((e) => e.kind === 'chemo' && e.cycle === 1).map((e) => fromDay(e.date)), ['2026-02-10', '2026-02-19', '2026-02-25']);
+  // A larger floor than the q14 grid needs changes nothing for FOLFOX
+  const ff = plan({ regimen: R.folfox, review: '2026-02-02', chemo: '2026-02-03', every: 1, labs: false, cycle: 1 }, S({ visits: 2 }), SG_HOLIDAYS);
+  assert.deepEqual(ff.events.filter((e) => e.kind === 'chemo').map((e) => fromDay(e.date)), ['2026-02-03', '2026-02-19', '2026-03-03']);
+});
+
+test('previous working day option for PH chemo', () => {
+  const wk = { name: 'wPac', cycleDays: 7, days: [1] };
+  const res = plan({ regimen: wk, review: '2026-02-02', chemo: '2026-02-03', every: 4, labs: true, cycle: 1 }, S({ visits: 1, chemoPH: 'back' }), SG_HOLIDAYS);
+  const c3 = find(res, 'chemo', 3);
+  assert.equal(fromDay(c3.date), '2026-02-16');
+  assert.deepEqual(c3.flags.map((f) => f.t), ['ph', 'moved', 'short']);
+  assert.equal(fromDay(find(res, 'labs', 3).date), '2026-02-13');
+  assert.equal(fromDay(find(res, 'chemo', 4).date), '2026-02-24');
+  // Never onto or before its own TCU: falls back to the next working day
+  const ff = plan({ regimen: R.folfox, review: '2026-02-02', chemo: '2026-02-03', every: 1, labs: false, cycle: 1 }, S({ visits: 1, chemoPH: 'back' }), SG_HOLIDAYS);
+  assert.equal(fromDay(find(ff, 'chemo', 2).date), '2026-02-19');
+  // Never closer than the shortest interval: C2 Tue 10 Feb, so C3 can't go back past Mon 16
+  const tight = plan({ regimen: wk, review: '2026-02-02', chemo: '2026-02-03', every: 4, labs: false, cycle: 1 }, S({ visits: 1, chemoPH: 'back', minGap: 7 }), SG_HOLIDAYS);
+  assert.equal(fromDay(find(tight, 'chemo', 3).date), '2026-02-19');
+});
+
+test('edit pickers carry the earliest date that keeps the order', () => {
+  const res = plan({ regimen: R.gemcis, review: '2026-10-12', chemo: '2026-10-13', every: 1, labs: false, cycle: 1 }, S({ visits: 1 }), SG_HOLIDAYS);
+  const d8 = find(res, 'chemo', 1, 8);
+  assert.equal(fromDay(d8.minDate), '2026-10-14');
+  const c2 = find(res, 'chemo', 2);
+  assert.equal(fromDay(c2.minDate), '2026-10-21');
+  // TCU 1 day before chemo: the TCU can't go below the previous D8, so its D1 lands after it
+  const tcu = res.events.find((e) => e.kind === 'review' && e.k === 1);
+  assert.equal(fromDay(tcu.minDate), '2026-10-20');
+});

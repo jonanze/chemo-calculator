@@ -77,14 +77,25 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
 
   // A consecutive block (D1-3, D1-5) moves as a whole to the first start where
   // every one of its days is open, so it stays consecutive (Jonan, 11 Oct 2026).
-  const adjustChemo = (p, len = 1) => {
+  // floor: earliest start that keeps the shortest interval after the previous block.
+  // earliest: a 'back' move never reaches the cycle's TCU.
+  const adjustChemo = (p, len = 1, floor = -Infinity, earliest = -Infinity) => {
     const blockOK = (s) => { for (let i = 0; i < len; i++) if (!chemoOK(s + i)) return false; return true; };
-    if (blockOK(p)) return { date: p, flags: [] };
+    const ok = blockOK(p);
+    if (ok && p >= floor) return { date: p, flags: [] };
     let bad = p;
-    while (chemoOK(bad)) bad++;
-    if (S.chemoPH === 'forward') {
-      const f = step(p, 1, blockOK);
-      if (f !== null) return { date: f, flags: [why(bad, 'chemo'), { t: 'moved', from: p }] };
+    if (!ok) while (chemoOK(bad)) bad++;
+    const flags = [...(ok ? [] : [why(bad, 'chemo')]), { t: 'moved', from: p }];
+    if (!ok && S.chemoPH === 'back') {
+      const lo = Math.max(floor, earliest);
+      const b = p - lo > 0 ? step(p, -1, blockOK, Math.min(14, p - lo)) : null;
+      if (b !== null) return { date: b, flags };
+    }
+    // 'back' falls through to forward when no earlier day fits
+    if (ok || S.chemoPH !== 'flag') {
+      const start = Math.max(ok ? p : p + 1, floor);
+      const f = blockOK(start) ? start : step(start, 1, blockOK);
+      if (f !== null) return { date: f, flags };
     }
     return { date: p, flags: chemoOK(p) ? [] : [why(p, 'chemo')] };
   };
@@ -116,6 +127,9 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const blocks = groupConsecutive(R.days);
   const events = [];
   let prevD1 = null;
+  // Shortest interval between treatment starts (a designed gap shorter than this is kept)
+  const minGap = Math.max(1, Math.floor(S.minGap) || 1);
+  let prevStart = null, prevStartDay = null, lastTreat = null;
   let anchor = chemo0, anchorK = 0;
   // Per-visit options. A visit's labs setting also covers the treatment days it
   // authorises, up to the next visit. A technical visit is the investigations
@@ -137,24 +151,32 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     }
 
     const treatments = [];
+    const cycleStart = lastTreat;
     for (const block of blocks) {
       const editKey = `chemo:${k}:${block[0]}`;
       const isKeyed = k === 0 && block[0] === blocks[0][0];
       let p = planned + block[0] - 1;
+      const gap = prevStart === null ? null : block === blocks[0] ? cd + block[0] - prevStartDay : block[0] - prevStartDay;
+      const floor = gap === null ? -Infinity : prevStart + Math.min(minGap, gap);
+      const earliest = block === blocks[0] && isReview ? planned - offset + 1 : -Infinity;
+      const minDate = lastTreat === null ? null : lastTreat + 1;
       let first;
       if (isKeyed) first = { date: p, flags: chemoOK(p) ? [] : [why(p, 'chemo')] };
       else if (edits[editKey]) {
         p = toDay(edits[editKey]);
         first = { date: p, flags: [...(chemoOK(p) ? [] : [why(p, 'chemo')]), { t: 'edited' }] };
-      } else first = adjustChemo(p, block.length);
+      } else first = adjustChemo(p, block.length, floor, earliest);
       const shift = first.date - p;
       block.forEach((day, i) => {
         const date = p + day - block[0] + shift;
         const flags = i === 0 ? [...first.flags] : chemoOK(date) ? [] : [why(date, 'chemo')];
         const t = { kind: 'chemo', date, day, cycle, k, blockStart: i === 0, flags };
-        if (i === 0 && !isKeyed) t.editKey = editKey;
+        if (i === 0 && !isKeyed) Object.assign(t, { editKey, minDate });
         treatments.push(t);
+        lastTreat = date;
       });
+      prevStart = first.date;
+      prevStartDay = block[0];
     }
     const d1 = treatments[0].date;
     if (prevD1 !== null && d1 - prevD1 < cd) treatments[0].flags.push({ t: 'short', days: d1 - prevD1 });
@@ -170,7 +192,11 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       }
       // Anchor on the planned D1, so a chemo moved off a PH doesn't drag its review with it
       else review = scheduleReview(planned - offset, d1, k, base);
-      if (k > 0 && !review.pending) review.editKey = `tcu:${k}`;
+      if (k > 0 && !review.pending) {
+        review.editKey = `tcu:${k}`;
+        // Its D1 (TCU + the usual gap) must stay after the previous cycle
+        review.minDate = cycleStart + 1 - offset;
+      }
       current = optsFor(k);
       review.tech = current.tech;
       review.tele = current.tele && !current.tech;

@@ -9,7 +9,8 @@ export const DEFAULT_SETTINGS = {
   scanLabs: 'tcu',          // labs for a TCU with a scan: 'tcu' day or 'scan' day
   preCycleLabs: 'review',   // 'review' = same day as the review, 'offset' = labsBefore rule
   blockLabs: 'first',       // consecutive-day blocks: 'first' day only, or 'each'
-  chemoPH: 'forward',       // 'forward' = move to next working day, 'flag' = flag only
+  chemoPH: 'forward',       // 'forward' = next working day, 'back' = previous one if it fits, 'flag' = flag only
+  minGap: 6,                // shortest interval between treatment starts, in days
   knockOn: 'original',      // 'original' = keep schedule, 'reanchor' = count from moved date
   visits: 2,
   dateFormat: 'EEE d/M/yy',
