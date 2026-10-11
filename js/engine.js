@@ -331,25 +331,25 @@ function emrLines(result, input, S) {
 export function toText(result, input, S) {
   const { head, lines } = emrLines(result, input, S);
   const out = lines.flatMap((l) => {
-    const line = `- ${l.date} ${l.text}${l.flags.length ? ` [${l.flags.join(', ')}]` : ''}`;
+    const line = `${l.date} ${l.text}${l.flags.length ? ` [${l.flags.join(', ')}]` : ''}`;
     return l.gap ? ['', line] : [line];
   });
   return [head, ...out].join('\n');
 }
 
 // The same list as rich text for pasting into notes: TCUs bold, chemo bold in the app's
-// blue, labs grey, flags amber. No bullets: one paragraph per TCU group, a line per entry.
-// Only bold and colour are set; class MsoNormal makes Word use the document's Normal
-// style (its font and size) instead of falling back to Times New Roman.
+// blue, labs grey, flags amber. One line per entry with no spacing between lines and an
+// empty line between TCU groups. Word ignores the page's font and falls back to Times, so
+// the font and size come from Settings. Light-theme colours, since notes are usually white.
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const COLOR = { chemo: '#3a6cc4', labs: '#646d78', flag: '#8a5a00' };
 export function toHTML(result, input, S) {
   const { head, lines } = emrLines(result, input, S);
-  const groups = [];
-  for (const l of lines) {
-    if (l.gap || !groups.length) groups.push([]);
-    groups[groups.length - 1].push(l);
-  }
+  const font = (S.copyFont || '').replace(/["';<>{}]/g, '').trim();
+  const size = Number(S.copySize) > 0 ? Number(S.copySize) : 0;
+  const style = ['margin:0', font && `font-family:'${font}'`, size && `font-size:${size}pt`].filter(Boolean).join(';');
+  const para = (inner) => `<p style="${style}">${inner}</p>`;
+  const blank = para('&nbsp;');
   const paint = (c, t) => `<span style="color:${c}">${t}</span>`;
   const what = (l) => {
     const t = esc(l.text);
@@ -357,7 +357,6 @@ export function toHTML(result, input, S) {
     if (l.kind === 'chemo') return `<b>${paint(COLOR.chemo, t)}</b>`;
     return paint(COLOR.labs, t);
   };
-  const line = (l) => `${esc(l.date)} ${what(l)}${l.flags.length ? ` ${paint(COLOR.flag, `[${esc(l.flags.join(', '))}]`)}` : ''}`;
-  const para = (inner) => `<p class="MsoNormal">${inner}</p>`;
-  return para(`<b>${esc(head)}</b>`) + groups.map((g) => para(g.map(line).join('<br>'))).join('');
+  const line = (l) => para(`${esc(l.date)} ${what(l)}${l.flags.length ? ` ${paint(COLOR.flag, `[${esc(l.flags.join(', '))}]`)}` : ''}`);
+  return para(`<b>${esc(head)}</b>`) + lines.map((l) => (l.gap ? blank : '') + line(l)).join('');
 }
