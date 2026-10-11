@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { REGIMENS } from '../js/regimens.js';
-import { searchRegimens, matchesRegimen } from '../js/picker.js';
+import { searchRegimens, matchesRegimen, doseLine as doseLineOf } from '../js/picker.js';
 import { parseDays } from '../js/engine.js';
 
 const names = (q) => searchRegimens(q, REGIMENS).map((r) => r.name);
@@ -43,6 +43,8 @@ test('reference doses hold only while name, frequency and days still match', () 
 });
 
 test('reference dose lines carry only dose and schedule', async () => {
+  const tchp = REGIMENS.find((r) => r.name.startsWith('TCHP'));
+  assert.ok(tchp.doses.map(doseLineOf).includes('Pertuzumab 420 mg IV D1 (C1 loading 840 mg)'));
   const { doseLine } = await import('../js/picker.js');
   const f = REGIMENS.find((r) => r.name === 'mFOLFOX6');
   assert.deepEqual(f.doses.map(doseLine), [
@@ -55,7 +57,11 @@ test('reference dose lines carry only dose and schedule', async () => {
   assert.equal(doseLine(['capecitabine', 1250, 'mg/m2 BD', 'PO', '1-14']), 'Capecitabine 1250 mg/m² BD PO D1-14');
   for (const r of REGIMENS) {
     assert.ok(r.doses.length > 0, r.name);
-    for (const d of r.doses) assert.ok(Number(d[1]) > 0 && d.length === 5, `${r.name}: ${d}`);
+    for (const d of r.doses) {
+      assert.ok(Number(d[1]) > 0 && d.length >= 5 && d.length <= 6, `${r.name}: ${d}`);
+      // Dose notes carry doses and schedules only, never advice
+      if (d[5]) assert.doesNotMatch(d[5], /consider|\bmay\b|trial|discretion|\balt\b|recommended/i, `${r.name}: ${d[5]}`);
+    }
     assert.deepEqual(Object.keys(r), ['key', 'name', 'tumour', 'setting', 'cycleDays', 'days', 'drugs', 'doses'], r.name);
     assert.doesNotMatch(JSON.stringify(r), /https?:|www\./, r.name);
   }

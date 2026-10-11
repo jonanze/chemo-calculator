@@ -435,3 +435,16 @@ test('a PH TCU moved to another clinic day takes its chemo with it', () => {
   // Only days whose chemo still lands after C1 are offered
   assert.equal(find(pending, 'review', 2).minDate, toDay('2026-10-27'));
 });
+
+test('mid-cycle labs use their own tests; pre-clinic labs keep the main set', () => {
+  const input = { regimen: R.gemcis, review: '2026-10-13', chemo: '2026-10-14', cycle: 1, every: 1, labTests: 'FBC, RP, LFT', midLabTests: 'FBC' };
+  const res = plan(input, S(), SG_HOLIDAYS);
+  const text = toText(res, input, S());
+  assert.match(text, /TCU with labs \(FBC, RP, LFT\)/);
+  assert.match(text, /Labs \(FBC\) pre-D8/);
+  // With no mid-cycle set, D8 labs fall back to the main set
+  assert.match(toText(res, { ...input, midLabTests: '' }, S()), /Labs \(FBC, RP, LFT\) pre-D8/);
+  // A row's own tests still win
+  const own = plan({ ...input, labOpts: { '0:8': { tests: 'FBC, Mg' } } }, S(), SG_HOLIDAYS);
+  assert.match(toText(own, input, S()), /Labs \(FBC, Mg\) pre-D8/);
+});

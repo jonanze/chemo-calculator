@@ -239,7 +239,9 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
         // Each standalone labs row can be switched off or given its own tests
         const labKey = `${k}:${t.day}`;
         const lo = input.labOpts?.[labKey] || {};
-        events.push({ kind: 'labs', date: L.date, flags: L.flags, cycle, k, day: t.day, labKey, off: !!lo.off, tests: lo.tests });
+        // Labs before a later treatment day (D8, D15) are mid-cycle labs, with their own default tests
+        const mid = t.day !== treatments[0].day;
+        events.push({ kind: 'labs', date: L.date, flags: L.flags, cycle, k, day: t.day, labKey, mid, off: !!lo.off, tests: lo.tests });
       }
     }
     events.push(...treatments);
@@ -251,10 +253,15 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   return { error: null, events, multiDay };
 }
 
-export function label(e, multiDay, labTests = '') {
+// The default tests for a labs line: mid-cycle labs use their own set when one is given
+export function baseTests(e, labTests = '', midLabTests = '') {
+  return (e.kind === 'labs' && e.mid && midLabTests.trim()) || labTests.trim();
+}
+
+export function label(e, multiDay, labTests = '', midLabTests = '') {
   const dayTag = multiDay ? ` D${e.day}` : '';
-  const own = e.kind === 'labs' && e.tests?.trim();
-  const tests = own ? ` (${own})` : labTests.trim() ? ` (${labTests.trim()})` : '';
+  const own = (e.kind === 'labs' && e.tests?.trim()) || baseTests(e, labTests, midLabTests);
+  const tests = own ? ` (${own})` : '';
   switch (e.kind) {
     case 'review': {
       const labs = `labs${tests}`;
@@ -293,7 +300,7 @@ export function toText(result, input, S) {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
     if (e.pending) flags.push('reschedule');
     const date = formatDay(e.date, S.dateFormat);
-    const line = `- ${date} ${label(e, result.multiDay, input.labTests)}${flags.length ? ` [${flags.join(', ')}]` : ''}`;
+    const line = `- ${date} ${label(e, result.multiDay, input.labTests, input.midLabTests)}${flags.length ? ` [${flags.join(', ')}]` : ''}`;
     return e.kind === 'review' ? ['', line] : [line];
   });
   return [head, ...lines].join('\n');

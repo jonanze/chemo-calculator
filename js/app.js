@@ -1,4 +1,4 @@
-import { plan, toText, formatDay, fromDay, toDay, label, parseDays } from './engine.js';
+import { plan, toText, formatDay, fromDay, toDay, label, baseTests, parseDays, groupConsecutive } from './engine.js';
 import { SG_HOLIDAYS } from './holidays.js';
 import { DEFAULT_SETTINGS, DEFAULT_ENTRY } from './defaults.js';
 import { copyText } from './clip.js';
@@ -40,7 +40,7 @@ let pickedKey = entry.ref ?? null;
 
 const el = {
   name: $('#name'), cycleDays: $('#cycleDays'), days: $('#days'), review: $('#review'), chemo: $('#chemo'),
-  cycle: $('#cycle'), labTests: $('#labTests'),
+  cycle: $('#cycle'), labTests: $('#labTests'), midLabTests: $('#midLabTests'),
   error: $('#error'), timeline: $('#timeline'), copy: $('#copy'), clear: $('#clear'),
 };
 
@@ -53,12 +53,13 @@ function restoreEntry() {
   el.days.value = entry.days;
   setEvery(entry.every);
   el.labTests.value = entry.labTests;
+  el.midLabTests.value = entry.midLabTests || '';
 }
 
 function saveEntry(input) {
   store.set('cc.entry', {
     name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
-    days: el.days.value.trim(), every: input.every, labTests: input.labTests, ref: pickedKey,
+    days: el.days.value.trim(), every: input.every, labTests: input.labTests, midLabTests: input.midLabTests, ref: pickedKey,
   });
 }
 
@@ -68,6 +69,7 @@ function currentEntry() {
   const r = {
     name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
     days: el.days.value.trim() || 'D1', every: Math.max(1, Math.floor(Number($('#every').value)) || 1), labTests: el.labTests.value.trim(),
+    midLabTests: el.midLabTests.value.trim(),
   };
   r.ref = matchesRegimen(r, BY_KEY.get(pickedKey)) ? pickedKey : null;
   return r;
@@ -99,6 +101,7 @@ function renderRecent() {
       el.days.value = r.days;
       setEvery(r.every);
       el.labTests.value = r.labTests;
+      el.midLabTests.value = r.midLabTests || '';
       pickedKey = r.ref ?? null;
       resetPlan();
       saveEntry(readInput());
@@ -249,6 +252,8 @@ function readInput() {
   const cycleDays = num(el.cycleDays);
   const days = parseDays(el.days.value);
   el.days.classList.toggle('invalid', !days);
+  // Mid-cycle labs only exist when a cycle has a later treatment day (D8, D15)
+  $('#mid-labs-field').hidden = !(days && groupConsecutive(days).length > 1);
   // A date being typed passes through years like 0002; wait for a whole one
   const date = (x) => (x.value >= '2000' ? x.value : '');
   return {
@@ -259,6 +264,7 @@ function readInput() {
     tcuOpts,
     labOpts,
     labTests: el.labTests.value,
+    midLabTests: el.midLabTests.value,
     cycle: num(el.cycle),
   };
 }
@@ -382,22 +388,23 @@ function labsControls(e, name, multiDay, input) {
   return box;
 }
 
-// Opens with this row's tests; clearing the box, or matching the main Lab tests, drops the override.
+// Opens with this row's tests; clearing the box, or matching the default set, drops the override.
 function editTests(button, e, name, multiDay, input) {
   const box = document.createElement('input');
   box.type = 'text';
   box.className = 'tests';
   box.setAttribute('aria-label', 'Tests');
-  box.value = e.tests?.trim() || input.labTests.trim();
+  const base = baseTests(e, input.labTests, input.midLabTests);
+  box.value = e.tests?.trim() || base;
   box.addEventListener('input', () => {
-    name.textContent = label({ ...e, tests: box.value }, multiDay, input.labTests);
+    name.textContent = label({ ...e, tests: box.value }, multiDay, input.labTests, input.midLabTests);
   });
   let done = false;
   const finish = (keep) => {
     if (done) return;
     done = true;
     const v = box.value.trim();
-    if (keep) labOpts[e.labKey] = { ...labOpts[e.labKey], tests: v && v !== input.labTests.trim() ? v : undefined };
+    if (keep) labOpts[e.labKey] = { ...labOpts[e.labKey], tests: v && v !== base ? v : undefined };
     render();
   };
   box.addEventListener('keydown', (ev) => {
@@ -454,7 +461,7 @@ function render() {
     const what = document.createElement('span');
     what.className = 'what';
     const name = document.createElement('span');
-    name.textContent = label(e, res.multiDay, input.labTests);
+    name.textContent = label(e, res.multiDay, input.labTests, input.midLabTests);
     what.append(name);
     for (const f of e.flags) {
       const c = document.createElement(f.t === 'edited' ? 'button' : 'span');
@@ -529,7 +536,7 @@ $('#inputs').addEventListener('input', (ev) => {
     } else if (chemoAuto) el.chemo.value = '';
   }
   // Name and lab tests only change wording; anything else re-plans from scratch
-  if (ev.target !== el.name && ev.target !== el.labTests) resetPlan();
+  if (ev.target !== el.name && ev.target !== el.labTests && ev.target !== el.midLabTests) resetPlan();
   saveEntry(readInput());
   render();
   renderRecent();

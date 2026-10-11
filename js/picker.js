@@ -52,11 +52,11 @@ export function matchesRegimen(entry, r) {
     && (r.cycleDays == null || Number(entry.cycleDays) === r.cycleDays);
 }
 
-// One reference line per drug, e.g. "Fluorouracil 2400 mg/m² IV CI 46h D1"
+// One reference line per drug, e.g. "Pertuzumab 420 mg IV D1 (C1 loading 840 mg)"
 const UNIT = { 'mg/m2': 'mg/m²', 'mg/m2 BD': 'mg/m² BD' };
-export function doseLine([drug, dose, unit, route, days]) {
+export function doseLine([drug, dose, unit, route, days, note]) {
   const name = drug.charAt(0).toUpperCase() + drug.slice(1);
   const amount = unit === 'AUC' ? `AUC ${dose}` : `${dose} ${UNIT[unit] || unit}`;
   const when = /^[\d,\s-]+$/.test(days) ? days.split(',').map((p) => `D${p.trim()}`).join('/') : days;
-  return `${name} ${amount} ${route} ${when}`;
+  return `${name} ${amount} ${route} ${when}${note ? ` (${note.replace(/mg\/m2/g, 'mg/m²')})` : ''}`;
 }
