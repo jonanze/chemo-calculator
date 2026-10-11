@@ -164,11 +164,13 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
 
     const treatments = [];
     const cycleStart = lastTreat;
+    // An edited D8 pushes the later days of its cycle (D15) by the same amount
+    let push = 0;
     for (const block of blocks) {
       const editKey = `chemo:${k}:${block[0]}`;
       const isKeyed = k === 0 && block[0] === blocks[0][0];
       // After a PH TCU move only D1 follows it; D8/D15 keep their planned days (Jonan, 11 Oct 2026)
-      let p = (phPick && block !== blocks[0] ? scheduled : planned) + block[0] - 1;
+      let p = (phPick && block !== blocks[0] ? scheduled : planned) + block[0] - 1 + push;
       const gap = prevStart === null ? null : block === blocks[0] ? cd + block[0] - prevStartDay : block[0] - prevStartDay;
       const floor = gap === null ? -Infinity : prevStart + Math.min(minGap, gap);
       const earliest = block === blocks[0] && isReview ? planned - offset + 1 : -Infinity;
@@ -176,7 +178,9 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       let first;
       if (isKeyed) first = { date: p, flags: chemoOK(p) ? [] : [why(p, 'chemo')] };
       else if (edits[editKey]) {
+        const was = p;
         p = toDay(edits[editKey]);
+        if (block !== blocks[0]) push += p - was;
         first = { date: p, flags: [...(chemoOK(p) ? [] : [why(p, 'chemo')]), { t: 'edited' }] };
       } else first = adjustChemo(p, block.length, floor, earliest);
       const shift = first.date - p;
@@ -192,6 +196,8 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       prevStartDay = block[0];
     }
     const d1 = treatments[0].date;
+    // Labels count the actual day of the cycle from D1, so a D8 kept on its old day after D1 moved reads D7
+    for (const t of treatments) t.shown = t.date - d1 + 1;
     if (prevD1 !== null && d1 - prevD1 < cd) treatments[0].flags.push({ t: 'short', days: d1 - prevD1 });
     prevD1 = d1;
 
@@ -249,7 +255,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
         // A mid-cycle labs check can be turned into a clinic visit on the same day
         const tcu = mid && !!lo.tcu;
         const flags = tcu && !clinicOK(L.date) ? [...L.flags, why(L.date, 'clinic')] : L.flags;
-        events.push({ kind: 'labs', date: L.date, flags, cycle, k, day: t.day, labKey, mid, tcu, off: !!lo.off, tests: lo.tests });
+        events.push({ kind: 'labs', date: L.date, flags, cycle, k, day: t.day, shown: t.shown, labKey, mid, tcu, off: !!lo.off, tests: lo.tests });
       }
     }
     events.push(...treatments);
@@ -267,7 +273,8 @@ export function baseTests(e, labTests = '', midLabTests = '') {
 }
 
 export function label(e, multiDay, labTests = '', midLabTests = '') {
-  const dayTag = multiDay ? ` D${e.day}` : '';
+  const day = e.shown ?? e.day;
+  const dayTag = multiDay ? ` D${day}` : '';
   const own = (e.kind === 'labs' && e.tests?.trim()) || baseTests(e, labTests, midLabTests);
   const tests = own ? ` (${own})` : '';
   switch (e.kind) {
@@ -283,7 +290,7 @@ export function label(e, multiDay, labTests = '', midLabTests = '') {
       return `${tcu} with ${e.labs ? `${labs} and ` : ''}scan prior`;
     }
     case 'labs': {
-      const pre = multiDay ? ` pre-D${e.day}` : '';
+      const pre = multiDay ? ` pre-D${day}` : '';
       if (e.tcu) return `TCU${e.off ? '' : ` with labs${tests}`}${pre}`;
       return `Labs${tests}${pre}`;
     }

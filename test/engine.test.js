@@ -491,3 +491,21 @@ test('a mid-cycle labs check can be turned into a clinic visit', () => {
   const d1 = plan({ ...input, every: 2, labOpts: { '1:1': { tcu: true } } }, S(), SG_HOLIDAYS);
   assert.ok(!find(d1, 'labs', 2, 1).tcu);
 });
+
+test('an edited D8 pushes D15, and day labels count from the actual D1', () => {
+  const input = { regimen: { name: 'Gem-nabP', cycleDays: 28, days: [1, 8, 15] }, review: '2026-10-12', chemo: '2026-10-13', cycle: 1, every: 1 };
+  // PH TCU Mon 9 Nov -> Tue 10 Nov: D1 Wed 11 Nov, D8 stays Tue 17 Nov (day 7 of the cycle)
+  const ph = plan(input, S(), SG_HOLIDAYS, { 1: '2026-11-10' });
+  let text = toText(ph, input, S());
+  assert.ok(text.includes('- Tue 17/11/26 C2 D7'));
+  assert.ok(text.includes('- Mon 16/11/26 Labs pre-D7'));
+  assert.ok(text.includes('- Tue 24/11/26 C2 D14'));
+  // Editing that D8 to Wed 18 Nov pushes D15 to Wed 25 Nov; the next cycle stays on schedule
+  const ed = plan(input, S(), SG_HOLIDAYS, { 1: '2026-11-10' }, { 'chemo:1:8': '2026-11-18' });
+  text = toText(ed, input, S());
+  assert.ok(text.includes('- Wed 18/11/26 C2 D8'));
+  assert.ok(text.includes('- Wed 25/11/26 C2 D15'));
+  assert.equal(fromDay(find(ed, 'chemo', 3).date), '2026-12-08');
+  // Edit keys keep the nominal day
+  assert.equal(find(ed, 'chemo', 2, 8).editKey, 'chemo:1:8');
+});
