@@ -167,7 +167,8 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     for (const block of blocks) {
       const editKey = `chemo:${k}:${block[0]}`;
       const isKeyed = k === 0 && block[0] === blocks[0][0];
-      let p = planned + block[0] - 1;
+      // After a PH TCU move only D1 follows it; D8/D15 keep their planned days (Jonan, 11 Oct 2026)
+      let p = (phPick && block !== blocks[0] ? scheduled : planned) + block[0] - 1;
       const gap = prevStart === null ? null : block === blocks[0] ? cd + block[0] - prevStartDay : block[0] - prevStartDay;
       const floor = gap === null ? -Infinity : prevStart + Math.min(minGap, gap);
       const earliest = block === blocks[0] && isReview ? planned - offset + 1 : -Infinity;

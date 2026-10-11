@@ -448,3 +448,18 @@ test('mid-cycle labs use their own tests; pre-clinic labs keep the main set', ()
   const own = plan({ ...input, labOpts: { '0:8': { tests: 'FBC, Mg' } } }, S(), SG_HOLIDAYS);
   assert.match(toText(own, input, S()), /Labs \(FBC, Mg\) pre-D8/);
 });
+
+test('after a PH TCU move, D8 and D15 keep their planned days', () => {
+  // Gem + nab-paclitaxel q28 D1/8/15, Mon TCU, Tue chemo; C2's TCU falls on Mon 9 Nov 2026
+  const input = { regimen: { name: 'Gem-nabP', cycleDays: 28, days: [1, 8, 15] }, review: '2026-10-12', chemo: '2026-10-13', cycle: 1, every: 1 };
+  const res = plan(input, S(), SG_HOLIDAYS, { 1: '2026-11-10' });
+  assert.equal(fromDay(find(res, 'review', 2).date), '2026-11-10');
+  assert.equal(fromDay(find(res, 'chemo', 2, 1).date), '2026-11-11');
+  assert.equal(fromDay(find(res, 'chemo', 2, 8).date), '2026-11-17');
+  assert.equal(fromDay(find(res, 'chemo', 2, 15).date), '2026-11-24');
+  assert.equal(fromDay(find(res, 'labs', 2, 8).date), '2026-11-16');
+  assert.equal(fromDay(find(res, 'review', 3).date), '2026-12-07');
+  // A tighter floor still pushes D8 out rather than break the shortest interval
+  const tight = plan(input, S({ minGap: 7 }), SG_HOLIDAYS, { 1: '2026-11-10' });
+  assert.equal(fromDay(find(tight, 'chemo', 2, 8).date), '2026-11-18');
+});
