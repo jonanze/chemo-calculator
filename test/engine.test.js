@@ -475,3 +475,19 @@ test('editing a D1 moves only what comes after it, not its own TCU', () => {
   assert.equal(fromDay(find(res, 'chemo', 7).date), '2026-12-09');
   assert.equal(fromDay(find(res, 'chemo', 6).minDate), '2026-11-20');
 });
+
+test('a mid-cycle labs check can be turned into a clinic visit', () => {
+  const input = { regimen: R.gemcis, review: '2026-10-13', chemo: '2026-10-14', cycle: 1, every: 1, labTests: 'FBC, RP', midLabTests: 'FBC' };
+  const res = plan({ ...input, labOpts: { '0:8': { tcu: true } } }, S(), SG_HOLIDAYS);
+  const row = find(res, 'labs', 1, 8);
+  assert.ok(row.tcu);
+  const text = toText(res, input, S()).split('\n');
+  assert.ok(text.includes('- Tue 20/10/26 TCU with labs (FBC) pre-D8'));
+  assert.equal(text[text.indexOf('- Tue 20/10/26 TCU with labs (FBC) pre-D8') - 1], '');
+  // With its labs off it stays a visit without labs
+  const noLabs = plan({ ...input, labOpts: { '0:8': { tcu: true, off: true } } }, S(), SG_HOLIDAYS);
+  assert.ok(toText(noLabs, input, S()).includes('- Tue 20/10/26 TCU pre-D8'));
+  // Only mid-cycle rows convert
+  const d1 = plan({ ...input, every: 2, labOpts: { '1:1': { tcu: true } } }, S(), SG_HOLIDAYS);
+  assert.ok(!find(d1, 'labs', 2, 1).tcu);
+});

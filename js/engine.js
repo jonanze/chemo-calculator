@@ -246,7 +246,10 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
         const lo = input.labOpts?.[labKey] || {};
         // Labs before a later treatment day (D8, D15) are mid-cycle labs, with their own default tests
         const mid = t.day !== treatments[0].day;
-        events.push({ kind: 'labs', date: L.date, flags: L.flags, cycle, k, day: t.day, labKey, mid, off: !!lo.off, tests: lo.tests });
+        // A mid-cycle labs check can be turned into a clinic visit on the same day
+        const tcu = mid && !!lo.tcu;
+        const flags = tcu && !clinicOK(L.date) ? [...L.flags, why(L.date, 'clinic')] : L.flags;
+        events.push({ kind: 'labs', date: L.date, flags, cycle, k, day: t.day, labKey, mid, tcu, off: !!lo.off, tests: lo.tests });
       }
     }
     events.push(...treatments);
@@ -279,7 +282,11 @@ export function label(e, multiDay, labTests = '', midLabTests = '') {
       if (e.labsAtScan) return `${tcu} with scan and ${labs} prior`;
       return `${tcu} with ${e.labs ? `${labs} and ` : ''}scan prior`;
     }
-    case 'labs': return `Labs${tests}${multiDay ? ` pre-D${e.day}` : ''}`;
+    case 'labs': {
+      const pre = multiDay ? ` pre-D${e.day}` : '';
+      if (e.tcu) return `TCU${e.off ? '' : ` with labs${tests}`}${pre}`;
+      return `Labs${tests}${pre}`;
+    }
     default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;
   }
 }
@@ -301,12 +308,12 @@ export function toText(result, input, S) {
   const every = Math.max(1, Math.floor(input.every) || 1);
   const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${every > 1 ? `, TCU every ${every} cycles` : ''}`;
   // A blank line before each TCU groups it with the chemo that follows
-  const lines = result.events.filter((e) => !e.off).flatMap((e) => {
+  const lines = result.events.filter((e) => !e.off || e.tcu).flatMap((e) => {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
     if (e.pending) flags.push('reschedule');
     const date = formatDay(e.date, S.dateFormat);
     const line = `- ${date} ${label(e, result.multiDay, input.labTests, input.midLabTests)}${flags.length ? ` [${flags.join(', ')}]` : ''}`;
-    return e.kind === 'review' ? ['', line] : [line];
+    return e.kind === 'review' || e.tcu ? ['', line] : [line];
   });
   return [head, ...lines].join('\n');
 }

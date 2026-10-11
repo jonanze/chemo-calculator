@@ -367,6 +367,17 @@ function tcuToggles(e) {
 function labsControls(e, name, multiDay, input) {
   const box = document.createElement('div');
   box.className = 'toggles';
+  if (e.mid) {
+    const v = document.createElement('button');
+    v.type = 'button';
+    v.textContent = 'TCU';
+    v.setAttribute('aria-pressed', String(e.tcu));
+    v.addEventListener('click', () => {
+      labOpts[e.labKey] = { ...labOpts[e.labKey], tcu: !e.tcu };
+      render();
+    });
+    box.append(v);
+  }
   const b = document.createElement('button');
   b.type = 'button';
   b.textContent = 'Labs';
@@ -440,7 +451,8 @@ function render() {
 
   for (const e of res.events) {
     const li = document.createElement('li');
-    li.className = e.kind + (e.pending ? ' pending' : '');
+    // A mid-cycle labs row turned into a clinic visit looks like a TCU row
+    li.className = (e.tcu ? 'review' : e.kind) + (e.pending ? ' pending' : '');
 
     const date = document.createElement(e.editKey ? 'button' : 'span');
     date.className = 'date';
@@ -478,7 +490,7 @@ function render() {
 
     if (e.kind === 'review') li.append(tcuToggles(e));
     if (e.kind === 'labs') {
-      li.classList.toggle('off', e.off);
+      li.classList.toggle('off', e.off && !e.tcu);
       li.append(labsControls(e, name, res.multiDay, input));
     }
 
