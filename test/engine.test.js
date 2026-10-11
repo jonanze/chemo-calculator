@@ -515,15 +515,17 @@ test('the formatted copy matches the plain text, with TCUs bold and chemo blue',
   const input = { ...folfoxInput, labTests: 'FBC <CEA>' };
   const res = plan(input, S(), SG_HOLIDAYS);
   const html = toHTML(res, input, S());
-  assert.match(html, /^<p><b>FOLFOX q14d, TCU every 3 cycles<\/b><\/p>/);
-  assert.match(html, /<li>Fri 9\/10\/26 <b>TCU with labs \(FBC &lt;CEA&gt;\)<\/b><\/li>/);
+  assert.match(html, /^<p class="MsoNormal"><b>FOLFOX q14d, TCU every 3 cycles<\/b><\/p>/);
+  assert.match(html, /Fri 9\/10\/26 <b>TCU with labs \(FBC &lt;CEA&gt;\)<\/b><br>/);
   assert.match(html, /<b><span style="color:#3a6cc4">C3<\/span><\/b>/);
-  // Only bold and colour: the destination's font, size and spacing apply
-  assert.doesNotMatch(html, /font|size|margin|padding|class=/);
-  // One list per TCU group, the same grouping as the blank lines in the plain text
-  const groups = (html.match(/<ul/g) || []).length;
+  // No bullets, and only bold and colour: the destination's font, size and spacing apply
+  assert.doesNotMatch(html, /<ul|<li|font|size|margin|padding/);
+  // One paragraph per TCU group, the same grouping as the blank lines in the plain text
+  const groups = (html.match(/<p/g) || []).length - 1;
   const blanks = toText(res, input, S()).split('\n').filter((l) => l === '').length;
   assert.equal(groups, blanks);
-  const plain = html.replace(/<li>/g, '\n- ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-  assert.equal(plain.replace(/\n+/g, '\n'), toText(res, input, S()).replace(/\n+/g, '\n'));
+  const plain = html.replace(/<p[^>]*>/g, '\n').replace(/<br>/g, '\n').replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  const expected = toText(res, input, S()).replace(/^- /gm, '');
+  assert.equal(plain.replace(/\n+/g, '\n').trim(), expected.replace(/\n+/g, '\n').trim());
 });

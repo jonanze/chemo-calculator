@@ -338,8 +338,9 @@ export function toText(result, input, S) {
 }
 
 // The same list as rich text for pasting into notes: TCUs bold, chemo bold in the app's
-// blue, labs grey, flags amber. Only bold and colour are set, so the font, size and
-// spacing come from wherever it is pasted. Light-theme colours, since notes are usually white.
+// blue, labs grey, flags amber. No bullets: one paragraph per TCU group, a line per entry.
+// Only bold and colour are set; class MsoNormal makes Word use the document's Normal
+// style (its font and size) instead of falling back to Times New Roman.
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const COLOR = { chemo: '#3a6cc4', labs: '#646d78', flag: '#8a5a00' };
 export function toHTML(result, input, S) {
@@ -356,6 +357,7 @@ export function toHTML(result, input, S) {
     if (l.kind === 'chemo') return `<b>${paint(COLOR.chemo, t)}</b>`;
     return paint(COLOR.labs, t);
   };
-  const li = (l) => `<li>${esc(l.date)} ${what(l)}${l.flags.length ? ` ${paint(COLOR.flag, `[${esc(l.flags.join(', '))}]`)}` : ''}</li>`;
-  return `<p><b>${esc(head)}</b></p>${groups.map((g) => `<ul>${g.map(li).join('')}</ul>`).join('')}`;
+  const line = (l) => `${esc(l.date)} ${what(l)}${l.flags.length ? ` ${paint(COLOR.flag, `[${esc(l.flags.join(', '))}]`)}` : ''}`;
+  const para = (inner) => `<p class="MsoNormal">${inner}</p>`;
+  return para(`<b>${esc(head)}</b>`) + groups.map((g) => para(g.map(line).join('<br>'))).join('');
 }
