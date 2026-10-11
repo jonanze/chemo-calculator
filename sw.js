@@ -1,8 +1,9 @@
 // Offline cache. Bump VERSION on every release so clients pick up changes.
-const VERSION = 'cc-v32';
+const VERSION = 'cc-v33';
 const FILES = [
   './', 'index.html', 'style.css', 'icon.svg', 'manifest.webmanifest',
   'js/app.js', 'js/engine.js', 'js/holidays.js', 'js/defaults.js', 'js/doses.js', 'js/doses-ui.js', 'js/theme.js',
+  'fonts/inter.woff2',
 ];
 
 self.addEventListener('install', (e) => {
