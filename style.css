@@ -11,6 +11,7 @@
   --alert-bg: #fbe9e9;
   --alert: #a12a2a;
   --radius: 10px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color-scheme: light;
 }
 /* Dark follows the system unless the header switch has picked a theme */
@@ -52,7 +53,9 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 15px/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 main { max-width: 1120px; margin: 0 auto; padding: 24px 32px 48px; }
 .layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 48px; align-items: start; }
@@ -66,7 +69,7 @@ header .tools { margin-left: auto; display: flex; gap: 2px; }
 .tabs button { background: none; border: none; border-radius: 8px; padding: 6px 12px; color: var(--muted); }
 .tabs button:hover { color: var(--text); }
 .tabs button[aria-selected="true"] { background: var(--surface); color: var(--text); font-weight: 600; }
-h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 17px; font-weight: 650; margin: 0; letter-spacing: -0.015em; white-space: nowrap; }
 h2 { font-size: 16px; font-weight: 600; margin: 0; }
 h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.04em; }
 
@@ -78,6 +81,8 @@ button:hover, .button:hover { border-color: var(--muted); }
 button.icon { background: none; border: none; padding: 6px; color: var(--muted); display: grid; place-items: center; }
 button.icon:hover { color: var(--text); }
 button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); padding: 8px 22px; font-weight: 600; }
+button.primary:hover { filter: brightness(1.06); }
+#copy { min-width: 6.5em; }
 
 /* Inputs */
 #inputs, .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -88,6 +93,9 @@ input, select {
   font: inherit; color: var(--text); background: var(--bg);
   border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; width: 100%;
 }
+/* Spinner arrows add clutter to every number box */
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
 
 fieldset.seg { border: none; padding: 0; margin: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -128,12 +136,13 @@ input.invalid { border-color: var(--alert); }
 #timeline { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
 #timeline li {
   display: grid; grid-template-columns: 8.5em minmax(0, 1fr) auto; gap: 4px 16px; align-items: center;
-  min-height: 42px; padding: 6px 0; border-bottom: 1px solid var(--line);
+  min-height: 40px; padding: 5px 0; border-bottom: 1px solid var(--line);
 }
 /* Each TCU starts a group, as in the copied text */
 #timeline li.review:not(:first-child) { margin-top: 18px; border-top: 1px solid var(--line); }
 #timeline:empty { border-top: none; }
-#timeline .date { font-variant-numeric: tabular-nums; color: var(--muted); }
+#timeline .date { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+#timeline .date .wd { display: inline-block; width: 2.5em; }
 #timeline button.date { font: inherit; background: none; border: none; padding: 0; text-align: left; cursor: pointer; }
 #timeline button.date:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
 #timeline .date-picker { width: auto; padding: 2px 6px; }
@@ -219,7 +228,10 @@ dialog::backdrop { background: rgb(0 0 0 / .35); }
   .layout > #inputs, #doses-view .side { position: static; }
   /* iOS zooms into inputs under 16px */
   input, select { font-size: 16px; }
-  header { gap: 16px; }
+  header { gap: 12px; }
+  h1 { font-size: 16px; }
+  .tabs button { padding: 6px 10px; }
+  #dose-clear { justify-self: start; }
   #doses-view .side { justify-items: stretch; }
   #derived { grid-template-columns: 1fr auto; }
   /* Two narrow card columns halve the scroll on a phone */

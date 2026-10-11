@@ -229,7 +229,14 @@ function render() {
 
     const date = document.createElement(e.editKey ? 'button' : 'span');
     date.className = 'date';
-    date.textContent = formatDay(e.date, settings.dateFormat);
+    // The weekday gets its own fixed-width slot so the dates line up
+    const text = formatDay(e.date, settings.dateFormat);
+    if (settings.dateFormat.startsWith('EEE ')) {
+      const wd = document.createElement('span');
+      wd.className = 'wd';
+      wd.textContent = text.slice(0, 3);
+      date.append(wd, text.slice(4));
+    } else date.textContent = text;
     if (e.editKey) {
       date.type = 'button';
       date.classList.add('editable');
