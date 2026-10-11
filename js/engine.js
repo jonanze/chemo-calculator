@@ -310,17 +310,50 @@ export function flagText(f, fmt) {
   }
 }
 
-export function toText(result, input, S) {
+// EMR lines shared by the plain and formatted copies. A blank line before each TCU
+// groups it with the chemo that follows.
+function emrLines(result, input, S) {
   const R = input.regimen;
   const every = Math.max(1, Math.floor(input.every) || 1);
   const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${every > 1 ? `, TCU every ${every} cycles` : ''}`;
-  // A blank line before each TCU groups it with the chemo that follows
-  const lines = result.events.filter((e) => !e.off || e.tcu).flatMap((e) => {
+  const lines = result.events.filter((e) => !e.off || e.tcu).map((e) => {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
     if (e.pending) flags.push('reschedule');
-    const date = formatDay(e.date, S.dateFormat);
-    const line = `- ${date} ${label(e, result.multiDay, input.labTests, input.midLabTests)}${flags.length ? ` [${flags.join(', ')}]` : ''}`;
-    return e.kind === 'review' || e.tcu ? ['', line] : [line];
+    const visit = e.kind === 'review' || !!e.tcu;
+    return {
+      kind: visit ? 'review' : e.kind, gap: visit, date: formatDay(e.date, S.dateFormat),
+      text: label(e, result.multiDay, input.labTests, input.midLabTests), flags,
+    };
   });
-  return [head, ...lines].join('\n');
+  return { head, lines };
+}
+
+export function toText(result, input, S) {
+  const { head, lines } = emrLines(result, input, S);
+  const out = lines.flatMap((l) => {
+    const line = `- ${l.date} ${l.text}${l.flags.length ? ` [${l.flags.join(', ')}]` : ''}`;
+    return l.gap ? ['', line] : [line];
+  });
+  return [head, ...out].join('\n');
+}
+
+// The same list as rich text for pasting into notes: TCUs bold, chemo bold in the app's
+// blue, labs grey, flags amber. Light-theme colours, since notes are usually white.
+const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const STYLE = {
+  review: 'font-weight:600',
+  chemo: 'font-weight:600;color:#3a6cc4',
+  labs: 'color:#646d78',
+};
+export function toHTML(result, input, S) {
+  const { head, lines } = emrLines(result, input, S);
+  const groups = [];
+  for (const l of lines) {
+    if (l.gap || !groups.length) groups.push([]);
+    groups[groups.length - 1].push(l);
+  }
+  const li = (l) => `<li>${esc(l.date)} <span style="${STYLE[l.kind]}">${esc(l.text)}</span>`
+    + `${l.flags.length ? ` <span style="color:#8a5a00">[${esc(l.flags.join(', '))}]</span>` : ''}</li>`;
+  return `<p style="margin:0 0 6px"><b>${esc(head)}</b></p>`
+    + groups.map((g) => `<ul style="margin:0 0 10px;padding-left:20px">${g.map(li).join('')}</ul>`).join('');
 }

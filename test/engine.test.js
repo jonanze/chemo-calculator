@@ -509,3 +509,19 @@ test('an edited D8 pushes D15, and day labels count from the actual D1', () => {
   // Edit keys keep the nominal day
   assert.equal(find(ed, 'chemo', 2, 8).editKey, 'chemo:1:8');
 });
+
+test('the formatted copy matches the plain text, with TCUs bold and chemo blue', async () => {
+  const { toHTML } = await import('../js/engine.js');
+  const input = { ...folfoxInput, labTests: 'FBC <CEA>' };
+  const res = plan(input, S(), SG_HOLIDAYS);
+  const html = toHTML(res, input, S());
+  assert.match(html, /^<p[^>]*><b>FOLFOX q14d, TCU every 3 cycles<\/b><\/p>/);
+  assert.match(html, /<li>Fri 9\/10\/26 <span style="font-weight:600">TCU with labs \(FBC &lt;CEA&gt;\)<\/span><\/li>/);
+  assert.match(html, /<span style="font-weight:600;color:#3a6cc4">C3<\/span>/);
+  // One list per TCU group, the same grouping as the blank lines in the plain text
+  const groups = (html.match(/<ul/g) || []).length;
+  const blanks = toText(res, input, S()).split('\n').filter((l) => l === '').length;
+  assert.equal(groups, blanks);
+  const plain = html.replace(/<li>/g, '\n- ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  assert.equal(plain.replace(/\n+/g, '\n'), toText(res, input, S()).replace(/\n+/g, '\n'));
+});

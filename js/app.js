@@ -1,4 +1,4 @@
-import { plan, toText, formatDay, fromDay, toDay, label, baseTests, parseDays, groupConsecutive } from './engine.js';
+import { plan, toText, toHTML, formatDay, fromDay, toDay, label, baseTests, parseDays, groupConsecutive } from './engine.js';
 import { SG_HOLIDAYS } from './holidays.js';
 import { DEFAULT_SETTINGS, DEFAULT_ENTRY } from './defaults.js';
 import { copyText } from './clip.js';
@@ -28,6 +28,7 @@ let edits = {};
 let tcuOpts = {};
 let labOpts = {};
 let lastText = '';
+let lastHTML = '';
 // Regimens used recently (stored only when copied, so half-typed entries never land here)
 let recent = store.get('cc.recent', []);
 const RECENT_MAX = 6;
@@ -517,11 +518,12 @@ function render() {
   }
 
   lastText = toText(res, input, settings);
+  lastHTML = toHTML(res, input, settings);
   el.copy.hidden = false;
 }
 
 el.copy.addEventListener('click', async () => {
-  await copyText(lastText);
+  await copyText(lastText, lastHTML);
   rememberRegimen();
   const gap = (toDay(el.chemo.value) - toDay(el.review.value));
   if (Number.isFinite(gap) && gap >= 0) { usualGap = gap; store.set('cc.gap', gap); }
