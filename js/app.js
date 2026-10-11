@@ -114,6 +114,15 @@ function editDate(button, e) {
 function setEdit(e, value) {
   if (value) edits[e.editKey] = value;
   else delete edits[e.editKey];
+  // A TCU or D1 change re-anchors this cycle and those after it, so a D8/D15 date
+  // typed against the old schedule would now sit in the wrong place (even before D1)
+  const first = readInput().regimen?.days[0];
+  if (e.kind === 'review' || e.day === first) {
+    for (const key of Object.keys(edits)) {
+      const [kind, k, day] = key.split(':');
+      if (kind === 'chemo' && Number(k) >= e.k && Number(day) !== first) delete edits[key];
+    }
+  }
   // PH reschedule picks from this cycle on may no longer apply
   for (const key of Object.keys(choices)) if (Number(key) >= e.k) delete choices[key];
   render();
