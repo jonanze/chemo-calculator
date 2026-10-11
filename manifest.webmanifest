@@ -1,6 +1,6 @@
 {
-  "name": "Chemo Calculator",
-  "short_name": "Chemo",
+  "name": "ChemoCalc",
+  "short_name": "ChemoCalc",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",

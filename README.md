@@ -1,4 +1,4 @@
-# Chemo Calculator
+# ChemoCalc
 
 Works out the next clinic reviews, chemo dates and pre-chemo labs from the upcoming review date, chemo date and regimen. Applies Singapore public holidays. Static site with no backend; settings are kept in the browser.
 
