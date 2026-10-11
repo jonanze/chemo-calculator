@@ -338,13 +338,10 @@ export function toText(result, input, S) {
 }
 
 // The same list as rich text for pasting into notes: TCUs bold, chemo bold in the app's
-// blue, labs grey, flags amber. Light-theme colours, since notes are usually white.
+// blue, labs grey, flags amber. Only bold and colour are set, so the font, size and
+// spacing come from wherever it is pasted. Light-theme colours, since notes are usually white.
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const STYLE = {
-  review: 'font-weight:600',
-  chemo: 'font-weight:600;color:#3a6cc4',
-  labs: 'color:#646d78',
-};
+const COLOR = { chemo: '#3a6cc4', labs: '#646d78', flag: '#8a5a00' };
 export function toHTML(result, input, S) {
   const { head, lines } = emrLines(result, input, S);
   const groups = [];
@@ -352,8 +349,13 @@ export function toHTML(result, input, S) {
     if (l.gap || !groups.length) groups.push([]);
     groups[groups.length - 1].push(l);
   }
-  const li = (l) => `<li>${esc(l.date)} <span style="${STYLE[l.kind]}">${esc(l.text)}</span>`
-    + `${l.flags.length ? ` <span style="color:#8a5a00">[${esc(l.flags.join(', '))}]</span>` : ''}</li>`;
-  return `<p style="margin:0 0 6px"><b>${esc(head)}</b></p>`
-    + groups.map((g) => `<ul style="margin:0 0 10px;padding-left:20px">${g.map(li).join('')}</ul>`).join('');
+  const paint = (c, t) => `<span style="color:${c}">${t}</span>`;
+  const what = (l) => {
+    const t = esc(l.text);
+    if (l.kind === 'review') return `<b>${t}</b>`;
+    if (l.kind === 'chemo') return `<b>${paint(COLOR.chemo, t)}</b>`;
+    return paint(COLOR.labs, t);
+  };
+  const li = (l) => `<li>${esc(l.date)} ${what(l)}${l.flags.length ? ` ${paint(COLOR.flag, `[${esc(l.flags.join(', '))}]`)}` : ''}</li>`;
+  return `<p><b>${esc(head)}</b></p>${groups.map((g) => `<ul>${g.map(li).join('')}</ul>`).join('')}`;
 }

@@ -10,17 +10,15 @@ export async function copyText(text, html) {
     } else await navigator.clipboard.writeText(text);
   } catch {
     if (html) {
-      const d = document.createElement('div');
-      d.contentEditable = 'true';
-      d.innerHTML = html;
-      document.body.append(d);
-      const r = document.createRange();
-      r.selectNodeContents(d);
-      getSelection().removeAllRanges();
-      getSelection().addRange(r);
+      // Set the clipboard directly so the page's own font and styles don't come along
+      const put = (e) => {
+        e.clipboardData.setData('text/html', html);
+        e.clipboardData.setData('text/plain', text);
+        e.preventDefault();
+      };
+      document.addEventListener('copy', put, { once: true });
       document.execCommand('copy');
-      getSelection().removeAllRanges();
-      d.remove();
+      document.removeEventListener('copy', put);
       return;
     }
     const t = document.createElement('textarea');

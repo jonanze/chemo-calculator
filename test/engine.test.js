@@ -515,9 +515,11 @@ test('the formatted copy matches the plain text, with TCUs bold and chemo blue',
   const input = { ...folfoxInput, labTests: 'FBC <CEA>' };
   const res = plan(input, S(), SG_HOLIDAYS);
   const html = toHTML(res, input, S());
-  assert.match(html, /^<p[^>]*><b>FOLFOX q14d, TCU every 3 cycles<\/b><\/p>/);
-  assert.match(html, /<li>Fri 9\/10\/26 <span style="font-weight:600">TCU with labs \(FBC &lt;CEA&gt;\)<\/span><\/li>/);
-  assert.match(html, /<span style="font-weight:600;color:#3a6cc4">C3<\/span>/);
+  assert.match(html, /^<p><b>FOLFOX q14d, TCU every 3 cycles<\/b><\/p>/);
+  assert.match(html, /<li>Fri 9\/10\/26 <b>TCU with labs \(FBC &lt;CEA&gt;\)<\/b><\/li>/);
+  assert.match(html, /<b><span style="color:#3a6cc4">C3<\/span><\/b>/);
+  // Only bold and colour: the destination's font, size and spacing apply
+  assert.doesNotMatch(html, /font|size|margin|padding|class=/);
   // One list per TCU group, the same grouping as the blank lines in the plain text
   const groups = (html.match(/<ul/g) || []).length;
   const blanks = toText(res, input, S()).split('\n').filter((l) => l === '').length;
