@@ -1,6 +1,7 @@
 import { plan, toText, formatDay, fromDay, toDay, label, parseDays } from './engine.js';
 import { SG_HOLIDAYS } from './holidays.js';
 import { DEFAULT_SETTINGS, DEFAULT_ENTRY } from './defaults.js';
+import { copyText } from './clip.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -25,6 +26,12 @@ let edits = {};
 let tcuOpts = {};
 let labOpts = {};
 let lastText = '';
+// Regimens used recently (stored only when copied, so half-typed entries never land here)
+let recent = store.get('cc.recent', []);
+const RECENT_MAX = 6;
+// The usual TCU-to-chemo gap, learned from the last copy, fills an empty chemo date
+let usualGap = store.get('cc.gap', null);
+let chemoAuto = false;
 
 const el = {
   name: $('#name'), cycleDays: $('#cycleDays'), days: $('#days'), review: $('#review'), chemo: $('#chemo'),
@@ -48,6 +55,60 @@ function saveEntry(input) {
     name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
     days: el.days.value.trim(), every: input.every, labTests: input.labTests,
   });
+}
+
+const regimenKey = (r) => `${r.name.toLowerCase()}|${r.cycleDays}|${r.days.replace(/\s+/g, '').toUpperCase()}`;
+
+function currentEntry() {
+  return {
+    name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
+    days: el.days.value.trim() || 'D1', every: Math.max(1, Math.floor(Number($('#every').value)) || 1), labTests: el.labTests.value.trim(),
+  };
+}
+
+function rememberRegimen() {
+  const r = currentEntry();
+  recent = [r, ...recent.filter((x) => regimenKey(x) !== regimenKey(r))].slice(0, RECENT_MAX);
+  store.set('cc.recent', recent);
+  renderRecent();
+}
+
+function renderRecent() {
+  const box = $('#recent');
+  box.innerHTML = '';
+  box.hidden = recent.length === 0;
+  const now = regimenKey(currentEntry());
+  for (const r of recent) {
+    const chip = document.createElement('span');
+    chip.className = 'recent-chip';
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = r.name ? `${r.name} q${r.cycleDays}` : `q${r.cycleDays} ${r.days}`;
+    b.setAttribute('aria-pressed', String(regimenKey(r) === now));
+    b.addEventListener('click', () => {
+      el.name.value = r.name;
+      el.cycleDays.value = r.cycleDays;
+      el.days.value = r.days;
+      setEvery(r.every);
+      el.labTests.value = r.labTests;
+      resetPlan();
+      saveEntry(readInput());
+      render();
+      renderRecent();
+    });
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'remove';
+    x.setAttribute('aria-label', `Remove ${b.textContent}`);
+    x.textContent = '×';
+    x.addEventListener('click', () => {
+      recent = recent.filter((y) => y !== r);
+      store.set('cc.recent', recent);
+      renderRecent();
+    });
+    chip.append(b, x);
+    box.append(chip);
+  }
 }
 
 function setEvery(n) {
@@ -293,16 +354,10 @@ function render() {
 }
 
 el.copy.addEventListener('click', async () => {
-  try {
-    await navigator.clipboard.writeText(lastText);
-  } catch {
-    const t = document.createElement('textarea');
-    t.value = lastText;
-    document.body.append(t);
-    t.select();
-    document.execCommand('copy');
-    t.remove();
-  }
+  await copyText(lastText);
+  rememberRegimen();
+  const gap = (toDay(el.chemo.value) - toDay(el.review.value));
+  if (Number.isFinite(gap) && gap >= 0) { usualGap = gap; store.set('cc.gap', gap); }
   el.copy.textContent = 'Copied';
   setTimeout(() => { el.copy.textContent = 'Copy'; }, 1200);
 });
@@ -315,16 +370,26 @@ function resetPlan() {
 }
 
 $('#inputs').addEventListener('input', (ev) => {
+  // An empty chemo date follows the TCU at the usual gap until it is typed over
+  if (ev.target === el.chemo) chemoAuto = false;
+  if (ev.target === el.review && usualGap != null && (chemoAuto || !el.chemo.value)) {
+    if (el.review.value >= '2000') {
+      el.chemo.value = fromDay(toDay(el.review.value) + usualGap);
+      chemoAuto = true;
+    } else if (chemoAuto) el.chemo.value = '';
+  }
   // Name and lab tests only change wording; anything else re-plans from scratch
   if (ev.target !== el.name && ev.target !== el.labTests) resetPlan();
   saveEntry(readInput());
   render();
+  renderRecent();
 });
 
 // Next patient: keep the regimen, clear the dates, cycle and per-visit choices
 el.clear.addEventListener('click', () => {
   el.review.value = '';
   el.chemo.value = '';
+  chemoAuto = false;
   el.cycle.value = '';
   resetPlan();
   render();
@@ -434,6 +499,25 @@ $('#reset').addEventListener('click', () => {
 
 restoreEntry();
 render();
+renderRecent();
+
+// Clinic shortcuts: Ctrl/⌘+Enter copies, Esc clears for the next patient, T in a date box is today
+document.addEventListener('keydown', (ev) => {
+  if ($('#schedule-view').hidden || dialog.open) return;
+  const t = ev.target;
+  const mod = ev.ctrlKey || ev.metaKey;
+  if (t.type === 'date' && ev.key.toLowerCase() === 't' && !mod && !ev.altKey) {
+    ev.preventDefault();
+    const d = new Date();
+    t.value = fromDay(toDay(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`));
+    t.dispatchEvent(new Event(t.classList.contains('date-picker') ? 'change' : 'input', { bubbles: true }));
+  } else if (ev.key === 'Enter' && mod && !el.copy.hidden) {
+    ev.preventDefault();
+    el.copy.click();
+  } else if (ev.key === 'Escape' && !t.matches?.('.date-picker, input.tests') && !el.clear.hidden) {
+    el.clear.click();
+  }
+});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});

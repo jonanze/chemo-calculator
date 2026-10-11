@@ -39,6 +39,7 @@
       <label class="wide">Regimen
         <input type="text" id="name">
       </label>
+      <div class="wide recent" id="recent" hidden></div>
       <label>Frequency
         <span class="suffix"><input type="number" id="cycleDays" min="1" inputmode="numeric"><span>days</span></span>
       </label>
@@ -76,16 +77,16 @@
       <div class="side">
         <form id="dose-inputs" class="fields" autocomplete="off">
           <label>Height
-            <span class="suffix"><input type="number" id="ht" min="0" step="any" inputmode="decimal"><span>cm</span></span>
+            <span class="suffix"><input type="number" id="ht" enterkeyhint="next" min="0" step="any" inputmode="decimal"><span>cm</span></span>
           </label>
           <label>Weight
-            <span class="suffix"><input type="number" id="wt" min="0" step="any" inputmode="decimal"><span>kg</span></span>
+            <span class="suffix"><input type="number" id="wt" enterkeyhint="next" min="0" step="any" inputmode="decimal"><span>kg</span></span>
           </label>
           <label>Age
-            <input type="number" id="age" min="0" inputmode="numeric">
+            <input type="number" id="age" enterkeyhint="next" min="0" inputmode="numeric">
           </label>
           <label>Creatinine
-            <span class="suffix wide-suffix"><input type="number" id="cr" min="0" step="any" inputmode="decimal"><span>µmol/L</span></span>
+            <span class="suffix wide-suffix"><input type="number" id="cr" enterkeyhint="done" min="0" step="any" inputmode="decimal"><span>µmol/L</span></span>
           </label>
           <fieldset class="seg wide">
             <legend>Sex</legend>

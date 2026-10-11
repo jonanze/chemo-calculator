@@ -139,6 +139,22 @@ input.invalid { border-color: var(--alert); }
 .wide-suffix input { padding-right: 62px; }
 .suffix span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
 
+/* Recently used regimens */
+.recent { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -4px; }
+.recent-chip { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; }
+.recent-chip button { border: none; background: none; font-size: 13px; padding: 3px 4px 3px 11px; border-radius: 999px; }
+.recent-chip button[aria-pressed="true"] { color: var(--accent); font-weight: 600; }
+.recent-chip:hover { border-color: var(--muted); }
+.recent-chip .remove { padding: 3px 9px 3px 4px; color: var(--muted); visibility: hidden; }
+.recent-chip:hover .remove, .recent-chip .remove:focus-visible { visibility: visible; }
+
+/* Tap to copy: a brief flash confirms it */
+.copyable { cursor: pointer; }
+.drug tr.copyable:hover td { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+#derived.copyable:hover { opacity: .8; }
+.copied { animation: copied .9s ease-out; }
+@keyframes copied { 0% { background: var(--accent); color: var(--accent-ink); } 100% { background: transparent; } }
+
 /* Timeline */
 /* Copy stays in view while the schedule scrolls */
 .out .bar { position: sticky; top: 0; z-index: 1; display: flex; gap: 8px; padding: 0 0 12px; background: var(--bg); }

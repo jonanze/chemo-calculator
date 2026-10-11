@@ -1,4 +1,5 @@
 import { compute, mg, UNIT, CR_FLOOR } from './doses.js';
+import { copyText, flash } from './clip.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -52,9 +53,14 @@ function card(title, fill, unit) {
   return { c, t: t.tBodies[0], head: th };
 }
 
-function row(t, cells, cls = '') {
+function row(t, cells, cls = '', copy = '') {
   const tr = t.insertRow();
   tr.className = cls;
+  // A tap copies the order line, e.g. "Paclitaxel 80 mg/m² = 142 mg"
+  if (copy) {
+    tr.classList.add('copyable');
+    tr.addEventListener('click', () => { copyText(copy); flash(tr); });
+  }
   for (const [text, k] of cells) {
     const td = tr.insertCell();
     if (k) td.className = k;
@@ -80,6 +86,8 @@ function renderDoses() {
   ];
   const list = $('#derived');
   list.innerHTML = '';
+  summary = summaryLine(r, sex);
+  list.classList.toggle('copyable', !!summary);
   for (const [k, v, u] of derived) {
     const dt = document.createElement('dt');
     dt.textContent = k;
@@ -95,14 +103,17 @@ function renderDoses() {
   const cb = card('Carboplatin', null, 'AUC');
   cb.head.append(document.createElement('th'));
   for (const x of r.carbo) {
-    row(cb.t, [[String(x.auc)], [x.mg == null ? '' : mg(x.mg), 'mg'], [`max ${x.max}`, x.over ? 'note over' : 'note']]);
+    const line = x.mg == null ? '' : `Carboplatin AUC ${x.auc} = ${mg(x.mg)} mg${x.over ? ` (above max ${x.max} mg)` : ''} (CrCl ${fmt(r.crcl, 1)} mL/min)`;
+    row(cb.t, [[String(x.auc)], [x.mg == null ? '' : mg(x.mg), 'mg'], [`max ${x.max}`, x.over ? 'note over' : 'note']], '', line);
   }
   grid.append(cb.c);
   for (const d of r.drugs) {
     const { c, t } = card(d.name, d.fill, UNIT[d.per]);
     for (const x of d.rows) {
       const cls = [d.bold?.includes(x.dose) && 'bold', x.over && 'over'].filter(Boolean).join(' ');
-      row(t, [[`${x.dose}${d.suffix || ''}`], [x.mg == null ? '' : mg(x.mg), 'mg']], cls);
+      const s = d.suffix || '';
+      const line = x.mg == null ? '' : `${d.name.replace(/\s*\(.*\)$/, '')} ${x.dose} ${UNIT[d.per]}${s} = ${mg(x.mg)} mg${s}${x.over ? ` (over ${d.cap.label})` : ''}`;
+      row(t, [[`${x.dose}${s}`], [x.mg == null ? '' : mg(x.mg), 'mg']], cls, line);
     }
     // The cap note sits under the table so it never squeezes the mg column
     if (d.cap) {
@@ -116,7 +127,37 @@ function renderDoses() {
   }
 }
 
+// One line for the EMR: body size, then CrCl with what went into it
+let summary = '';
+function summaryLine(r, sex) {
+  const ht = num('#ht'), wt = num('#wt'), age = num('#age'), cr = num('#cr');
+  const parts = [];
+  if (Number.isFinite(ht)) parts.push(`Ht ${ht} cm`);
+  if (Number.isFinite(wt)) parts.push(`Wt ${wt} kg`);
+  if (r.bsa) parts.push(`BSA ${fmt(r.bsa, 2)} m²`, `BMI ${fmt(r.bmi, 1)}`);
+  let line = parts.join(', ');
+  if (r.crcl != null) {
+    const w = form.elements.crclWt.value === 'adjusted' ? 'adjusted wt' : 'actual wt';
+    const used = cr < CR_FLOOR ? `Cr ${cr}, floored to ${CR_FLOOR}` : `Cr ${cr}`;
+    line += `${line ? '. ' : ''}CrCl ${fmt(r.crcl, 1)} mL/min (Cockcroft-Gault, ${age} ${sex}, ${w}, ${used})`;
+  }
+  return line;
+}
+$('#derived').addEventListener('click', () => {
+  if (!summary) return;
+  copyText(summary);
+  flash($('#derived'));
+});
+
 form.addEventListener('input', renderDoses);
+// Enter (Next on a phone keyboard) steps through the four boxes, then closes the keyboard
+const ORDER = ['#ht', '#wt', '#age', '#cr'];
+form.addEventListener('keydown', (ev) => {
+  const i = ORDER.findIndex((id) => $(id) === ev.target);
+  if (ev.key !== 'Enter' || i < 0) return;
+  ev.preventDefault();
+  if (i < ORDER.length - 1) $(ORDER[i + 1]).focus(); else ev.target.blur();
+});
 $('#dose-clear').addEventListener('click', () => {
   for (const id of ['#ht', '#wt', '#age', '#cr']) $(id).value = '';
   renderDoses();
