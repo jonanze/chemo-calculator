@@ -75,13 +75,18 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     return null;
   };
 
-  const adjustChemo = (p) => {
-    if (chemoOK(p)) return { date: p, flags: [] };
+  // A consecutive block (D1-3, D1-5) moves as a whole to the first start where
+  // every one of its days is open, so it stays consecutive (Jonan, 11 Oct 2026).
+  const adjustChemo = (p, len = 1) => {
+    const blockOK = (s) => { for (let i = 0; i < len; i++) if (!chemoOK(s + i)) return false; return true; };
+    if (blockOK(p)) return { date: p, flags: [] };
+    let bad = p;
+    while (chemoOK(bad)) bad++;
     if (S.chemoPH === 'forward') {
-      const f = step(p, 1, chemoOK);
-      if (f !== null) return { date: f, flags: [why(p, 'chemo'), { t: 'moved', from: p }] };
+      const f = step(p, 1, blockOK);
+      if (f !== null) return { date: f, flags: [why(bad, 'chemo'), { t: 'moved', from: p }] };
     }
-    return { date: p, flags: [why(p, 'chemo')] };
+    return { date: p, flags: chemoOK(p) ? [] : [why(p, 'chemo')] };
   };
 
   const computeLabs = (T) => {
@@ -141,7 +146,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       else if (edits[editKey]) {
         p = toDay(edits[editKey]);
         first = { date: p, flags: [...(chemoOK(p) ? [] : [why(p, 'chemo')]), { t: 'edited' }] };
-      } else first = adjustChemo(p);
+      } else first = adjustChemo(p, block.length);
       const shift = first.date - p;
       block.forEach((day, i) => {
         const date = p + day - block[0] + shift;

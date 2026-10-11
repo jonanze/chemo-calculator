@@ -338,3 +338,23 @@ test('a labs row can be switched off or given its own tests', () => {
   assert.ok(labLines.some((l) => l.endsWith('Labs (FBC) pre-D8')));
   assert.ok(lines.some((l) => l.includes('TCU with labs (FBC, RP, LFT)')));
 });
+
+test('a consecutive block moves as a whole when any of its days is closed', () => {
+  const block = (r, review, chemo, k) => {
+    const res = plan({ regimen: r, review, chemo, every: 1, labs: true, cycle: 1 }, S({ visits: 2 }), SG_HOLIDAYS);
+    return res.events.filter((e) => e.kind === 'chemo' && e.cycle === k).map((e) => fromDay(e.date));
+  };
+  // Vesak Day Thu 20 May 2027 falls on D3 of the Tue 18 May block
+  assert.deepEqual(block(R.carboEto, '2027-04-26', '2027-04-27', 2), ['2027-05-24', '2027-05-25', '2027-05-26']);
+  // Hari Raya Puasa Wed 10 Mar 2027 inside a Mon 8 Mar D1-5 block
+  const d15 = { name: 'D1-5', cycleDays: 21, days: [1, 2, 3, 4, 5] };
+  assert.deepEqual(block(d15, '2027-02-12', '2027-02-15', 2), ['2027-03-15', '2027-03-16', '2027-03-17', '2027-03-18', '2027-03-19']);
+  // A Friday D1-3 would run into Sunday
+  assert.deepEqual(block(R.carboEto, '2026-11-05', '2026-11-06', 2), ['2026-11-30', '2026-12-01', '2026-12-02']);
+  // Flags sit on D1: the reason and the original start; the next cycle keeps its grid
+  const res = plan({ regimen: R.carboEto, review: '2027-04-26', chemo: '2027-04-27', every: 1, labs: true, cycle: 1 }, S({ visits: 2 }), SG_HOLIDAYS);
+  const d1 = find(res, 'chemo', 2);
+  assert.deepEqual(d1.flags.map((f) => f.t), ['ph', 'moved']);
+  assert.equal(fromDay(d1.flags[1].from), '2027-05-18');
+  assert.equal(fromDay(find(res, 'chemo', 3).date), '2027-06-08');
+});
