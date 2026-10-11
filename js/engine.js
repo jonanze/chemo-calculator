@@ -58,7 +58,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const review0 = toDay(input.review);
   const chemo0 = toDay(input.chemo);
   const offset = chemo0 - review0;
-  if (offset < 0) return { error: 'Chemo date is before TCU date', events: [] };
+  if (offset < 0) return { error: 'Treatment date is before clinic date', events: [] };
 
   const ph = new Map(Object.entries(holidays.dates).map(([d, name]) => [toDay(d), name]));
   const closed = new Set((S.closedDates || []).map(toDay));
@@ -110,13 +110,17 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     return { date: b, flags: [why(c, 'labs'), { t: 'moved', from: c }] };
   };
 
-  const scheduleReview = (p, d1, key, base) => {
+  // A TCU on a closed clinic day waits for the user to pick the day before or after.
+  // The picked day carries its chemo with it at the usual gap (like a TCU edit), so
+  // an option is offered only if that chemo still lands after the previous treatment.
+  const scheduleReview = (p, prevTreat, key, base) => {
     if (clinicOK(p)) return { ...base, date: p, flags: [] };
     const options = [step(p, -1, clinicOK, 14), step(p, 1, clinicOK, 14)]
-      .filter((n) => n !== null && n <= d1);
+      .filter((n) => n !== null && (prevTreat === null || n + offset > prevTreat));
     const chosen = choices[key] != null ? toDay(choices[key]) : null;
     if (chosen !== null) return { ...base, date: chosen, flags: [why(p, 'clinic'), { t: 'moved', from: p }] };
-    return { ...base, date: p, flags: [why(p, 'clinic')], pending: true, options, key };
+    const minDate = prevTreat === null ? null : prevTreat + 1 - offset;
+    return { ...base, date: p, flags: [why(p, 'clinic')], pending: true, options, key, minDate };
   };
 
   const every = Math.max(1, Math.floor(input.every) || 1);
@@ -144,10 +148,18 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     const isReview = k % every === 0;
     const tcuEdit = isReview && k > 0 ? edits[`tcu:${k}`] : undefined;
     const d1Edit = k > 0 ? edits[`chemo:${k}:${blocks[0][0]}`] : undefined;
-    if (d1Edit || tcuEdit) {
-      planned = d1Edit ? toDay(d1Edit) : toDay(tcuEdit) + offset;
-      anchor = planned;
-      anchorK = k;
+    const scheduled = planned;
+    // A rescheduled PH TCU moves its chemo at the usual gap. Like a chemo moved off a PH,
+    // later cycles keep the original schedule unless Settings says to count from the moved date.
+    const phPick = isReview && k > 0 && !tcuEdit && choices[k] != null && !clinicOK(planned - offset)
+      ? choices[k] : undefined;
+    const tcuMove = tcuEdit || phPick;
+    if (d1Edit || tcuMove) {
+      planned = d1Edit ? toDay(d1Edit) : toDay(tcuMove) + offset;
+      if (d1Edit || tcuEdit) {
+        anchor = planned;
+        anchorK = k;
+      }
     }
 
     const treatments = [];
@@ -191,7 +203,10 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
         review = { ...base, date: t, flags: [...(clinicOK(t) ? [] : [why(t, 'clinic')]), { t: 'edited' }] };
       }
       // Anchor on the planned D1, so a chemo moved off a PH doesn't drag its review with it
-      else review = scheduleReview(planned - offset, d1, k, base);
+      else if (phPick) {
+        const from = scheduled - offset;
+        review = { ...base, date: toDay(phPick), flags: [why(from, 'clinic'), { t: 'moved', from }] };
+      } else review = scheduleReview(planned - offset, cycleStart, k, base);
       if (k > 0 && !review.pending) {
         review.editKey = `tcu:${k}`;
         // Its D1 (TCU + the usual gap) must stay after the previous cycle

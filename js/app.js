@@ -2,6 +2,8 @@ import { plan, toText, formatDay, fromDay, toDay, label, parseDays } from './eng
 import { SG_HOLIDAYS } from './holidays.js';
 import { DEFAULT_SETTINGS, DEFAULT_ENTRY } from './defaults.js';
 import { copyText } from './clip.js';
+import { REGIMENS } from './regimens.js';
+import { searchRegimens, matchesRegimen, doseLine } from './picker.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -32,6 +34,9 @@ const RECENT_MAX = 6;
 // The usual TCU-to-chemo gap, learned from the last copy, fills an empty chemo date
 let usualGap = store.get('cc.gap', null);
 let chemoAuto = false;
+// Listed regimen the entry was picked from; its doses show while the entry still matches
+const BY_KEY = new Map(REGIMENS.map((r) => [r.key, r]));
+let pickedKey = entry.ref ?? null;
 
 const el = {
   name: $('#name'), cycleDays: $('#cycleDays'), days: $('#days'), review: $('#review'), chemo: $('#chemo'),
@@ -53,17 +58,19 @@ function restoreEntry() {
 function saveEntry(input) {
   store.set('cc.entry', {
     name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
-    days: el.days.value.trim(), every: input.every, labTests: input.labTests,
+    days: el.days.value.trim(), every: input.every, labTests: input.labTests, ref: pickedKey,
   });
 }
 
 const regimenKey = (r) => `${r.name.toLowerCase()}|${r.cycleDays}|${r.days.replace(/\s+/g, '').toUpperCase()}`;
 
 function currentEntry() {
-  return {
+  const r = {
     name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
     days: el.days.value.trim() || 'D1', every: Math.max(1, Math.floor(Number($('#every').value)) || 1), labTests: el.labTests.value.trim(),
   };
+  r.ref = matchesRegimen(r, BY_KEY.get(pickedKey)) ? pickedKey : null;
+  return r;
 }
 
 function rememberRegimen() {
@@ -74,6 +81,7 @@ function rememberRegimen() {
 }
 
 function renderRecent() {
+  renderRefDoses();
   const box = $('#recent');
   box.innerHTML = '';
   box.hidden = recent.length === 0;
@@ -91,6 +99,7 @@ function renderRecent() {
       el.days.value = r.days;
       setEvery(r.every);
       el.labTests.value = r.labTests;
+      pickedKey = r.ref ?? null;
       resetPlan();
       saveEntry(readInput());
       render();
@@ -110,6 +119,125 @@ function renderRecent() {
     box.append(chip);
   }
 }
+
+// ---------- Regimen search ----------
+
+const pop = $('#regimen-pop');
+const list = $('#regimen-list');
+const refDoses = $('#ref-doses');
+let matches = [];
+let active = -1;
+
+function renderRefDoses() {
+  const r = BY_KEY.get(pickedKey);
+  const on = matchesRegimen(currentEntryRaw(), r);
+  refDoses.hidden = !on;
+  refDoses.innerHTML = '';
+  if (!on) return;
+  // Doses for reference only; nothing here is calculated
+  for (const d of r.doses) {
+    const li = document.createElement('li');
+    const line = doseLine(d);
+    const b = document.createElement('b');
+    b.textContent = line.slice(0, d[0].length);
+    li.append(b, line.slice(d[0].length));
+    refDoses.append(li);
+  }
+}
+
+// The entry as typed, without the regimen check (renderRefDoses does that itself)
+function currentEntryRaw() {
+  return { name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value), days: el.days.value.trim() };
+}
+
+function openPicker(query) {
+  matches = searchRegimens(query, REGIMENS);
+  active = -1;
+  list.innerHTML = '';
+  if (!matches.length) return closePicker();
+  matches.forEach((r, i) => {
+    const li = document.createElement('li');
+    li.id = `rg-${i}`;
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', 'false');
+    const n = document.createElement('span');
+    n.className = 'rn';
+    n.textContent = r.name;
+    const sch = document.createElement('span');
+    sch.className = 'rs';
+    sch.textContent = r.cycleDays ? `q${r.cycleDays}d · ${r.days}` : r.days;
+    const m = document.createElement('span');
+    m.className = 'rm';
+    m.textContent = `${r.tumour} · ${r.setting}`;
+    li.append(n, sch, m);
+    // Keep focus in the Name box so the list does not close before the click lands
+    li.addEventListener('mousedown', (ev) => ev.preventDefault());
+    li.addEventListener('click', () => pickRegimen(r));
+    li.addEventListener('mousemove', () => { if (active !== i) setActive(i, false); });
+    list.append(li);
+  });
+  pop.hidden = false;
+  el.name.setAttribute('aria-expanded', 'true');
+}
+
+function closePicker() {
+  pop.hidden = true;
+  matches = [];
+  active = -1;
+  el.name.setAttribute('aria-expanded', 'false');
+  el.name.removeAttribute('aria-activedescendant');
+}
+
+function setActive(i, scroll = true) {
+  const items = list.children;
+  if (items[active]) items[active].setAttribute('aria-selected', 'false');
+  active = i;
+  if (items[i]) {
+    items[i].setAttribute('aria-selected', 'true');
+    el.name.setAttribute('aria-activedescendant', items[i].id);
+    if (scroll) items[i].scrollIntoView({ block: 'nearest' });
+  } else el.name.removeAttribute('aria-activedescendant');
+}
+
+// Fills name, frequency and treatment days; TCU every and lab tests stay as they are
+function pickRegimen(r) {
+  el.name.value = r.name;
+  if (r.cycleDays) el.cycleDays.value = r.cycleDays;
+  el.days.value = r.days;
+  pickedKey = r.key;
+  closePicker();
+  resetPlan();
+  saveEntry(readInput());
+  render();
+  renderRecent();
+  // Chemoradiation and continuous orals have no cycle length
+  if (!r.cycleDays) el.cycleDays.select();
+}
+
+el.name.addEventListener('input', () => {
+  if (el.name.value.trim().length >= 2) openPicker(el.name.value);
+  else closePicker();
+});
+
+el.name.addEventListener('keydown', (ev) => {
+  if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+    if (pop.hidden) { if (el.name.value.trim().length >= 2) openPicker(el.name.value); if (pop.hidden) return; }
+    ev.preventDefault();
+    const n = matches.length;
+    setActive(ev.key === 'ArrowDown' ? (active + 1) % n : (active <= 0 ? n - 1 : active - 1));
+  } else if (ev.key === 'Enter' && !pop.hidden) {
+    ev.preventDefault();
+    if (active >= 0) pickRegimen(matches[active]);
+    else closePicker();
+  } else if (ev.key === 'Escape' && !pop.hidden) {
+    // Close the list only; Esc does not clear the form from here
+    ev.stopPropagation();
+    closePicker();
+  }
+});
+
+el.name.addEventListener('blur', closePicker);
 
 function setEvery(n) {
   $('#every').value = n;
@@ -188,6 +316,19 @@ function setEdit(e, value) {
   }
   // PH reschedule picks from this cycle on may no longer apply
   for (const key of Object.keys(choices)) if (Number(key) >= e.k) delete choices[key];
+  render();
+}
+
+// A PH TCU's new day carries its chemo and re-anchors later cycles, so picks and
+// D8/D15 edits made against the old schedule from here on no longer apply
+function choosePH(e, value) {
+  const first = readInput().regimen?.days[0];
+  for (const key of Object.keys(choices)) if (Number(key) > e.k) delete choices[key];
+  for (const key of Object.keys(edits)) {
+    const [kind, k, day] = key.split(':');
+    if (kind === 'chemo' && Number(k) >= e.k && Number(day) !== first) delete edits[key];
+  }
+  choices[e.key] = value;
   render();
 }
 
@@ -341,13 +482,14 @@ function render() {
         const b = document.createElement('button');
         b.type = 'button';
         b.textContent = formatDay(opt, settings.dateFormat);
-        b.addEventListener('click', () => { choices[e.key] = fromDay(opt); render(); });
+        b.addEventListener('click', () => choosePH(e, fromDay(opt)));
         choose.append(b);
       }
       const custom = document.createElement('input');
       custom.type = 'date';
+      if (e.minDate != null) custom.min = fromDay(e.minDate);
       custom.addEventListener('change', () => {
-        if (custom.value) { choices[e.key] = custom.value; render(); }
+        if (custom.value && (e.minDate == null || toDay(custom.value) >= e.minDate)) choosePH(e, custom.value);
       });
       choose.append(custom);
       li.append(choose);

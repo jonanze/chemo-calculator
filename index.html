@@ -46,9 +46,14 @@
         <section class="group">
           <h2 class="group-title">Regimen</h2>
           <div class="fields">
-            <label class="wide">Name
-              <input type="text" id="name">
-            </label>
+            <div class="wide combo">
+              <label for="name">Name</label>
+              <input type="text" id="name" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="regimen-list" spellcheck="false">
+              <div class="combo-pop" id="regimen-pop" hidden>
+                <ul id="regimen-list" role="listbox" aria-label="Regimens"></ul>
+              </div>
+            </div>
+            <ul class="wide ref-doses" id="ref-doses" hidden></ul>
             <div class="wide recent" id="recent" hidden></div>
             <label>Frequency
               <span class="suffix"><input type="number" id="cycleDays" min="1" inputmode="numeric"><span>days</span></span>
@@ -67,10 +72,10 @@
         <section class="group">
           <h2 class="group-title">Visit</h2>
           <div class="fields">
-            <label>TCU
+            <label>Clinic date
               <input type="date" id="review">
             </label>
-            <label>Chemo
+            <label>Treatment date
               <input type="date" id="chemo">
             </label>
             <label>Cycle

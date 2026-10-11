@@ -1,8 +1,9 @@
 // Offline cache. Bump VERSION on every release so clients pick up changes.
-const VERSION = 'cc-v36';
+const VERSION = 'cc-v42';
 const FILES = [
   './', 'index.html', 'style.css', 'icon.svg', 'manifest.webmanifest',
   'js/app.js', 'js/engine.js', 'js/holidays.js', 'js/defaults.js', 'js/doses.js', 'js/doses-ui.js', 'js/theme.js', 'js/clip.js',
+  'js/regimens.js', 'js/picker.js',
   'fonts/inter.woff2',
 ];
 
