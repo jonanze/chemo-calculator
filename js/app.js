@@ -275,6 +275,12 @@ function render() {
   el.copy.hidden = true;
   el.error.hidden = true;
   el.clear.hidden = !(el.review.value || el.chemo.value || el.cycle.value);
+  // The card title names the regimen and its rhythm; empty until there is a plan
+  const R = input.regimen;
+  $('#summary-title').textContent = R && input.review && input.chemo ? (R.name || `q${R.cycleDays}d`) : '';
+  $('#summary-meta').textContent = R && input.review && input.chemo
+    ? [`q${R.cycleDays}d`, el.days.value.trim() || 'D1', `TCU every ${input.every === 1 ? 'cycle' : `${input.every} cycles`}`, input.cycle && `from C${input.cycle}`].filter(Boolean).join(' · ')
+    : '';
   if (!input.regimen || !input.review || !input.chemo) return;
 
   const res = plan(input, settings, SG_HOLIDAYS, choices, edits);
@@ -358,8 +364,10 @@ el.copy.addEventListener('click', async () => {
   rememberRegimen();
   const gap = (toDay(el.chemo.value) - toDay(el.review.value));
   if (Number.isFinite(gap) && gap >= 0) { usualGap = gap; store.set('cc.gap', gap); }
-  el.copy.textContent = 'Copied';
-  setTimeout(() => { el.copy.textContent = 'Copy'; }, 1200);
+  const t = el.copy.querySelector('span');
+  t.textContent = 'Copied';
+  el.copy.classList.add('done');
+  setTimeout(() => { t.textContent = 'Copy'; el.copy.classList.remove('done'); }, 1200);
 });
 
 function resetPlan() {

@@ -16,9 +16,12 @@
   </script>
 </head>
 <body>
-  <main>
-    <header>
-      <h1>Chemo Calculator</h1>
+  <header class="appbar">
+    <div class="appbar-inner">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 64 64" width="26" height="26" aria-hidden="true"><rect width="64" height="64" rx="14" fill="var(--accent)"/><rect x="14" y="18" width="36" height="32" rx="5" fill="none" stroke="var(--accent-ink)" stroke-width="3.5"/><path d="M14 27h36M24 13v9M40 13v9" stroke="var(--accent-ink)" stroke-width="3.5" stroke-linecap="round"/><circle cx="32" cy="38" r="4" fill="var(--accent-ink)"/></svg>
+        <h1>Chemo Calculator</h1>
+      </div>
       <nav class="tabs" role="tablist">
         <button type="button" role="tab" data-tab="schedule">Schedule</button>
         <button type="button" role="tab" data-tab="doses">Doses</button>
@@ -28,79 +31,114 @@
           <svg class="sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></g></svg>
           <svg class="moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
         </button>
-        <button id="open-settings" class="icon" aria-label="Settings">
+        <button id="open-settings" class="icon" type="button" aria-label="Settings">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
         </button>
       </div>
-    </header>
+    </div>
+  </header>
 
+  <main>
     <div class="layout" id="schedule-view">
-    <form id="inputs" autocomplete="off">
-      <label class="wide">Regimen
-        <input type="text" id="name">
-      </label>
-      <div class="wide recent" id="recent" hidden></div>
-      <label>Frequency
-        <span class="suffix"><input type="number" id="cycleDays" min="1" inputmode="numeric"><span>days</span></span>
-      </label>
-      <label>Treatment days
-        <input type="text" id="days">
-      </label>
-      <label>TCU
-        <input type="date" id="review">
-      </label>
-      <label>Chemo
-        <input type="date" id="chemo">
-      </label>
-      <label>TCU every
-        <span class="suffix wide-suffix"><input type="number" id="every" min="1" inputmode="numeric"><span>cycles</span></span>
-      </label>
-      <label>Cycle
-        <input type="number" id="cycle" min="1" inputmode="numeric">
-      </label>
-      <label class="wide" id="lab-tests-field">Lab tests
-        <input type="text" id="labTests">
-      </label>
-    </form>
+      <form id="inputs" class="panel" autocomplete="off">
+        <section class="group">
+          <h2 class="group-title">Regimen</h2>
+          <div class="fields">
+            <label class="wide">Name
+              <input type="text" id="name">
+            </label>
+            <div class="wide recent" id="recent" hidden></div>
+            <label>Frequency
+              <span class="suffix"><input type="number" id="cycleDays" min="1" inputmode="numeric"><span>days</span></span>
+            </label>
+            <label>Treatment days
+              <input type="text" id="days">
+            </label>
+            <label>TCU every
+              <span class="suffix wide-suffix"><input type="number" id="every" min="1" inputmode="numeric"><span>cycles</span></span>
+            </label>
+            <label id="lab-tests-field">Lab tests
+              <input type="text" id="labTests">
+            </label>
+          </div>
+        </section>
+        <section class="group">
+          <h2 class="group-title">Visit</h2>
+          <div class="fields">
+            <label>TCU
+              <input type="date" id="review">
+            </label>
+            <label>Chemo
+              <input type="date" id="chemo">
+            </label>
+            <label>Cycle
+              <input type="number" id="cycle" min="1" inputmode="numeric">
+            </label>
+          </div>
+        </section>
+      </form>
 
-    <section class="out">
-      <div class="bar">
-        <button id="copy" class="primary" hidden>Copy</button>
-        <button id="clear" type="button" hidden>Clear</button>
-      </div>
-      <p id="error" hidden></p>
-      <ol id="timeline"></ol>
-    </section>
+      <section class="out panel">
+        <div class="bar">
+          <div class="summary">
+            <h2 id="summary-title"></h2>
+            <p id="summary-meta"></p>
+          </div>
+          <div class="actions">
+            <button id="clear" type="button" class="ghost" hidden>Clear</button>
+            <button id="copy" type="button" class="primary" hidden>
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></g></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+        <p id="error" hidden></p>
+        <ol id="timeline"></ol>
+        <div class="empty" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="56" height="56"><rect x="10" y="14" width="44" height="40" rx="7" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M10 25h44M22 9v9M42 9v9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M20 34h6M30 34h6M40 34h4M20 43h6M30 43h6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+      </section>
     </div>
 
     <div class="layout" id="doses-view" hidden>
-      <div class="side">
-        <form id="dose-inputs" class="fields" autocomplete="off">
-          <label>Height
-            <span class="suffix"><input type="number" id="ht" enterkeyhint="next" min="0" step="any" inputmode="decimal"><span>cm</span></span>
-          </label>
-          <label>Weight
-            <span class="suffix"><input type="number" id="wt" enterkeyhint="next" min="0" step="any" inputmode="decimal"><span>kg</span></span>
-          </label>
-          <label>Age
-            <input type="number" id="age" enterkeyhint="next" min="0" inputmode="numeric">
-          </label>
-          <label>Creatinine
-            <span class="suffix wide-suffix"><input type="number" id="cr" enterkeyhint="done" min="0" step="any" inputmode="decimal"><span>µmol/L</span></span>
-          </label>
-          <fieldset class="seg wide">
-            <legend>Sex</legend>
-            <label><input type="radio" name="sex" value="F" checked><span>F</span></label>
-            <label><input type="radio" name="sex" value="M"><span>M</span></label>
-          </fieldset>
-          <fieldset class="seg wide words">
-            <legend>CrCl weight</legend>
-            <label><input type="radio" name="crclWt" value="actual" checked><span>Actual</span></label>
-            <label><input type="radio" name="crclWt" value="adjusted"><span>Adjusted</span></label>
-          </fieldset>
-        </form>
-        <dl id="derived"></dl>
-        <button type="button" id="dose-clear">Clear</button>
+      <div class="side panel">
+        <section class="group">
+          <div class="group-head">
+            <h2 class="group-title">Patient</h2>
+            <button type="button" id="dose-clear" class="ghost small">Clear</button>
+          </div>
+          <form id="dose-inputs" class="fields" autocomplete="off">
+            <label>Height
+              <span class="suffix"><input type="number" id="ht" enterkeyhint="next" min="0" step="any" inputmode="decimal"><span>cm</span></span>
+            </label>
+            <label>Weight
+              <span class="suffix"><input type="number" id="wt" enterkeyhint="next" min="0" step="any" inputmode="decimal"><span>kg</span></span>
+            </label>
+            <label>Age
+              <span class="suffix"><input type="number" id="age" enterkeyhint="next" min="0" inputmode="numeric"><span>yr</span></span>
+            </label>
+            <label>Creatinine
+              <span class="suffix wide-suffix"><input type="number" id="cr" enterkeyhint="done" min="0" step="any" inputmode="decimal"><span>µmol/L</span></span>
+            </label>
+            <fieldset class="seg">
+              <legend>Sex</legend>
+              <div class="seg-track">
+                <label><input type="radio" name="sex" value="F" checked><span>F</span></label>
+                <label><input type="radio" name="sex" value="M"><span>M</span></label>
+              </div>
+            </fieldset>
+            <fieldset class="seg">
+              <legend>CrCl weight</legend>
+              <div class="seg-track">
+                <label><input type="radio" name="crclWt" value="actual" checked><span>Actual</span></label>
+                <label><input type="radio" name="crclWt" value="adjusted"><span>Adjusted</span></label>
+              </div>
+            </fieldset>
+          </form>
+        </section>
+        <section class="group">
+          <dl id="derived"></dl>
+        </section>
       </div>
       <div id="drugs"></div>
     </div>
@@ -108,53 +146,65 @@
 
   <dialog id="settings">
     <form method="dialog" id="settings-form">
-      <header>
+      <header class="dialog-head">
         <h2>Settings</h2>
         <button class="icon" value="close" aria-label="Close">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
       </header>
 
-      <section>
-        <div class="row"><span>Clinic days</span><div class="days" data-key="clinicDays"></div></div>
-        <div class="row"><span>Lab days</span><div class="days" data-key="labDays"></div></div>
-        <div class="row"><span>Chemo unit days</span><div class="days" data-key="chemoDays"></div></div>
-      </section>
+      <div class="dialog-body">
+        <section>
+          <h3>Days</h3>
+          <div class="row"><span>Clinic days</span><div class="days" data-key="clinicDays"></div></div>
+          <div class="row"><span>Lab days</span><div class="days" data-key="labDays"></div></div>
+          <div class="row"><span>Chemo unit days</span><div class="days" data-key="chemoDays"></div></div>
+        </section>
 
-      <section>
-        <label class="row"><span>Labs, days before treatment</span><input type="number" min="0" max="7" data-key="labsBefore" data-num></label>
-        <label class="row"><span>Labs when scanned</span>
-          <select data-key="scanLabs"><option value="tcu">TCU day</option><option value="scan">Scan day</option></select></label>
-        <label class="row"><span>Labs before TCU cycle</span>
-          <select data-key="preCycleLabs"><option value="review">TCU day</option><option value="offset">Days before</option></select></label>
-        <label class="row"><span>Labs in consecutive-day blocks</span>
-          <select data-key="blockLabs"><option value="first">First day</option><option value="each">Each day</option></select></label>
-        <label class="row"><span>Chemo on PH</span>
-          <select data-key="chemoPH"><option value="forward">Next working day</option><option value="back">Previous working day</option><option value="flag">Flag only</option></select></label>
-        <label class="row"><span>Shortest interval, days</span><input type="number" min="1" max="28" data-key="minGap" data-num></label>
-        <label class="row"><span>After a moved cycle</span>
-          <select data-key="knockOn"><option value="original">Original schedule</option><option value="reanchor">From moved date</option></select></label>
-        <label class="row"><span>Clinic visits shown</span><input type="number" min="1" max="6" data-key="visits" data-num></label>
-        <label class="row"><span>Date format</span>
-          <select data-key="dateFormat">
-            <option value="EEE d/M/yy">Wed 14/10/26</option>
-            <option value="EEE dd/MM/yyyy">Wed 14/10/2026</option>
-            <option value="EEE d MMM yyyy">Wed 14 Oct 2026</option>
-            <option value="d MMM yyyy">14 Oct 2026</option>
-          </select></label>
-      </section>
+        <section>
+          <h3>Labs</h3>
+          <label class="row"><span>Days before treatment</span><input type="number" min="0" max="7" data-key="labsBefore" data-num></label>
+          <label class="row"><span>When scanned</span>
+            <select data-key="scanLabs"><option value="tcu">TCU day</option><option value="scan">Scan day</option></select></label>
+          <label class="row"><span>Before a TCU cycle</span>
+            <select data-key="preCycleLabs"><option value="review">TCU day</option><option value="offset">Days before</option></select></label>
+          <label class="row"><span>Consecutive-day blocks</span>
+            <select data-key="blockLabs"><option value="first">First day</option><option value="each">Each day</option></select></label>
+        </section>
 
-      <section>
-        <h3>Closed dates</h3>
-        <ul id="closed" class="chips"></ul>
-        <div class="add"><input type="date" id="closed-new"><button type="button" id="closed-add">Add</button></div>
-      </section>
+        <section>
+          <h3>Public holidays and gaps</h3>
+          <label class="row"><span>Chemo on PH</span>
+            <select data-key="chemoPH"><option value="forward">Next working day</option><option value="back">Previous working day</option><option value="flag">Flag only</option></select></label>
+          <label class="row"><span>Shortest interval, days</span><input type="number" min="1" max="28" data-key="minGap" data-num></label>
+          <label class="row"><span>After a moved cycle</span>
+            <select data-key="knockOn"><option value="original">Original schedule</option><option value="reanchor">From moved date</option></select></label>
+        </section>
 
-      <section class="actions">
+        <section>
+          <h3>Display</h3>
+          <label class="row"><span>Clinic visits shown</span><input type="number" min="1" max="6" data-key="visits" data-num></label>
+          <label class="row"><span>Date format</span>
+            <select data-key="dateFormat">
+              <option value="EEE d/M/yy">Wed 14/10/26</option>
+              <option value="EEE dd/MM/yyyy">Wed 14/10/2026</option>
+              <option value="EEE d MMM yyyy">Wed 14 Oct 2026</option>
+              <option value="d MMM yyyy">14 Oct 2026</option>
+            </select></label>
+        </section>
+
+        <section>
+          <h3>Closed dates</h3>
+          <ul id="closed" class="chips"></ul>
+          <div class="add"><input type="date" id="closed-new"><button type="button" id="closed-add">Add</button></div>
+        </section>
+      </div>
+
+      <footer class="dialog-foot">
         <button type="button" id="export">Export</button>
         <label class="button">Import<input type="file" id="import" accept="application/json" hidden></label>
-        <button type="button" id="reset">Reset</button>
-      </section>
+        <button type="button" id="reset" class="danger">Reset</button>
+      </footer>
     </form>
   </dialog>
 

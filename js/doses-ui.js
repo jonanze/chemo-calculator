@@ -94,6 +94,7 @@ function renderDoses() {
     const dd = document.createElement('dd');
     dd.textContent = v ? `${v} ${u}`.trim() : '';
     if (k === 'BMI' && r.bmi > 25) dd.classList.add('flag');
+    if (k === 'BSA' || k === 'CrCl') { dt.classList.add('key'); dd.classList.add('key'); }
     if (k === 'CrCl' && v && num('#cr') < CR_FLOOR) dd.textContent += ` (Cr ${CR_FLOOR})`;
     list.append(dt, dd);
   }
