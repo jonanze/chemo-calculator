@@ -29,9 +29,8 @@ let tcuOpts = {};
 let labOpts = {};
 let lastText = '';
 let lastHTML = '';
-// Regimens used recently (stored only when copied, so half-typed entries never land here)
-let recent = store.get('cc.recent', []);
-const RECENT_MAX = 6;
+// Recent-regimen chips were removed (Jonan, 14 Oct 2026); clear what they stored
+try { localStorage.removeItem('cc.recent'); } catch { /* storage unavailable */ }
 // The usual TCU-to-chemo gap, learned from the last copy, fills an empty chemo date
 let usualGap = store.get('cc.gap', null);
 let chemoAuto = false;
@@ -62,66 +61,6 @@ function saveEntry(input) {
     name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
     days: el.days.value.trim(), every: input.every, labTests: input.labTests, midLabTests: input.midLabTests, ref: pickedKey,
   });
-}
-
-const regimenKey = (r) => `${r.name.toLowerCase()}|${r.cycleDays}|${r.days.replace(/\s+/g, '').toUpperCase()}`;
-
-function currentEntry() {
-  const r = {
-    name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
-    days: el.days.value.trim() || 'D1', every: Math.max(1, Math.floor(Number($('#every').value)) || 1), labTests: el.labTests.value.trim(),
-    midLabTests: el.midLabTests.value.trim(),
-  };
-  r.ref = matchesRegimen(r, BY_KEY.get(pickedKey)) ? pickedKey : null;
-  return r;
-}
-
-function rememberRegimen() {
-  const r = currentEntry();
-  recent = [r, ...recent.filter((x) => regimenKey(x) !== regimenKey(r))].slice(0, RECENT_MAX);
-  store.set('cc.recent', recent);
-  renderRecent();
-}
-
-function renderRecent() {
-  renderRefDoses();
-  const box = $('#recent');
-  box.innerHTML = '';
-  box.hidden = recent.length === 0;
-  const now = regimenKey(currentEntry());
-  for (const r of recent) {
-    const chip = document.createElement('span');
-    chip.className = 'recent-chip';
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = r.name ? `${r.name} q${r.cycleDays}` : `q${r.cycleDays} ${r.days}`;
-    b.setAttribute('aria-pressed', String(regimenKey(r) === now));
-    b.addEventListener('click', () => {
-      el.name.value = r.name;
-      el.cycleDays.value = r.cycleDays;
-      el.days.value = r.days;
-      setEvery(r.every);
-      el.labTests.value = r.labTests;
-      el.midLabTests.value = r.midLabTests || '';
-      pickedKey = r.ref ?? null;
-      resetPlan();
-      saveEntry(readInput());
-      render();
-      renderRecent();
-    });
-    const x = document.createElement('button');
-    x.type = 'button';
-    x.className = 'remove';
-    x.setAttribute('aria-label', `Remove ${b.textContent}`);
-    x.textContent = '×';
-    x.addEventListener('click', () => {
-      recent = recent.filter((y) => y !== r);
-      store.set('cc.recent', recent);
-      renderRecent();
-    });
-    chip.append(b, x);
-    box.append(chip);
-  }
 }
 
 // ---------- Regimen search ----------
@@ -213,7 +152,7 @@ function pickRegimen(r) {
   resetPlan();
   saveEntry(readInput());
   render();
-  renderRecent();
+  renderRefDoses();
   // Chemoradiation and continuous orals have no cycle length
   if (!r.cycleDays) el.cycleDays.select();
 }
@@ -524,7 +463,6 @@ function render() {
 
 el.copy.addEventListener('click', async () => {
   await copyText(lastText, lastHTML);
-  rememberRegimen();
   const gap = (toDay(el.chemo.value) - toDay(el.review.value));
   if (Number.isFinite(gap) && gap >= 0) { usualGap = gap; store.set('cc.gap', gap); }
   const t = el.copy.querySelector('span');
@@ -553,7 +491,7 @@ $('#inputs').addEventListener('input', (ev) => {
   if (ev.target !== el.name && ev.target !== el.labTests && ev.target !== el.midLabTests) resetPlan();
   saveEntry(readInput());
   render();
-  renderRecent();
+  renderRefDoses();
 });
 
 // Next patient: keep the regimen, clear the dates, cycle and per-visit choices
@@ -670,7 +608,7 @@ $('#reset').addEventListener('click', () => {
 
 restoreEntry();
 render();
-renderRecent();
+renderRefDoses();
 
 // Clinic shortcuts: Ctrl/⌘+Enter copies, Esc clears for the next patient, T in a date box is today
 document.addEventListener('keydown', (ev) => {

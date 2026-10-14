@@ -216,20 +216,6 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 .ref-doses li { padding-left: 1em; text-indent: -1em; }
 .ref-doses b { font-weight: 600; color: var(--text); }
 
-/* Recently used regimens */
-.recent { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -4px; }
-.recent-chip { position: relative; display: inline-flex; }
-.recent-chip button {
-  border: 1px solid var(--line); background: var(--surface); font-size: 12.5px; font-weight: 500;
-  padding: 3px 10px; border-radius: 999px; color: var(--text);
-}
-.recent-chip button:hover { background: var(--surface-2); }
-.recent-chip button[aria-pressed="true"] { background: var(--accent-soft); border-color: transparent; color: var(--accent); font-weight: 600; }
-.recent-chip .remove {
-  position: absolute; top: -6px; right: -6px; width: 17px; height: 17px; padding: 0; display: grid; place-items: center;
-  font-size: 11px; line-height: 1; background: var(--panel); border: 1px solid var(--line-strong); color: var(--muted); visibility: hidden;
-}
-.recent-chip:hover .remove, .recent-chip .remove:focus-visible { visibility: visible; }
 
 /* ---------- Schedule ---------- */
 .out .bar {
