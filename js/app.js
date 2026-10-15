@@ -206,6 +206,7 @@ function readInput() {
     labTests: el.labTests.value,
     midLabTests: el.midLabTests.value,
     cycle: num(el.cycle),
+    inpatient: $('#inputs').elements.setting.value === 'inpatient',
   };
 }
 
@@ -373,12 +374,12 @@ function render() {
   el.timeline.innerHTML = '';
   el.copy.hidden = true;
   el.error.hidden = true;
-  el.clear.hidden = !(el.review.value || el.chemo.value || el.cycle.value);
+  el.clear.hidden = !(el.review.value || el.chemo.value || el.cycle.value || input.inpatient);
   // The card title names the regimen and its rhythm; empty until there is a plan
   const R = input.regimen;
   $('#summary-title').textContent = R && input.review && input.chemo ? (R.name || `q${R.cycleDays}d`) : '';
   $('#summary-meta').textContent = R && input.review && input.chemo
-    ? [`q${R.cycleDays}d`, el.days.value.trim() || 'D1', `TCU every ${input.every === 1 ? 'cycle' : `${input.every} cycles`}`, input.cycle && `from C${input.cycle}`].filter(Boolean).join(' · ')
+    ? [`q${R.cycleDays}d`, el.days.value.trim() || 'D1', `TCU every ${input.every === 1 ? 'cycle' : `${input.every} cycles`}`, input.cycle && `from C${input.cycle}`, input.inpatient && 'Inpatient'].filter(Boolean).join(' · ')
     : '';
   if (!input.regimen || !input.review || !input.chemo) return;
 
@@ -487,8 +488,8 @@ $('#inputs').addEventListener('input', (ev) => {
       chemoAuto = true;
     } else if (chemoAuto) el.chemo.value = '';
   }
-  // Name and lab tests only change wording; anything else re-plans from scratch
-  if (ev.target !== el.name && ev.target !== el.labTests && ev.target !== el.midLabTests) resetPlan();
+  // Name, lab tests and inpatient keep the TCUs as they are; anything else re-plans from scratch
+  if (![el.name, el.labTests, el.midLabTests].includes(ev.target) && ev.target.name !== 'setting') resetPlan();
   saveEntry(readInput());
   render();
   renderRefDoses();
@@ -500,6 +501,7 @@ el.clear.addEventListener('click', () => {
   el.chemo.value = '';
   chemoAuto = false;
   el.cycle.value = '';
+  $('#inputs').elements.setting.value = 'outpatient';
   resetPlan();
   render();
   el.review.focus();

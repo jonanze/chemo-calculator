@@ -527,3 +527,35 @@ test('the formatted copy matches the plain text, with TCUs bold and chemo blue',
   // Font and size come from Settings
   assert.match(toHTML(res, input, S({ copyFont: 'Calibri', copySize: 11 })), /font-family:'Calibri';font-size:11pt/);
 });
+
+test('inpatient: chemo and its labs stay put on PHs and weekends, PH still labelled', () => {
+  const res = plan({ ...folfoxInput, inpatient: true }, S(), SG_HOLIDAYS);
+  const c5 = find(res, 'chemo', 5);
+  assert.equal(fromDay(c5.date), '2026-11-09'); // Deepavali in lieu, not moved
+  assert.deepEqual(c5.flags.map((f) => f.t), ['ph']);
+  assert.equal(c5.inpatient, true);
+  const l5 = find(res, 'labs', 5);
+  assert.equal(fromDay(l5.date), '2026-11-08'); // ward bloods on Deepavali Sunday, labelled only
+  assert.deepEqual(l5.flags.map((f) => f.t), ['ph']);
+  // No short-interval knock-on, since nothing moved
+  assert.deepEqual(find(res, 'chemo', 6).flags, []);
+  const text = toText(res, { ...folfoxInput, inpatient: true }, S());
+  assert.match(text.split('\n')[0], /, inpatient$/);
+  assert.match(text, /Mon 9\/11\/26 C5 \(inpatient\) \[PH\]/);
+});
+
+test('inpatient: a block over a PH or closed date neither slips nor flags the closure', () => {
+  const input = { regimen: R.carboEto, review: '2026-10-13', chemo: '2026-10-14', every: 2, cycle: 1, inpatient: true };
+  const res = plan(input, S({ visits: 1, closedDates: ['2026-11-05'], chemoDays: [1, 2, 3, 4, 5] }), SG_HOLIDAYS);
+  const c2 = res.events.filter((e) => e.kind === 'chemo' && e.cycle === 2);
+  assert.deepEqual(c2.map((e) => [fromDay(e.date), e.flags.map((f) => f.t)]),
+    [['2026-11-04', []], ['2026-11-05', []], ['2026-11-06', []]]);
+});
+
+test('inpatient: TCUs keep outpatient clinic rules', () => {
+  const input = { regimen: R.folfox, review: '2026-11-06', chemo: '2026-11-09', every: 1, cycle: 1, inpatient: true };
+  const res = plan({ ...input, review: '2026-10-26', chemo: '2026-10-26' }, S({ visits: 2 }), SG_HOLIDAYS);
+  const r2 = find(res, 'review', 2);
+  assert.equal(fromDay(r2.date), '2026-11-09');
+  assert.equal(r2.pending, true); // the PH TCU still asks for a reschedule
+});

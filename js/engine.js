@@ -69,6 +69,11 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const labOK = open(S.labDays);
   const chemoOK = open(S.chemoDays);
   const why = (n, ctx) => (ph.has(n) ? { t: 'ph', name: ph.get(n) } : closed.has(n) ? { t: 'closed' } : { t: 'off', ctx });
+  // Inpatient chemo is given on the ward, so PHs, closed dates and unit days don't apply and
+  // nothing moves; a PH is still labelled so it can be seen (Jonan, 15 Oct 2026)
+  const inpatient = !!input.inpatient;
+  const phOnly = (n) => (ph.has(n) ? [{ t: 'ph', name: ph.get(n) }] : []);
+  const chemoFlags = (n) => (inpatient ? phOnly(n) : chemoOK(n) ? [] : [why(n, 'chemo')]);
 
   const step = (from, dir, okFn, limit = 60) => {
     for (let n = from + dir, i = 0; i < limit; n += dir, i++) if (okFn(n)) return n;
@@ -80,6 +85,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   // floor: earliest start that keeps the shortest interval after the previous block.
   // earliest: a 'back' move never reaches the cycle's TCU.
   const adjustChemo = (p, len = 1, floor = -Infinity, earliest = -Infinity) => {
+    if (inpatient) return { date: p, flags: chemoFlags(p) };
     const blockOK = (s) => { for (let i = 0; i < len; i++) if (!chemoOK(s + i)) return false; return true; };
     const ok = blockOK(p);
     if (ok && p >= floor) return { date: p, flags: [] };
@@ -102,6 +108,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
 
   const computeLabs = (T) => {
     let c = T - S.labsBefore;
+    if (inpatient) return { date: c, flags: phOnly(c) }; // ward bloods
     while (!S.labDays.includes(weekday(c)) && c > T - 14) c--; // weekend: back to Friday
     if (!shut(c)) return { date: c, flags: [] };
     const f = step(c, 1, labOK);
@@ -176,18 +183,18 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       const earliest = block === blocks[0] && isReview ? planned - offset + 1 : -Infinity;
       const minDate = lastTreat === null ? null : lastTreat + 1;
       let first;
-      if (isKeyed) first = { date: p, flags: chemoOK(p) ? [] : [why(p, 'chemo')] };
+      if (isKeyed) first = { date: p, flags: chemoFlags(p) };
       else if (edits[editKey]) {
         const was = p;
         p = toDay(edits[editKey]);
         if (block !== blocks[0]) push += p - was;
-        first = { date: p, flags: [...(chemoOK(p) ? [] : [why(p, 'chemo')]), { t: 'edited' }] };
+        first = { date: p, flags: [...chemoFlags(p), { t: 'edited' }] };
       } else first = adjustChemo(p, block.length, floor, earliest);
       const shift = first.date - p;
       block.forEach((day, i) => {
         const date = p + day - block[0] + shift;
-        const flags = i === 0 ? [...first.flags] : chemoOK(date) ? [] : [why(date, 'chemo')];
-        const t = { kind: 'chemo', date, day, cycle, k, blockStart: i === 0, flags };
+        const flags = i === 0 ? [...first.flags] : chemoFlags(date);
+        const t = { kind: 'chemo', date, day, cycle, k, blockStart: i === 0, flags, inpatient };
         if (i === 0 && !isKeyed) Object.assign(t, { editKey, minDate });
         treatments.push(t);
         lastTreat = date;
@@ -294,7 +301,7 @@ export function label(e, multiDay, labTests = '', midLabTests = '') {
       if (e.tcu) return `TCU${e.off ? '' : ` with labs${tests}`}${pre}`;
       return `Labs${tests}${pre}`;
     }
-    default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;
+    default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}${e.inpatient ? ' (inpatient)' : ''}`;
   }
 }
 
@@ -315,7 +322,7 @@ export function flagText(f, fmt) {
 function emrLines(result, input, S) {
   const R = input.regimen;
   const every = Math.max(1, Math.floor(input.every) || 1);
-  const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${every > 1 ? `, TCU every ${every} cycles` : ''}`;
+  const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${every > 1 ? `, TCU every ${every} cycles` : ''}${input.inpatient ? ', inpatient' : ''}`;
   const lines = result.events.filter((e) => !e.off || e.tcu).map((e) => {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
     if (e.pending) flags.push('reschedule');
