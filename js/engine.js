@@ -48,8 +48,12 @@ export function groupConsecutive(days) {
   return blocks;
 }
 
-// edits: manual dates keyed 'tcu:<k>' or 'chemo:<k>:<day>'. An edited TCU or D1 re-anchors
-// that cycle and every cycle after it; an edited later day (e.g. D8) moves only that block.
+// k counts cycles from the one entered (k = 0).
+// choices: picked days for a TCU on a closed clinic day, keyed by k.
+// edits: manual dates keyed 'tcu:<k>' or 'chemo:<k>:<day>'. An edit moves only what comes after
+// it: an edited TCU or D1 re-anchors later cycles; an edited D8 also moves that cycle's D15.
+// input.inpDays: block starts given as an inpatient in every cycle; input.inpOpts['<k>:<day>']
+// overrides one block of one cycle.
 export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const S = settings;
   const R = input.regimen;
@@ -69,13 +73,10 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const labOK = open(S.labDays);
   const chemoOK = open(S.chemoDays);
   const why = (n, ctx) => (ph.has(n) ? { t: 'ph', name: ph.get(n) } : closed.has(n) ? { t: 'closed' } : { t: 'off', ctx });
-  // Inpatient chemo is given on the ward, so PHs, closed dates and unit days don't apply and
-  // nothing moves; a PH is still labelled so it can be seen (Jonan, 15 Oct 2026).
-  // The Visit card sets every cycle; a cycle's own toggle overrides it (Jonan, 16 Oct 2026).
-  const inpatientOf = (k) => input.inpOpts?.[k] ?? !!input.inpatient;
-  let inpatient = false;
+  // Inpatient treatment is given on the ward, so PHs, closed dates and unit days don't apply
+  // and nothing moves; a PH is still labelled so it can be seen (Jonan, 15 Oct 2026)
   const phOnly = (n) => (ph.has(n) ? [{ t: 'ph', name: ph.get(n) }] : []);
-  const chemoFlags = (n) => (inpatient ? phOnly(n) : chemoOK(n) ? [] : [why(n, 'chemo')]);
+  const chemoFlags = (n, inp) => (inp ? phOnly(n) : chemoOK(n) ? [] : [why(n, 'chemo')]);
 
   const step = (from, dir, okFn, limit = 60) => {
     for (let n = from + dir, i = 0; i < limit; n += dir, i++) if (okFn(n)) return n;
@@ -86,8 +87,8 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   // every one of its days is open, so it stays consecutive (Jonan, 11 Oct 2026).
   // floor: earliest start that keeps the shortest interval after the previous block.
   // earliest: a 'back' move never reaches the cycle's TCU.
-  const adjustChemo = (p, len = 1, floor = -Infinity, earliest = -Infinity) => {
-    if (inpatient) return { date: p, flags: chemoFlags(p) };
+  const adjustChemo = (p, len, floor, earliest, inp) => {
+    if (inp) return { date: p, flags: chemoFlags(p, true) };
     const blockOK = (s) => { for (let i = 0; i < len; i++) if (!chemoOK(s + i)) return false; return true; };
     const ok = blockOK(p);
     if (ok && p >= floor) return { date: p, flags: [] };
@@ -105,12 +106,12 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       const f = blockOK(start) ? start : step(start, 1, blockOK);
       if (f !== null) return { date: f, flags };
     }
-    return { date: p, flags: chemoOK(p) ? [] : [why(p, 'chemo')] };
+    return { date: p, flags: chemoFlags(p, false) };
   };
 
-  const computeLabs = (T) => {
+  const computeLabs = (T, inp) => {
     let c = T - S.labsBefore;
-    if (inpatient) return { date: c, flags: phOnly(c) }; // ward bloods
+    if (inp) return { date: c, flags: phOnly(c) }; // ward bloods, any day
     while (!S.labDays.includes(weekday(c)) && c > T - 14) c--; // weekend: back to Friday
     if (!shut(c)) return { date: c, flags: [] };
     const f = step(c, 1, labOK);
@@ -120,16 +121,16 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   };
 
   // A TCU on a closed clinic day waits for the user to pick the day before or after.
-  // The picked day carries its chemo with it at the usual gap (like a TCU edit), so
-  // an option is offered only if that chemo still lands after the previous treatment.
-  const scheduleReview = (p, prevTreat, key, base) => {
+  // Later TCUs carry their chemo with them at the usual gap, so a day is offered only if that
+  // chemo still lands after the previous treatment. The entered TCU keeps the entered chemo,
+  // so it has to stay on or before it.
+  const scheduleReview = (p, k, base, { prevTreat = null, maxDate = null } = {}) => {
     if (clinicOK(p)) return { ...base, date: p, flags: [] };
-    const options = [step(p, -1, clinicOK, 14), step(p, 1, clinicOK, 14)]
-      .filter((n) => n !== null && (prevTreat === null || n + offset > prevTreat));
-    const chosen = choices[key] != null ? toDay(choices[key]) : null;
-    if (chosen !== null) return { ...base, date: chosen, flags: [why(p, 'clinic'), { t: 'moved', from: p }] };
     const minDate = prevTreat === null ? null : prevTreat + 1 - offset;
-    return { ...base, date: p, flags: [why(p, 'clinic')], pending: true, options, key, minDate };
+    const options = [step(p, -1, clinicOK, 14), step(p, 1, clinicOK, 14)]
+      .filter((n) => n !== null && (minDate === null || n >= minDate) && (maxDate === null || n <= maxDate));
+    if (choices[k] != null) return { ...base, date: toDay(choices[k]), flags: [why(p, 'clinic'), { t: 'moved', from: p }] };
+    return { ...base, date: p, flags: [why(p, 'clinic')], pending: true, options, key: k, minDate, maxDate };
   };
 
   const every = Math.max(1, Math.floor(input.every) || 1);
@@ -138,6 +139,8 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const lastK = every * S.visits;
 
   const blocks = groupConsecutive(R.days);
+  const allDays = new Set(input.inpDays || []);
+  const isInpatient = (k, start) => input.inpOpts?.[`${k}:${start}`] ?? allDays.has(start);
   const events = [];
   let prevD1 = null;
   // Shortest interval between treatment starts (a designed gap shorter than this is kept)
@@ -152,7 +155,6 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   let current = optsFor(0);
 
   for (let k = 0; k <= lastK; k++) {
-    inpatient = inpatientOf(k);
     let planned = S.knockOn === 'reanchor' && k > 0 ? prevD1 + cd : anchor + (k - anchorK) * cd;
     const cycle = input.cycle ? input.cycle + k : null;
     const isReview = k % every === 0;
@@ -173,12 +175,14 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     }
 
     const treatments = [];
-    const cycleStart = lastTreat;
+    const prevTreat = lastTreat; // last treatment of the previous cycle
     // An edited D8 pushes the later days of its cycle (D15) by the same amount
     let push = 0;
     for (const block of blocks) {
       const editKey = `chemo:${k}:${block[0]}`;
-      const isKeyed = k === 0 && block[0] === blocks[0][0];
+      // The entered treatment date is changed in the Visit card, not on its row
+      const entered = k === 0 && block === blocks[0];
+      const inp = isInpatient(k, block[0]);
       // After a PH TCU move only D1 follows it; D8/D15 keep their planned days (Jonan, 11 Oct 2026)
       let p = (phPick && block !== blocks[0] ? scheduled : planned) + block[0] - 1 + push;
       const gap = prevStart === null ? null : block === blocks[0] ? cd + block[0] - prevStartDay : block[0] - prevStartDay;
@@ -186,20 +190,19 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       const earliest = block === blocks[0] && isReview ? planned - offset + 1 : -Infinity;
       const minDate = lastTreat === null ? null : lastTreat + 1;
       let first;
-      if (isKeyed) first = { date: p, flags: chemoFlags(p) };
-      else if (edits[editKey]) {
+      if (!entered && edits[editKey]) {
         const was = p;
         p = toDay(edits[editKey]);
         if (block !== blocks[0]) push += p - was;
-        first = { date: p, flags: [...chemoFlags(p), { t: 'edited' }] };
-      } else first = adjustChemo(p, block.length, floor, earliest);
+        first = { date: p, flags: [...chemoFlags(p, inp), { t: 'edited' }] };
+      } else first = adjustChemo(p, block.length, floor, earliest, inp);
       const shift = first.date - p;
       block.forEach((day, i) => {
         const date = p + day - block[0] + shift;
-        const flags = i === 0 ? [...first.flags] : chemoFlags(date);
-        const t = { kind: 'chemo', date, day, cycle, k, blockStart: i === 0, flags, inpatient };
-        if (i === 0 && !isKeyed) Object.assign(t, { editKey, minDate });
-        if (i === 0 && block === blocks[0]) t.cycleStart = true;
+        const flags = i === 0 ? [...first.flags] : chemoFlags(date, inp);
+        const t = { kind: 'chemo', date, day, cycle, k, blockStart: i === 0, flags, inpatient: inp };
+        if (i === 0) t.inpKey = `${k}:${block[0]}`;
+        if (i === 0 && !entered) Object.assign(t, { editKey, minDate });
         treatments.push(t);
         lastTreat = date;
       });
@@ -215,7 +218,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     let review = null;
     if (isReview) {
       const base = { kind: 'review', cycle, k, labs: false };
-      if (k === 0) review = { ...base, date: review0, flags: clinicOK(review0) ? [] : [why(review0, 'clinic')] };
+      if (k === 0) review = scheduleReview(review0, 0, base, { maxDate: treatments[0].date });
       else if (tcuEdit) {
         const t = toDay(tcuEdit);
         review = { ...base, date: t, flags: [...(clinicOK(t) ? [] : [why(t, 'clinic')]), { t: 'edited' }] };
@@ -225,14 +228,14 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
         const from = scheduled - offset;
         review = { ...base, date: toDay(phPick), flags: [why(from, 'clinic'), { t: 'moved', from }] };
       // An edited D1 moves only what comes after it, so its TCU stays where it was planned
-      } else review = scheduleReview((d1Edit ? scheduled : planned) - offset, cycleStart, k, base);
+      } else review = scheduleReview((d1Edit ? scheduled : planned) - offset, k, base, { prevTreat });
       // A D1 can't be moved before its own TCU
       const t0 = treatments[0];
       if (t0.editKey && !review.pending) t0.minDate = Math.max(t0.minDate ?? -Infinity, review.date);
       if (k > 0 && !review.pending) {
         review.editKey = `tcu:${k}`;
         // Its D1 (TCU + the usual gap) must stay after the previous cycle
-        review.minDate = cycleStart + 1 - offset;
+        review.minDate = prevTreat + 1 - offset;
       }
       current = optsFor(k);
       review.tech = current.tech;
@@ -257,7 +260,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
           review.labs = true;
           continue;
         }
-        const L = computeLabs(t.date);
+        const L = computeLabs(t.date, t.inpatient);
         // Each standalone labs row can be switched off or given its own tests
         const labKey = `${k}:${t.day}`;
         const lo = input.labOpts?.[labKey] || {};
@@ -275,8 +278,21 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const order = { review: 0, labs: 1, chemo: 2 };
   for (const e of events) if (e.date > covered) e.flags.push({ t: 'nodata' });
   events.sort((a, b) => a.date - b.date || order[a.kind] - order[b.kind]);
-  const chemo = events.filter((e) => e.kind === 'chemo');
-  return { error: null, events, multiDay, allInpatient: chemo.length > 0 && chemo.every((e) => e.inpatient) };
+  return { error: null, events, multiDay, inpatient: inpatientSummary(blocks, lastK, isInpatient) };
+}
+
+// Inpatient is said once. When every cycle has the same inpatient blocks, the note goes in the
+// header ('inpatient', or 'D1-5 inpatient' when only some blocks are) and no line is tagged;
+// otherwise the first day of each inpatient block is tagged.
+function inpatientSummary(blocks, lastK, isInpatient) {
+  const name = (b) => (b.length > 1 ? `D${b[0]}-${b[b.length - 1]}` : `D${b[0]}`);
+  const of = (k) => blocks.filter((b) => isInpatient(k, b[0]));
+  const first = of(0);
+  for (let k = 1; k <= lastK; k++) {
+    if (of(k).map(name).join() !== first.map(name).join()) return { note: null, perLine: true };
+  }
+  if (!first.length) return { note: null, perLine: false };
+  return { note: first.length === blocks.length ? 'inpatient' : `${first.map(name).join(', ')} inpatient`, perLine: false };
 }
 
 // The default tests for a labs line: mid-cycle labs use their own set when one is given
@@ -328,7 +344,8 @@ function emrLines(result, input, S) {
   const R = input.regimen;
   const every = Math.max(1, Math.floor(input.every) || 1);
   // Inpatient is said once: in the header when every cycle is, otherwise on the first day of each admission
-  const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${result.allInpatient ? ' (inpatient)' : ''}${every > 1 ? `, TCU every ${every} cycles` : ''}`;
+  const inp = result.inpatient || {};
+  const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${inp.note ? ` (${inp.note})` : ''}${every > 1 ? `, TCU every ${every} cycles` : ''}`;
   const lines = result.events.filter((e) => !e.off || e.tcu).map((e) => {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
     if (e.pending) flags.push('reschedule');
@@ -336,7 +353,7 @@ function emrLines(result, input, S) {
     return {
       kind: visit ? 'review' : e.kind, gap: visit, date: formatDay(e.date, S.dateFormat),
       text: label(e, result.multiDay, input.labTests, input.midLabTests)
-        + (e.inpatient && e.blockStart && !result.allInpatient ? ' (inpatient)' : ''),
+        + (inp.perLine && e.inpatient && e.blockStart ? ' (inpatient)' : ''),
       flags,
     };
   });

@@ -84,11 +84,8 @@
               <input type="number" id="cycle" min="1" inputmode="numeric">
             </label>
             <fieldset class="seg wide">
-              <legend>Treatment</legend>
-              <div class="seg-track">
-                <label><input type="radio" name="setting" value="outpatient" checked><span>Outpatient</span></label>
-                <label><input type="radio" name="setting" value="inpatient"><span>Inpatient</span></label>
-              </div>
+              <legend id="inp-legend">Treatment</legend>
+              <div class="seg-track" id="inp-days" role="group" aria-labelledby="inp-legend"></div>
             </fieldset>
           </div>
         </section>

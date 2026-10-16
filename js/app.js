@@ -28,6 +28,8 @@ let edits = {};
 let tcuOpts = {};
 let labOpts = {};
 let inpOpts = {};
+// Treatment blocks (by start day) given as an inpatient in every cycle; reset for each patient
+const inpDays = new Set();
 let lastText = '';
 let lastHTML = '';
 // Recent-regimen chips were removed (Jonan, 14 Oct 2026); clear what they stored
@@ -52,7 +54,7 @@ function restoreEntry() {
   el.name.value = entry.name;
   el.cycleDays.value = entry.cycleDays;
   el.days.value = entry.days;
-  setEvery(entry.every);
+  $('#every').value = entry.every;
   el.labTests.value = entry.labTests;
   el.midLabTests.value = entry.midLabTests || '';
 }
@@ -183,10 +185,6 @@ el.name.addEventListener('keydown', (ev) => {
 
 el.name.addEventListener('blur', closePicker);
 
-function setEvery(n) {
-  $('#every').value = n;
-}
-
 function readInput() {
   const every = Math.max(1, Math.floor(Number($('#every').value)) || 1);
   const num = (x) => (x.value ? Math.max(1, Math.floor(Number(x.value))) : null);
@@ -207,7 +205,7 @@ function readInput() {
     labTests: el.labTests.value,
     midLabTests: el.midLabTests.value,
     cycle: num(el.cycle),
-    inpatient: $('#inputs').elements.setting.value === 'inpatient',
+    inpDays: [...inpDays],
     inpOpts,
   };
 }
@@ -251,34 +249,48 @@ function editDate(button, e) {
   try { picker.showPicker(); } catch { /* not supported */ }
 }
 
+// PH reschedule picks after cycle k may no longer apply. With laterDays, D8/D15 edits from
+// cycle k on go too, since they were typed against a schedule that has now moved.
+function dropDownstream(k, laterDays) {
+  for (const key of Object.keys(choices)) if (Number(key) > k) delete choices[key];
+  if (!laterDays) return;
+  const first = readInput().regimen?.days[0];
+  for (const key of Object.keys(edits)) {
+    const [kind, ek, day] = key.split(':');
+    if (kind === 'chemo' && Number(ek) >= k && Number(day) !== first) delete edits[key];
+  }
+}
+
+// A TCU or D1 change re-anchors this cycle and those after it
 function setEdit(e, value) {
   if (value) edits[e.editKey] = value;
   else delete edits[e.editKey];
-  // A TCU or D1 change re-anchors this cycle and those after it, so a D8/D15 date
-  // typed against the old schedule would now sit in the wrong place (even before D1)
-  const first = readInput().regimen?.days[0];
-  if (e.kind === 'review' || e.day === first) {
-    for (const key of Object.keys(edits)) {
-      const [kind, k, day] = key.split(':');
-      if (kind === 'chemo' && Number(k) >= e.k && Number(day) !== first) delete edits[key];
-    }
-  }
-  // PH reschedule picks after this date may no longer apply; this cycle's own TCU pick is upstream of its D1
-  for (const key of Object.keys(choices)) if (Number(key) > e.k) delete choices[key];
+  dropDownstream(e.k, e.kind === 'review' || e.day === readInput().regimen?.days[0]);
   render();
 }
 
-// A PH TCU's new day carries its chemo and re-anchors later cycles, so picks and
-// D8/D15 edits made against the old schedule from here on no longer apply
+// A PH TCU's new day carries its chemo, like a TCU edit
 function choosePH(e, value) {
-  const first = readInput().regimen?.days[0];
-  for (const key of Object.keys(choices)) if (Number(key) > e.k) delete choices[key];
-  for (const key of Object.keys(edits)) {
-    const [kind, k, day] = key.split(':');
-    if (kind === 'chemo' && Number(k) >= e.k && Number(day) !== first) delete edits[key];
-  }
+  dropDownstream(e.k, true);
   choices[e.key] = value;
   render();
+}
+
+// A pill that switches on and off (TCU options, labs rows, inpatient blocks)
+function toggle(text, on, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = text;
+  b.setAttribute('aria-pressed', String(!!on));
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+function toggleBox(...buttons) {
+  const box = document.createElement('div');
+  box.className = 'toggles';
+  box.append(...buttons);
+  return box;
 }
 
 const TOGGLES = [['labs', 'Labs'], ['scan', 'Scan'], ['tech', 'Technical'], ['tele', 'Teleconsult']];
@@ -286,76 +298,66 @@ const TOGGLES = [['labs', 'Labs'], ['scan', 'Scan'], ['tech', 'Technical'], ['te
 const EXCLUSIVE = { tech: 'tele', tele: 'tech' };
 
 function tcuToggles(e) {
-  const box = document.createElement('div');
-  box.className = 'toggles';
-  for (const [key, text] of TOGGLES) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = text;
-    const on = e.opts[key];
-    b.setAttribute('aria-pressed', String(on));
-    b.addEventListener('click', () => {
-      const next = { ...e.opts, [key]: !on };
-      if (!on && EXCLUSIVE[key]) next[EXCLUSIVE[key]] = false;
-      tcuOpts[e.k] = next;
-      render();
-    });
-    box.append(b);
-  }
-  return box;
+  return toggleBox(...TOGGLES.map(([key, text]) => toggle(text, e.opts[key], () => {
+    const next = { ...e.opts, [key]: !e.opts[key] };
+    if (next[key] && EXCLUSIVE[key]) next[EXCLUSIVE[key]] = false;
+    tcuOpts[e.k] = next;
+    render();
+  })));
 }
 
-// A labs row can be switched off (dropped from the copy text) or given its own tests.
-// Typing updates the row in place so the field keeps focus.
-// Each cycle can be given as an inpatient or not, whatever the Visit card says
+// Each treatment block of each cycle can be inpatient or not, whatever the Visit card says
 function inpatientToggle(e) {
-  const box = document.createElement('div');
-  box.className = 'toggles';
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.textContent = 'Inpatient';
-  b.setAttribute('aria-pressed', String(e.inpatient));
-  b.addEventListener('click', () => {
-    inpOpts[e.k] = !e.inpatient;
+  return toggleBox(toggle('Inpatient', e.inpatient, () => {
+    inpOpts[e.inpKey] = !e.inpatient;
     render();
-  });
-  box.append(b);
-  return box;
+  }));
 }
 
+// A labs row can be switched off (dropped from the copy text), given its own tests, or,
+// mid-cycle, turned into a clinic visit on the same day
 function labsControls(e, name, multiDay, input) {
-  const box = document.createElement('div');
-  box.className = 'toggles';
-  if (e.mid) {
-    const v = document.createElement('button');
-    v.type = 'button';
-    v.textContent = 'TCU';
-    v.setAttribute('aria-pressed', String(e.tcu));
-    v.addEventListener('click', () => {
-      labOpts[e.labKey] = { ...labOpts[e.labKey], tcu: !e.tcu };
-      render();
-    });
-    box.append(v);
-  }
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.textContent = 'Labs';
-  b.setAttribute('aria-pressed', String(!e.off));
-  b.addEventListener('click', () => {
-    labOpts[e.labKey] = { ...labOpts[e.labKey], off: !e.off };
-    render();
-  });
-  box.append(b);
+  const set = (o) => { labOpts[e.labKey] = { ...labOpts[e.labKey], ...o }; render(); };
+  const box = toggleBox();
+  if (e.mid) box.append(toggle('TCU', e.tcu, () => set({ tcu: !e.tcu })));
+  box.append(toggle('Labs', !e.off, () => set({ off: !e.off })));
   if (!e.off) {
-    const own = e.tests?.trim();
-    const t = document.createElement('button');
-    t.type = 'button';
-    t.textContent = 'Tests';
-    t.setAttribute('aria-pressed', String(!!own));
-    t.addEventListener('click', () => editTests(t, e, name, multiDay, input));
+    const t = toggle('Tests', e.tests?.trim(), () => editTests(t, e, name, multiDay, input));
     box.append(t);
   }
   return box;
+}
+
+// Visit card: Outpatient/Inpatient for a single treatment block, or one button per block
+// (BEP: D1-5 inpatient, D8 and D15 outpatient). Changing it sets every cycle afresh.
+const inpTrack = $('#inp-days');
+let inpShape = '';
+function renderInpDays(days) {
+  const blocks = days ? groupConsecutive(days) : [];
+  for (const d of [...inpDays]) if (!blocks.some((b) => b[0] === d)) inpDays.delete(d);
+  const shape = blocks.map((b) => b.join('-')).join() + [...inpDays].join();
+  if (shape === inpShape) return;
+  inpShape = shape;
+  const focused = document.activeElement?.parentElement === inpTrack ? [...inpTrack.children].indexOf(document.activeElement) : -1;
+  const set = (start, on) => () => {
+    if (on) inpDays.add(start); else inpDays.delete(start);
+    inpOpts = {};
+    render();
+  };
+  inpTrack.innerHTML = '';
+  if (blocks.length === 1) {
+    const d = blocks[0][0];
+    $('#inp-legend').textContent = 'Treatment';
+    inpTrack.append(toggle('Outpatient', !inpDays.has(d), set(d, false)), toggle('Inpatient', inpDays.has(d), set(d, true)));
+  } else {
+    $('#inp-legend').textContent = 'Inpatient days';
+    for (const b of blocks) {
+      const on = inpDays.has(b[0]);
+      inpTrack.append(toggle(b.length > 1 ? `D${b[0]}-${b[b.length - 1]}` : `D${b[0]}`, on, set(b[0], !on)));
+    }
+  }
+  inpTrack.closest('fieldset').hidden = !blocks.length;
+  if (focused >= 0) inpTrack.children[focused]?.focus();
 }
 
 // Opens with this row's tests; clearing the box, or matching the default set, drops the override.
@@ -392,7 +394,8 @@ function render() {
   el.timeline.innerHTML = '';
   el.copy.hidden = true;
   el.error.hidden = true;
-  el.clear.hidden = !(el.review.value || el.chemo.value || el.cycle.value || input.inpatient);
+  renderInpDays(input.regimen?.days);
+  el.clear.hidden = !(el.review.value || el.chemo.value || el.cycle.value || inpDays.size);
   // The card title names the regimen and its rhythm; empty until there is a plan
   const R = input.regimen;
   $('#summary-title').textContent = R && input.review && input.chemo ? (R.name || `q${R.cycleDays}d`) : '';
@@ -407,7 +410,8 @@ function render() {
     el.error.hidden = false;
     return;
   }
-  if (res.allInpatient) $('#summary-meta').textContent += ' · Inpatient';
+  const note = res.inpatient.note;
+  if (note) $('#summary-meta').textContent += ` · ${note[0].toUpperCase()}${note.slice(1)}`;
 
   for (const e of res.events) {
     const li = document.createElement('li');
@@ -449,7 +453,7 @@ function render() {
     li.append(date, what);
 
     if (e.kind === 'review') li.append(tcuToggles(e));
-    if (e.cycleStart) li.append(inpatientToggle(e));
+    if (e.inpKey) li.append(inpatientToggle(e));
     if (e.kind === 'labs') {
       li.classList.toggle('off', e.off && !e.tcu);
       li.append(labsControls(e, name, res.multiDay, input));
@@ -468,8 +472,10 @@ function render() {
       const custom = document.createElement('input');
       custom.type = 'date';
       if (e.minDate != null) custom.min = fromDay(e.minDate);
+      if (e.maxDate != null) custom.max = fromDay(e.maxDate);
       custom.addEventListener('change', () => {
-        if (custom.value && (e.minDate == null || toDay(custom.value) >= e.minDate)) choosePH(e, custom.value);
+        const n = custom.value >= '2000' ? toDay(custom.value) : null;
+        if (n !== null && (e.minDate == null || n >= e.minDate) && (e.maxDate == null || n <= e.maxDate)) choosePH(e, custom.value);
       });
       choose.append(custom);
       li.append(choose);
@@ -509,9 +515,8 @@ $('#inputs').addEventListener('input', (ev) => {
       chemoAuto = true;
     } else if (chemoAuto) el.chemo.value = '';
   }
-  // Name, lab tests and inpatient keep the TCUs as they are; anything else re-plans from scratch
-  if (ev.target.name === 'setting') inpOpts = {}; // the Visit card sets every cycle afresh
-  else if (![el.name, el.labTests, el.midLabTests].includes(ev.target)) resetPlan();
+  // Name and lab tests only change wording; anything else re-plans from scratch
+  if (![el.name, el.labTests, el.midLabTests].includes(ev.target)) resetPlan();
   saveEntry(readInput());
   render();
   renderRefDoses();
@@ -523,7 +528,7 @@ el.clear.addEventListener('click', () => {
   el.chemo.value = '';
   chemoAuto = false;
   el.cycle.value = '';
-  $('#inputs').elements.setting.value = 'outpatient';
+  inpDays.clear();
   resetPlan();
   render();
   el.review.focus();
@@ -642,7 +647,7 @@ document.addEventListener('keydown', (ev) => {
   if (t.type === 'date' && ev.key.toLowerCase() === 't' && !mod && !ev.altKey) {
     ev.preventDefault();
     const d = new Date();
-    t.value = fromDay(toDay(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`));
+    t.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     t.dispatchEvent(new Event(t.classList.contains('date-picker') ? 'change' : 'input', { bubbles: true }));
   } else if (ev.key === 'Enter' && mod && !el.copy.hidden) {
     ev.preventDefault();

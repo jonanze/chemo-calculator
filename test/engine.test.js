@@ -529,7 +529,7 @@ test('the formatted copy matches the plain text, with TCUs bold and chemo blue',
 });
 
 test('inpatient: chemo and its labs stay put on PHs and weekends, PH still labelled', () => {
-  const res = plan({ ...folfoxInput, inpatient: true }, S(), SG_HOLIDAYS);
+  const res = plan({ ...folfoxInput, inpDays: [1] }, S(), SG_HOLIDAYS);
   const c5 = find(res, 'chemo', 5);
   assert.equal(fromDay(c5.date), '2026-11-09'); // Deepavali in lieu, not moved
   assert.deepEqual(c5.flags.map((f) => f.t), ['ph']);
@@ -539,14 +539,14 @@ test('inpatient: chemo and its labs stay put on PHs and weekends, PH still label
   assert.deepEqual(l5.flags.map((f) => f.t), ['ph']);
   // No short-interval knock-on, since nothing moved
   assert.deepEqual(find(res, 'chemo', 6).flags, []);
-  const text = toText(res, { ...folfoxInput, inpatient: true }, S());
+  const text = toText(res, { ...folfoxInput, inpDays: [1] }, S());
   assert.equal(text.split('\n')[0], 'FOLFOX q14d (inpatient), TCU every 3 cycles');
   assert.match(text, /Mon 9\/11\/26 C5 \[PH\]/); // said once, in the header
   assert.doesNotMatch(text, /C\d+ \(inpatient\)/);
 });
 
 test('inpatient: a block over a PH or closed date neither slips nor flags the closure', () => {
-  const input = { regimen: R.carboEto, review: '2026-10-13', chemo: '2026-10-14', every: 2, cycle: 1, inpatient: true };
+  const input = { regimen: R.carboEto, review: '2026-10-13', chemo: '2026-10-14', every: 2, cycle: 1, inpDays: [1] };
   const res = plan(input, S({ visits: 1, closedDates: ['2026-11-05'], chemoDays: [1, 2, 3, 4, 5] }), SG_HOLIDAYS);
   const c2 = res.events.filter((e) => e.kind === 'chemo' && e.cycle === 2);
   assert.deepEqual(c2.map((e) => [fromDay(e.date), e.flags.map((f) => f.t)]),
@@ -554,7 +554,7 @@ test('inpatient: a block over a PH or closed date neither slips nor flags the cl
 });
 
 test('inpatient: TCUs keep outpatient clinic rules', () => {
-  const input = { regimen: R.folfox, review: '2026-11-06', chemo: '2026-11-09', every: 1, cycle: 1, inpatient: true };
+  const input = { regimen: R.folfox, review: '2026-11-06', chemo: '2026-11-09', every: 1, cycle: 1, inpDays: [1] };
   const res = plan({ ...input, review: '2026-10-26', chemo: '2026-10-26' }, S({ visits: 2 }), SG_HOLIDAYS);
   const r2 = find(res, 'review', 2);
   assert.equal(fromDay(r2.date), '2026-11-09');
@@ -562,18 +562,61 @@ test('inpatient: TCUs keep outpatient clinic rules', () => {
 });
 
 test('inpatient per cycle: overrides the default and tags only the first day of each admission', () => {
-  const input = { regimen: R.carboEto, review: '2026-10-13', chemo: '2026-10-14', every: 2, cycle: 1, inpOpts: { 1: true } };
+  const input = { regimen: R.carboEto, review: '2026-10-13', chemo: '2026-10-14', every: 2, cycle: 1, inpOpts: { '1:1': true } };
   const res = plan(input, S({ visits: 1 }), SG_HOLIDAYS);
-  assert.equal(res.allInpatient, false);
+  assert.equal(res.inpatient.perLine, true);
   assert.deepEqual(res.events.filter((e) => e.kind === 'chemo').map((e) => [e.cycle, e.day, e.inpatient]),
     [[1, 1, false], [1, 2, false], [1, 3, false], [2, 1, true], [2, 2, true], [2, 3, true],
       [3, 1, false], [3, 2, false], [3, 3, false]]);
-  assert.ok(res.events.filter((e) => e.cycleStart).every((e) => e.day === 1));
+  assert.ok(res.events.filter((e) => e.inpKey).every((e) => e.day === 1));
   const text = toText(res, input, S({ visits: 1 }));
   assert.equal(text.split('\n')[0], 'Carbo-etoposide q21d, TCU every 2 cycles');
   assert.deepEqual(text.split('\n').filter((l) => l.includes('inpatient')).map((l) => l.replace(/^\S+ \S+ /, '')), ['C2 D1 (inpatient)']);
   // Switching one cycle off an inpatient default drops the header tag
-  const mixed = plan({ ...input, inpatient: true, inpOpts: { 2: false } }, S({ visits: 1 }), SG_HOLIDAYS);
-  assert.equal(mixed.allInpatient, false);
+  const mixed = plan({ ...input, inpDays: [1], inpOpts: { '2:1': false } }, S({ visits: 1 }), SG_HOLIDAYS);
+  assert.equal(mixed.inpatient.note, null);
   assert.equal(find(mixed, 'chemo', 3).inpatient, false);
+});
+
+test('the entered treatment date moves off a closed day like any other, unless inpatient', () => {
+  // Treatment entered on Mon 9/11/26 (Deepavali in lieu)
+  const input = { regimen: R.folfox, review: '2026-11-06', chemo: '2026-11-09', every: 2, cycle: 1 };
+  const out = find(plan(input, S({ visits: 1 }), SG_HOLIDAYS), 'chemo', 1);
+  assert.equal(fromDay(out.date), '2026-11-10');
+  assert.deepEqual(out.flags.map((f) => f.t), ['ph', 'moved']);
+  assert.equal(out.editKey, undefined); // changed in the Visit card, not on its row
+  const inp = find(plan({ ...input, inpDays: [1] }, S({ visits: 1 }), SG_HOLIDAYS), 'chemo', 1);
+  assert.equal(fromDay(inp.date), '2026-11-09');
+  assert.deepEqual(inp.flags.map((f) => f.t), ['ph']);
+});
+
+test('the entered TCU on a PH asks for a day on or before the entered treatment', () => {
+  const input = { regimen: R.folfox, review: '2026-11-09', chemo: '2026-11-11', every: 2, cycle: 1 };
+  const r1 = find(plan(input, S({ visits: 1 }), SG_HOLIDAYS), 'review', 1);
+  assert.equal(r1.pending, true);
+  assert.deepEqual(r1.options.map(fromDay), ['2026-11-06', '2026-11-10']);
+  assert.equal(fromDay(r1.maxDate), '2026-11-11');
+  const picked = plan(input, S({ visits: 1 }), SG_HOLIDAYS, { 0: '2026-11-10' });
+  assert.equal(fromDay(find(picked, 'review', 1).date), '2026-11-10');
+  assert.equal(fromDay(find(picked, 'chemo', 1).date), '2026-11-11'); // the entered chemo stays
+});
+
+test('BEP: D1-5 inpatient, D8 and D15 outpatient', () => {
+  const bep = { name: 'BEP', cycleDays: 21, days: [1, 2, 3, 4, 5, 8, 15] };
+  // C1 D1 Wed 4/11/26: D5 is Sun 8/11 (Deepavali), D8 Wed 11/11, D15 Wed 18/11
+  const input = { regimen: bep, review: '2026-11-03', chemo: '2026-11-04', every: 1, cycle: 1, inpDays: [1] };
+  const res = plan(input, S({ visits: 1 }), SG_HOLIDAYS);
+  const c1 = res.events.filter((e) => e.kind === 'chemo' && e.cycle === 1);
+  assert.deepEqual(c1.map((e) => [fromDay(e.date).slice(5), e.inpatient]),
+    [['11-04', true], ['11-05', true], ['11-06', true], ['11-07', true], ['11-08', true], ['11-11', false], ['11-18', false]]);
+  assert.deepEqual(res.inpatient, { note: 'D1-5 inpatient', perLine: false });
+  assert.equal(toText(res, input, S({ visits: 1 })).split('\n')[0], 'BEP q21d (D1-5 inpatient)');
+  // The same block as an outpatient slips as a whole past the closed Sunday
+  const out = plan({ ...input, inpDays: [] }, S({ visits: 1 }), SG_HOLIDAYS);
+  assert.equal(fromDay(find(out, 'chemo', 1).date), '2026-11-10');
+  // One cycle's D8 admitted too: the pattern differs, so each admission is tagged instead
+  const mixed = plan({ ...input, inpOpts: { '0:8': true } }, S({ visits: 1 }), SG_HOLIDAYS);
+  assert.deepEqual(mixed.inpatient, { note: null, perLine: true });
+  const tagged = toText(mixed, input, S({ visits: 1 })).split('\n').filter((l) => l.includes('(inpatient)'));
+  assert.deepEqual(tagged.map((l) => l.replace(/^\S+ \S+ /, '')), ['C1 D1 (inpatient)', 'C1 D8 (inpatient)', 'C2 D1 (inpatient)']);
 });
