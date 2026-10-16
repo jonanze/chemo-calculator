@@ -37,9 +37,9 @@
   --danger: #a8402f;
   --danger-soft: rgba(168, 64, 47, .12);
   --shadow-pop: 0 16px 44px rgba(60, 50, 35, .13);
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 14px;
+  --r-sm: 6px;   /* rail rows only, as oncOS */
+  --r-md: 2px;   /* controls: sharp */
+  --r-lg: 0;     /* no rounded boxes */
   --h-control: 32px;
   --ease: cubic-bezier(.2, 0, 0, 1);
   --rail-w: 244px;
@@ -153,14 +153,17 @@ svg { flex: none; }
 
 /* ---------- Layout ---------- */
 main { flex: 1 1 auto; min-width: 0; padding: 18px clamp(16px, 4vw, 26px) 60px; }
-.layout { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 20px; align-items: start; max-width: 1280px; }
-.layout > .panel:first-child { position: sticky; top: 18px; }
-.panel { background: var(--paper); border: 1px solid var(--grid); border-radius: var(--r-lg); }
-.group { padding: 16px 18px 18px; }
-.group + .group { border-top: 1px solid var(--grid); }
-.group-title { font-size: 10.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
-.group-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.group-head .group-title { margin: 0; }
+.layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 0; align-items: start; max-width: 1320px; }
+/* No boxes: the form column sits on the page, ruled off from the schedule */
+.layout > .panel:first-child { position: sticky; top: 18px; padding-right: 26px; }
+.layout > :nth-child(2) { border-left: 1px solid var(--grid); padding-left: 26px; min-height: calc(100vh - 78px); }
+.panel { background: none; }
+.group { padding: 0 0 22px; }
+/* Section labels as oncOS: small tracked capitals with a rule running to the right */
+.group-title { display: flex; align-items: center; gap: 12px; font-size: 10.5px; font-weight: 550; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px; }
+.group-title::after { content: ""; flex: 1; height: 1px; background: var(--grid); }
+.group-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.group-head .group-title { flex: 1; margin: 0; }
 
 /* ---------- Controls ---------- */
 button, .button {
@@ -172,7 +175,7 @@ button, .button {
 button:hover, .button:hover { background: var(--raised); }
 button:active, .button:active { background: var(--press); }
 button.primary { min-width: 6.5em; background: var(--solid); color: var(--solid-text); border-color: var(--solid); }
-button.primary:hover { background: var(--solid); opacity: .88; }
+button.primary:hover { background: var(--solid); opacity: .86; }
 button.primary.done { background: var(--ok); border-color: var(--ok); color: var(--solid-text); opacity: 1; }
 button.ghost { background: transparent; border-color: transparent; color: var(--slate); }
 button.ghost:hover { background: var(--hover); color: var(--ink); }
@@ -256,7 +259,7 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 #regimen-list .rm { grid-column: 1 / -1; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .ref-doses {
-  list-style: none; margin: -4px 0 0; padding: 8px 10px; background: var(--raised); border-radius: var(--r-md);
+  list-style: none; margin: -2px 0 0; padding: 2px 0 2px 12px; border-left: 2px solid var(--hair);
   font-size: 12px; line-height: 1.5; color: var(--slate); font-variant-numeric: tabular-nums;
 }
 .ref-doses li { padding-left: 1em; text-indent: -1em; }
@@ -264,42 +267,39 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 
 /* ---------- Schedule ---------- */
 .out .bar {
-  position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 16px;
-  padding: 16px 18px 14px; background: var(--paper); border-bottom: 1px solid var(--grid);
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: flex-end; gap: 16px;
+  margin-top: -18px; padding: 18px 0 14px; background: var(--ground); border-bottom: 1px solid var(--hair);
 }
 .summary { min-width: 0; }
 .summary h2 { font-size: 22px; font-weight: 550; letter-spacing: -0.01em; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .summary p { font-size: 12px; color: var(--slate); margin-top: 3px; }
 .summary h2:empty + p:empty { display: none; }
 .out .actions { margin-left: auto; display: flex; gap: 6px; }
-#error { color: var(--danger); padding: 14px 18px; }
+#error { color: var(--danger); padding: 14px 0; }
 
 .out .empty { display: none; place-items: center; height: 280px; color: var(--hair); }
+.out .empty svg { stroke-linecap: square; }
 .out:has(#timeline:empty):not(:has(#error:not([hidden]))) .empty { display: grid; }
 .out:has(#timeline:empty) .bar { border-bottom-color: transparent; }
 
-#timeline { list-style: none; margin: 0; padding: 8px 8px 10px; }
+#timeline { list-style: none; margin: 0; padding: 0 0 10px; }
 #timeline:empty { display: none; }
 #timeline li {
   display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 4px 14px; align-items: center;
-  min-height: 36px; padding: 4px 10px; border-radius: var(--r-sm); font-size: 14px;
+  min-height: 36px; padding: 4px 8px; font-size: 14px; border-top: 1px solid var(--grid);
   transition: background 110ms var(--ease);
 }
-#timeline li + li:not(.review) { box-shadow: inset 0 1px 0 var(--grid); }
-/* Kind markers: filled for chemo, ring for a TCU, small grey for labs */
-#timeline li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; justify-self: center; }
+/* Kind markers, square as oncOS bullets: filled for chemo, open for a TCU, small grey for labs */
+#timeline li::before { content: ""; width: 7px; height: 7px; justify-self: center; }
 #timeline li.chemo::before { background: var(--accent); }
-#timeline li.review::before { border: 1.65px solid var(--ink); width: 9px; height: 9px; }
-#timeline li.labs::before { background: var(--muted); width: 5px; height: 5px; }
+#timeline li.review::before { border: 1.5px solid var(--ink); width: 8px; height: 8px; }
+#timeline li.labs::before { background: var(--muted); width: 4px; height: 4px; }
 /* A light band follows the eye from a date across to its toggles */
-#timeline li:hover { background: var(--accent-soft); box-shadow: none; }
-#timeline li:hover + li { box-shadow: none; }
-/* Each TCU heads its block */
-#timeline li.review { background: var(--raised); }
-#timeline li.review:hover { background: var(--accent-soft); }
-#timeline li.review + li { box-shadow: none; }
-#timeline li.review:not(:first-child) { margin-top: 14px; }
+#timeline li:hover { background: var(--hover); }
+/* Each TCU heads its block: more air above and a firmer rule */
+#timeline li.review { border-top-color: var(--hair); }
+#timeline li.review:not(:first-child) { margin-top: 18px; }
+#timeline li:first-child { border-top: 0; }
 /* A TCU waiting for a reschedule pick stands out until it is resolved */
 #timeline li.review.pending { background: var(--warn-soft); }
 
@@ -311,7 +311,7 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
   display: inline; text-align: left; cursor: pointer; border-radius: var(--r-sm);
 }
 #timeline li.chemo button.date, #timeline li.review button.date { color: var(--ink); }
-#timeline button.date:hover { background: var(--paper); text-decoration: underline dotted; text-underline-offset: 3px; }
+#timeline button.date:hover { background: transparent; text-decoration: underline dotted; text-underline-offset: 3px; }
 #timeline .date-picker { width: auto; height: 28px; padding: 0 8px; font-size: 13px; }
 #timeline .until { color: var(--muted); font-variant-numeric: tabular-nums; }
 #timeline .what { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
@@ -324,22 +324,22 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 /* Toggles: chip geometry; on = pressed tint (as oncOS filter chips), off = hairline */
 #timeline .toggles { grid-column: 4; display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
 #timeline .toggles button {
-  height: 22px; padding: 0 9px; font-size: 11.5px; font-weight: 500; border-radius: 999px;
+  height: 22px; padding: 0 9px; font-size: 11.5px; font-weight: 500; border-radius: var(--r-md);
   background: var(--paper); color: var(--slate); border: 1px solid var(--hair);
 }
 #timeline .toggles button:hover { color: var(--ink); border-color: var(--muted); }
-#timeline .toggles button[aria-pressed="true"] { background: var(--press); border-color: transparent; color: var(--ink); font-weight: 600; }
-#timeline .toggles input.tests { width: 16em; height: 22px; font-size: 12px; padding: 0 10px; border-radius: 999px; }
+#timeline .toggles button[aria-pressed="true"] { background: var(--press); border-color: var(--ink); color: var(--ink); font-weight: 550; }
+#timeline .toggles input.tests { width: 16em; height: 22px; font-size: 12px; padding: 0 8px; }
 /* Pills that are on always show; the rest appear when the row is hovered or focused (Jonan, 16 Oct 2026) */
 #timeline .toggles button[aria-pressed="false"] { opacity: 0; transition: opacity 110ms var(--ease); }
 #timeline li:hover .toggles button, #timeline li:focus-within .toggles button { opacity: 1; }
 #timeline .choose { grid-column: 3 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 2px 0 4px; }
-#timeline .choose button { height: 24px; padding: 0 10px; font-size: 12px; border-radius: 999px; background: var(--paper); font-variant-numeric: tabular-nums; }
-#timeline .choose input[type=date] { width: auto; height: 24px; padding: 0 8px; font-size: 12px; border-radius: 999px; }
+#timeline .choose button { height: 24px; padding: 0 10px; font-size: 12px; background: var(--paper); font-variant-numeric: tabular-nums; }
+#timeline .choose input[type=date] { width: auto; height: 24px; padding: 0 8px; font-size: 12px; }
 
 .chip {
   display: inline-flex; align-items: center; height: 20px; padding: 0 8px; font-size: 10.5px; font-weight: 500; line-height: 1;
-  border-radius: 999px; border: 1px solid var(--hair); background: transparent; color: var(--slate); white-space: nowrap;
+  border-radius: var(--r-md); border: 1px solid var(--hair); background: transparent; color: var(--slate); white-space: nowrap;
 }
 .chip.ph, .chip.closed, .chip.off, .chip.nodata { background: var(--warn-soft); border-color: transparent; color: var(--warn); }
 .chip.short, .chip.reschedule { background: var(--danger-soft); border-color: transparent; color: var(--danger); }
@@ -356,13 +356,13 @@ button.chip { height: 20px; cursor: pointer; font: inherit; font-size: 10.5px; f
 /* The two figures that drive doses read first */
 #derived dt.key { color: var(--ink); font-weight: 550; align-self: center; }
 #derived dd.key { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; }
-#derived.copyable { border-radius: var(--r-md); margin: -6px -8px; padding: 6px 8px; transition: background 110ms var(--ease); }
+#derived.copyable { margin: -6px -8px; padding: 6px 8px; transition: background 110ms var(--ease); }
 #derived.copyable:hover { background: var(--hover); }
 
-#drugs { columns: 3 210px; column-gap: 12px; }
+#drugs { columns: 3 210px; column-gap: 10px; }
 .drug {
-  break-inside: avoid; margin: 0 0 12px; padding: 12px 14px 10px;
-  border: 1px solid var(--grid); border-radius: var(--r-lg); background: var(--paper);
+  break-inside: avoid; margin: 0 0 10px; padding: 11px 13px 9px;
+  border: 1px solid var(--hair); background: var(--paper);
 }
 .drug.filled { border-color: transparent; }
 .drug h3 { margin: 0 0 6px; color: inherit; text-transform: none; letter-spacing: -0.005em; font-size: 14px; font-weight: 600; }
@@ -374,10 +374,10 @@ button.chip { height: 20px; cursor: pointer; font: inherit; font-size: 10.5px; f
 .drug td.mg { text-align: right; font-weight: 600; }
 .drug td.note { width: 1%; text-align: right; padding-left: 12px; font-size: 12px; opacity: .75; white-space: nowrap; }
 .drug td.note.over { opacity: 1; font-weight: 700; color: var(--danger); }
-.drug.filled td.note.over { color: #a8402f; background: #fff; border-radius: 4px; padding: 0 4px; }
+.drug.filled td.note.over { color: #a8402f; background: #fff; padding: 0 4px; }
 .drug tr.bold td:first-child { font-weight: 700; }
 .drug tr.over td.mg { color: var(--danger); }
-.drug.filled tr.over td.mg span { color: #a8402f; background: #fff; border-radius: 4px; padding: 0 4px; }
+.drug.filled tr.over td.mg span { color: #a8402f; background: #fff; padding: 0 4px; }
 .drug .cap { margin: 6px 0 0; font-size: 12px; opacity: .85; }
 .drug .cap.over { opacity: 1; font-weight: 700; }
 
@@ -401,9 +401,9 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
 .dialog-body { overflow-y: auto; overflow-x: hidden; padding: 0 20px 8px; }
 .dialog-foot { display: flex; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--grid); background: var(--raised); }
 .dialog-foot #reset { margin-left: auto; }
-#settings section { padding: 16px 0 8px; }
-#settings section + section { border-top: 1px solid var(--grid); }
-#settings h3 { margin-bottom: 4px; }
+#settings section { padding: 16px 0 6px; }
+#settings h3 { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; letter-spacing: 0.12em; font-weight: 550; }
+#settings h3::after { content: ""; flex: 1; height: 1px; background: var(--grid); }
 #settings .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 5px 0; }
 #settings .row > span { font-size: 13px; flex: 1 1 auto; min-width: 0; }
 #settings .row input[type=number] { width: 72px; text-align: right; font-variant-numeric: tabular-nums; }
@@ -423,7 +423,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
 .chips { list-style: none; margin: 4px 0 10px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .chips:empty { display: none; }
 .chips li.chip { height: 24px; padding: 0 2px 0 10px; gap: 2px; font-size: 12px; font-variant-numeric: tabular-nums; }
-.chips li button { height: 20px; padding: 0 6px; border: none; background: none; color: var(--muted); border-radius: 999px; }
+.chips li button { height: 20px; padding: 0 6px; border: none; background: none; color: var(--muted); }
 .chips li button:hover { background: var(--hover); color: var(--ink); }
 .add { display: flex; gap: 8px; }
 .add input { width: auto; flex: 1; }
@@ -454,14 +454,14 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
   .rail-fill { order: 2; }
   .rail-icon { order: 3; width: 36px; height: 36px; }
   main { padding: 16px 16px 40px; }
-  .layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  .layout > .panel:first-child { position: static; }
-  .group { padding: 16px; }
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .layout > .panel:first-child { position: static; padding-right: 0; }
+  .layout > :nth-child(2) { border-left: 0; padding-left: 0; min-height: 0; }
   /* iOS zooms into inputs under 16px */
   input, select { font-size: 16px; height: 40px; }
   .seg-track { height: 40px; }
   #drugs { columns: 2; column-gap: 8px; }
-  .drug { padding: 9px 10px 8px; margin-bottom: 8px; font-size: 14px; border-radius: var(--r-md); }
+  .drug { padding: 9px 10px 8px; margin-bottom: 8px; font-size: 14px; }
   .drug td:first-child, .drug th:first-child { padding-right: 8px; }
   .drug td.note { font-size: 11px; padding-left: 6px; }
   .out .bar { position: static; }
@@ -474,3 +474,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Derived values under the patient form, ruled off */
+.side .group + .group { border-top: 1px solid var(--grid); padding-top: 14px; }
