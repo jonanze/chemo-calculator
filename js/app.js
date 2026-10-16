@@ -196,7 +196,7 @@ el.name.addEventListener('blur', closePicker);
 function readInput() {
   const num = (x) => (x.value ? Math.max(1, Math.floor(Number(x.value))) : null);
   const cycleDays = num(el.cycleDays);
-  const days = parseDays(el.days.value);
+  const days = parseDays(el.days.value, cycleDays);
   // A date being typed passes through years like 0002; wait for a whole one
   const date = (x) => (x.value >= '2000' ? x.value : '');
   return {

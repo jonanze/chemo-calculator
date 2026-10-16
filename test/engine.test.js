@@ -188,6 +188,9 @@ test('treatment days parsing', () => {
   assert.deepEqual(parseDays('d1-3, d8'), [1, 2, 3, 8]);
   assert.equal(parseDays('day one'), null);
   assert.equal(parseDays('D3-1'), null);
+  // A day past the cycle would land on the next cycle's D1
+  assert.equal(parseDays('D1, D8, D22', 21), null);
+  assert.deepEqual(parseDays('D1, D8, D21', 21), [1, 8, 21]);
 });
 
 test('EMR header without a regimen name', () => {
@@ -339,24 +342,25 @@ test('a labs row can be switched off or given its own tests', () => {
   assert.ok(lines.some((l) => l.includes('TCU with labs (FBC, RP, LFT)')));
 });
 
-test('a consecutive block moves as a whole when any of its days is closed', () => {
-  const block = (r, review, chemo, k) => {
-    const res = plan({ regimen: r, review, chemo, every: 1, labs: true, cycle: 1 }, S({ visits: 2 }), SG_HOLIDAYS);
-    return res.events.filter((e) => e.kind === 'chemo' && e.cycle === k).map((e) => fromDay(e.date));
-  };
-  // Vesak Day Thu 20 May 2027 falls on D3 of the Tue 18 May block
-  assert.deepEqual(block(R.carboEto, '2027-04-26', '2027-04-27', 2), ['2027-05-24', '2027-05-25', '2027-05-26']);
+test('a consecutive block moves as a whole, by at most 3 days, when any of its days is closed', () => {
+  const run = (r, review, chemo) => plan({ regimen: r, review, chemo, every: 1, labs: true, cycle: 1 }, S({ visits: 2 }), SG_HOLIDAYS);
+  const block = (res, k) => res.events.filter((e) => e.kind === 'chemo' && e.cycle === k).map((e) => fromDay(e.date));
+  // A Friday D1-3 would run into Sunday: C2 moves 3 days to Mon 30 Nov, flagged with its planned start
+  const fri = run(R.carboEto, '2026-11-05', '2026-11-06');
+  assert.deepEqual(block(fri, 2), ['2026-11-30', '2026-12-01', '2026-12-02']);
+  assert.deepEqual(find(fri, 'chemo', 2).flags.map((f) => f.t), ['off', 'moved']);
+  assert.equal(fromDay(find(fri, 'chemo', 2).flags[1].from), '2026-11-27');
+  // The next cycle keeps its grid (Fri 18 Dec, itself moved to Mon 21 Dec)
+  assert.equal(fromDay(find(fri, 'chemo', 3).flags[1].from), '2026-12-18');
+  // No open start within 3 days: the block stays on its planned days, the closed day flagged for
+  // a hand edit (Jonan, 16 Oct 2026). Vesak Thu 20 May 2027 falls on D3 of the Tue 18 May block.
+  const vesak = run(R.carboEto, '2027-04-26', '2027-04-27');
+  assert.deepEqual(block(vesak, 2), ['2027-05-18', '2027-05-19', '2027-05-20']);
+  assert.deepEqual(vesak.events.filter((e) => e.kind === 'chemo' && e.cycle === 2).map((e) => e.flags.map((f) => f.t)), [[], [], ['ph']]);
+  assert.equal(fromDay(find(vesak, 'chemo', 3).date), '2027-06-08');
   // Hari Raya Puasa Wed 10 Mar 2027 inside a Mon 8 Mar D1-5 block
   const d15 = { name: 'D1-5', cycleDays: 21, days: [1, 2, 3, 4, 5] };
-  assert.deepEqual(block(d15, '2027-02-12', '2027-02-15', 2), ['2027-03-15', '2027-03-16', '2027-03-17', '2027-03-18', '2027-03-19']);
-  // A Friday D1-3 would run into Sunday
-  assert.deepEqual(block(R.carboEto, '2026-11-05', '2026-11-06', 2), ['2026-11-30', '2026-12-01', '2026-12-02']);
-  // Flags sit on D1: the reason and the original start; the next cycle keeps its grid
-  const res = plan({ regimen: R.carboEto, review: '2027-04-26', chemo: '2027-04-27', every: 1, labs: true, cycle: 1 }, S({ visits: 2 }), SG_HOLIDAYS);
-  const d1 = find(res, 'chemo', 2);
-  assert.deepEqual(d1.flags.map((f) => f.t), ['ph', 'moved']);
-  assert.equal(fromDay(d1.flags[1].from), '2027-05-18');
-  assert.equal(fromDay(find(res, 'chemo', 3).date), '2027-06-08');
+  assert.deepEqual(block(run(d15, '2027-02-12', '2027-02-15'), 2), ['2027-03-08', '2027-03-09', '2027-03-10', '2027-03-11', '2027-03-12']);
 });
 
 test('shortest interval: a PH move never brings the next treatment closer than the floor', () => {
@@ -611,9 +615,10 @@ test('BEP: D1-5 inpatient, D8 and D15 outpatient', () => {
     [['11-04', true], ['11-05', true], ['11-06', true], ['11-07', true], ['11-08', true], ['11-11', false], ['11-18', false]]);
   assert.deepEqual(res.inpatient, { note: 'D1-5 inpatient', perLine: false });
   assert.equal(toText(res, input, S({ visits: 1 })).split('\n')[0], 'BEP q21d (D1-5 inpatient)');
-  // The same block as an outpatient slips as a whole past the closed Sunday
+  // The same block as an outpatient has no open start within 3 days, so it stays, D5 flagged
   const out = plan({ ...input, inpDays: [] }, S({ visits: 1 }), SG_HOLIDAYS);
-  assert.equal(fromDay(find(out, 'chemo', 1).date), '2026-11-10');
+  assert.equal(fromDay(find(out, 'chemo', 1).date), '2026-11-04');
+  assert.deepEqual(out.events.find((e) => e.kind === 'chemo' && e.cycle === 1 && e.day === 5).flags.map((f) => f.t), ['ph']);
   // One cycle's D8 admitted too: the pattern differs, so each admission is tagged instead
   const mixed = plan({ ...input, inpOpts: { '0:8': true } }, S({ visits: 1 }), SG_HOLIDAYS);
   assert.deepEqual(mixed.inpatient, { note: null, perLine: true });
