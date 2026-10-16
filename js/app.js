@@ -1,4 +1,4 @@
-import { plan, toText, toHTML, formatDay, fromDay, toDay, label, baseTests, parseDays, groupConsecutive } from './engine.js';
+import { plan, toText, toHTML, formatDay, fromDay, toDay, label, flagText, baseTests, parseDays, groupConsecutive } from './engine.js';
 import { SG_HOLIDAYS } from './holidays.js';
 import { DEFAULT_SETTINGS, DEFAULT_ENTRY } from './defaults.js';
 import { copyText } from './clip.js';
@@ -156,8 +156,9 @@ function pickRegimen(r) {
   saveEntry(readInput());
   render();
   renderRefDoses();
-  // Chemoradiation and continuous orals have no cycle length
+  // Chemoradiation and continuous orals have no cycle length; otherwise the next thing is a date
   if (!r.cycleDays) el.cycleDays.select();
+  else if (!el.review.value) el.review.focus();
 }
 
 el.name.addEventListener('input', () => {
@@ -185,21 +186,19 @@ el.name.addEventListener('keydown', (ev) => {
 
 el.name.addEventListener('blur', closePicker);
 
+// The form as the engine sees it. Reading changes nothing on the page; render() does that.
 function readInput() {
-  const every = Math.max(1, Math.floor(Number($('#every').value)) || 1);
   const num = (x) => (x.value ? Math.max(1, Math.floor(Number(x.value))) : null);
   const cycleDays = num(el.cycleDays);
   const days = parseDays(el.days.value);
-  el.days.classList.toggle('invalid', !days);
-  // Mid-cycle labs only exist when a cycle has a later treatment day (D8, D15)
-  $('#mid-labs-field').hidden = !(days && groupConsecutive(days).length > 1);
   // A date being typed passes through years like 0002; wait for a whole one
   const date = (x) => (x.value >= '2000' ? x.value : '');
   return {
     regimen: cycleDays && days ? { name: el.name.value.trim(), cycleDays, days } : null,
+    days, // parsed treatment days, or null while the box is invalid
     review: date(el.review),
     chemo: date(el.chemo),
-    every,
+    every: num($('#every')) || 1,
     tcuOpts,
     labOpts,
     labTests: el.labTests.value,
@@ -212,19 +211,6 @@ function readInput() {
 
 // ---------- Output ----------
 
-function chipText(f) {
-  switch (f.t) {
-    case 'ph': return 'PH';
-    case 'closed': return 'Closed';
-    case 'off': return { clinic: 'No clinic', chemo: 'Unit closed', labs: 'No labs' }[f.ctx] || 'Closed';
-    case 'moved': return `from ${formatDay(f.from, settings.dateFormat)}`;
-    case 'short': return `${f.days}d`;
-    case 'nodata': return 'No PH data';
-    case 'edited': return 'Edited ×';
-    default: return '';
-  }
-}
-
 // Swap a date for a picker; a new date re-anchors that cycle and the ones after it.
 function editDate(button, e) {
   const picker = document.createElement('input');
@@ -235,14 +221,16 @@ function editDate(button, e) {
   if (e.minDate != null) picker.min = fromDay(e.minDate);
   // Typing a date fires change on every valid intermediate value, so wait for a pause,
   // Enter or blur before committing.
-  let timer;
+  let timer, done = false;
   const commit = () => {
     clearTimeout(timer);
+    if (done) return; // render() removes the picker, which blurs it, which would commit again
+    done = true;
     if (picker.value && picker.value !== fromDay(e.date) && picker.value >= (picker.min || '2000')) setEdit(e, picker.value);
     else render();
   };
   picker.addEventListener('change', () => { clearTimeout(timer); timer = setTimeout(commit, 900); });
-  picker.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); commit(); } if (ev.key === 'Escape') render(); });
+  picker.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); commit(); } if (ev.key === 'Escape') { done = true; render(); } });
   picker.addEventListener('blur', commit);
   button.replaceWith(picker);
   picker.focus();
@@ -254,7 +242,7 @@ function editDate(button, e) {
 function dropDownstream(k, laterDays) {
   for (const key of Object.keys(choices)) if (Number(key) > k) delete choices[key];
   if (!laterDays) return;
-  const first = readInput().regimen?.days[0];
+  const first = parseDays(el.days.value)?.[0];
   for (const key of Object.keys(edits)) {
     const [kind, ek, day] = key.split(':');
     if (kind === 'chemo' && Number(ek) >= k && Number(day) !== first) delete edits[key];
@@ -265,7 +253,7 @@ function dropDownstream(k, laterDays) {
 function setEdit(e, value) {
   if (value) edits[e.editKey] = value;
   else delete edits[e.editKey];
-  dropDownstream(e.k, e.kind === 'review' || e.day === readInput().regimen?.days[0]);
+  dropDownstream(e.k, e.kind === 'review' || e.day === parseDays(el.days.value)?.[0]);
   render();
 }
 
@@ -316,13 +304,13 @@ function inpatientToggle(e) {
 
 // A labs row can be switched off (dropped from the copy text), given its own tests, or,
 // mid-cycle, turned into a clinic visit on the same day
-function labsControls(e, name, multiDay, input) {
+function labsControls(e, name, res, input) {
   const set = (o) => { labOpts[e.labKey] = { ...labOpts[e.labKey], ...o }; render(); };
   const box = toggleBox();
   if (e.mid) box.append(toggle('TCU', e.tcu, () => set({ tcu: !e.tcu })));
   box.append(toggle('Labs', !e.off, () => set({ off: !e.off })));
   if (!e.off) {
-    const t = toggle('Tests', e.tests?.trim(), () => editTests(t, e, name, multiDay, input));
+    const t = toggle('Tests', e.tests?.trim(), () => editTests(t, e, name, res, input));
     box.append(t);
   }
   return box;
@@ -331,11 +319,13 @@ function labsControls(e, name, multiDay, input) {
 // Visit card: Outpatient/Inpatient for a single treatment block, or one button per block
 // (BEP: D1-5 inpatient, D8 and D15 outpatient). Changing it sets every cycle afresh.
 const inpTrack = $('#inp-days');
-let inpShape = '';
+let inpShape = null;
 function renderInpDays(days) {
-  const blocks = days ? groupConsecutive(days) : [];
+  // While the days box is invalid (mid-typing) keep the inpatient days; they are pruned once it parses
+  if (!days) { inpTrack.closest('fieldset').hidden = true; inpShape = null; return; }
+  const blocks = groupConsecutive(days);
   for (const d of [...inpDays]) if (!blocks.some((b) => b[0] === d)) inpDays.delete(d);
-  const shape = blocks.map((b) => b.join('-')).join() + [...inpDays].join();
+  const shape = blocks.map((b) => b.join('-')).join() + '|' + [...inpDays].join();
   if (shape === inpShape) return;
   inpShape = shape;
   const focused = document.activeElement?.parentElement === inpTrack ? [...inpTrack.children].indexOf(document.activeElement) : -1;
@@ -356,12 +346,12 @@ function renderInpDays(days) {
       inpTrack.append(toggle(b.length > 1 ? `D${b[0]}-${b[b.length - 1]}` : `D${b[0]}`, on, set(b[0], !on)));
     }
   }
-  inpTrack.closest('fieldset').hidden = !blocks.length;
+  inpTrack.closest('fieldset').hidden = false;
   if (focused >= 0) inpTrack.children[focused]?.focus();
 }
 
 // Opens with this row's tests; clearing the box, or matching the default set, drops the override.
-function editTests(button, e, name, multiDay, input) {
+function editTests(button, e, name, res, input) {
   const box = document.createElement('input');
   box.type = 'text';
   box.className = 'tests';
@@ -369,7 +359,7 @@ function editTests(button, e, name, multiDay, input) {
   const base = baseTests(e, input.labTests, input.midLabTests);
   box.value = e.tests?.trim() || base;
   box.addEventListener('input', () => {
-    name.textContent = label({ ...e, tests: box.value }, multiDay, input.labTests, input.midLabTests);
+    name.textContent = label({ ...e, tests: box.value }, res, input);
   });
   let done = false;
   const finish = (keep) => {
@@ -391,10 +381,13 @@ function editTests(button, e, name, multiDay, input) {
 
 function render() {
   const input = readInput();
+  el.days.classList.toggle('invalid', !input.days);
+  // Mid-cycle labs only exist when a cycle has a later treatment day (D8, D15)
+  $('#mid-labs-field').hidden = !(input.days && groupConsecutive(input.days).length > 1);
+  renderInpDays(input.days);
   el.timeline.innerHTML = '';
   el.copy.hidden = true;
   el.error.hidden = true;
-  renderInpDays(input.regimen?.days);
   el.clear.hidden = !(el.review.value || el.chemo.value || el.cycle.value || inpDays.size);
   // The card title names the regimen and its rhythm; empty until there is a plan
   const R = input.regimen;
@@ -437,12 +430,12 @@ function render() {
     const what = document.createElement('span');
     what.className = 'what';
     const name = document.createElement('span');
-    name.textContent = label(e, res.multiDay, input.labTests, input.midLabTests);
+    name.textContent = label(e, res, input);
     what.append(name);
     for (const f of e.flags) {
       const c = document.createElement(f.t === 'edited' ? 'button' : 'span');
       c.className = `chip ${f.t}`;
-      c.textContent = chipText(f);
+      c.textContent = flagText(f, settings.dateFormat, true);
       if (f.t === 'edited') {
         c.type = 'button';
         c.setAttribute('aria-label', 'Undo edit');
@@ -456,7 +449,7 @@ function render() {
     if (e.inpKey) li.append(inpatientToggle(e));
     if (e.kind === 'labs') {
       li.classList.toggle('off', e.off && !e.tcu);
-      li.append(labsControls(e, name, res.multiDay, input));
+      li.append(labsControls(e, name, res, input));
     }
 
     if (e.pending) {

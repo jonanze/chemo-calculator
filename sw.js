@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION on every release so clients pick up changes.
-const VERSION = 'cc-v55';
+const VERSION = 'cc-v56';
 const FILES = [
   './', 'index.html', 'style.css', 'icon.svg', 'manifest.webmanifest',
   'js/app.js', 'js/engine.js', 'js/holidays.js', 'js/defaults.js', 'js/doses.js', 'js/doses-ui.js', 'js/theme.js', 'js/clip.js',
@@ -25,8 +25,11 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     fetch(e.request)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(VERSION).then((c) => c.put(e.request, copy));
+        // Keep only good same-origin responses, so an error page is never served offline
+        if (res.ok && new URL(e.request.url).origin === self.location.origin) {
+          const copy = res.clone();
+          caches.open(VERSION).then((c) => c.put(e.request, copy));
+        }
         return res;
       })
       .catch(() => caches.match(e.request)),
