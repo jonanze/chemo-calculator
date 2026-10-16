@@ -145,7 +145,7 @@ function setActive(i, scroll = true) {
   } else el.name.removeAttribute('aria-activedescendant');
 }
 
-// Fills name, frequency and treatment days; TCU every and lab tests stay as they are
+// Fills name, cycle length and treatment days; TCU every and lab tests stay as they are
 function pickRegimen(r) {
   el.name.value = r.name;
   if (r.cycleDays) el.cycleDays.value = r.cycleDays;
