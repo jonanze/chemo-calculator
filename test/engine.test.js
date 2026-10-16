@@ -518,7 +518,7 @@ test('the formatted copy matches the plain text, with TCUs bold and chemo blue',
   const P = '<p style="margin:0;font-family:\'Aptos\';font-size:12pt">';
   assert.ok(html.startsWith(`${P}<b>FOLFOX q14d, TCU every 3 cycles</b></p>${P}&nbsp;</p>`));
   assert.ok(html.includes(`${P}Fri 9/10/26 <b>TCU with labs (FBC &lt;CEA&gt;)</b></p>`));
-  assert.match(html, /<b><span style="color:#3a6cc4">C3<\/span><\/b>/);
+  assert.match(html, /<b><span style="color:#1967d2">C3<\/span><\/b>/);
   assert.doesNotMatch(html, /<ul|<li|<br/);
   // Line for line the same as the plain text, blank lines included
   const plain = html.split('</p>').filter(Boolean).map((p) => p.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, '')

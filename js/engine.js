@@ -392,7 +392,7 @@ export function toText(result, input, S) {
 // empty line between TCU groups. Word ignores the page's font and falls back to Times, so
 // the font and size come from Settings. Light-theme colours, since notes are usually white.
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const COLOR = { chemo: '#3a6cc4', labs: '#646d78', flag: '#8a5a00' };
+const COLOR = { chemo: '#1967d2', labs: '#646d78', flag: '#8a5a00' };
 export function toHTML(result, input, S) {
   const { head, lines } = emrLines(result, input, S);
   const font = (S.copyFont || '').replace(/["';<>{}]/g, '').trim();
