@@ -441,13 +441,13 @@ test('a PH TCU moved to another clinic day takes its chemo with it', () => {
   assert.equal(find(pending, 'review', 2).minDate, toDay('2026-10-27'));
 });
 
-test('mid-cycle labs use their own tests; pre-clinic labs keep the main set', () => {
+test('pre-dose labs before D8 use their own tests; TCU labs keep the TCU set', () => {
   const input = { regimen: R.gemcis, review: '2026-10-13', chemo: '2026-10-14', cycle: 1, every: 1, labTests: 'FBC, RP, LFT', midLabTests: 'FBC' };
   const res = plan(input, S(), SG_HOLIDAYS);
   const text = toText(res, input, S());
   assert.match(text, /TCU with labs \(FBC, RP, LFT\)/);
   assert.match(text, /Labs \(FBC\) pre-D8/);
-  // With no mid-cycle set, D8 labs fall back to the main set
+  // With no pre-dose set, D8 labs fall back to the TCU set
   assert.match(toText(res, { ...input, midLabTests: '' }, S()), /Labs \(FBC, RP, LFT\) pre-D8/);
   // A row's own tests still win
   const own = plan({ ...input, labOpts: { '0:8': { tests: 'FBC, Mg' } } }, S(), SG_HOLIDAYS);
@@ -638,4 +638,19 @@ test('labs at TCU only: none before the doses between TCUs (Phesgo, TCU every 4 
   const gn = plan({ ...input, regimen: { name: 'Gem-nab', cycleDays: 28, days: [1, 8, 15] }, every: 2, labsAt: 'tcu' }, S({ visits: 2 }), SG_HOLIDAYS);
   assert.equal(gn.events.filter((e) => e.kind === 'labs').length, 0);
   assert.match(toText(gn, input, S({ visits: 2 })), /TCU with labs/);
+});
+
+test('TCU labs and pre-dose labs: each row kind takes its own set, and any row can have its own tests', () => {
+  const input = { regimen: R.gemcis, review: '2026-11-02', chemo: '2026-11-03', cycle: 1, every: 2, labTests: 'FBC RP LFT', midLabTests: 'FBC RP' };
+  const res = plan(input, S(), SG_HOLIDAYS);
+  const text = toText(res, input, S());
+  assert.match(text, /TCU with labs \(FBC RP LFT\)/);
+  // The D1 between TCUs and every D8 get the pre-dose set
+  assert.match(text, /Labs \(FBC RP\) pre-D1/);
+  assert.match(text, /Labs \(FBC RP\) pre-D8/);
+  assert.doesNotMatch(text, /Labs \(FBC RP LFT\)/);
+  // A TCU's own tests change that visit only
+  const own = plan({ ...input, tcuOpts: { 2: { tests: 'FBC RP LFT CEA' } } }, S(), SG_HOLIDAYS);
+  const lines = toText(own, input, S()).split('\n').filter((l) => l.includes('TCU with labs'));
+  assert.deepEqual(lines.map((l) => l.replace(/^\S+ \S+ /, '')), ['TCU with labs (FBC RP LFT)', 'TCU with labs (FBC RP LFT CEA)', 'TCU with labs (FBC RP LFT)']);
 });

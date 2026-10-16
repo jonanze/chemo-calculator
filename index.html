@@ -60,19 +60,16 @@
               <span class="suffix wide-suffix"><input type="number" id="every" min="1" inputmode="numeric"><span>cycles</span></span>
             </label>
           </div>
-          <label class="lab-tests">Pre-clinic labs
-            <input type="text" id="labTests">
+          <label class="lab-tests">TCU labs
+            <input type="text" id="labTests" spellcheck="false">
           </label>
-          <label id="mid-labs-field" hidden>Mid-cycle labs
-            <input type="text" id="midLabTests">
-          </label>
-          <fieldset class="seg wide" id="labs-at">
-            <legend>Pre-treatment labs</legend>
-            <div class="seg-track">
-              <label><input type="radio" name="labsAt" value="dose" checked><span>Every dose</span></label>
-              <label><input type="radio" name="labsAt" value="tcu"><span>TCU only</span></label>
+          <div class="dose-labs" id="dose-labs-field" hidden>
+            <div class="field-head">
+              <label for="midLabTests">Pre-dose labs</label>
+              <button type="button" class="pill" id="dose-labs-on" aria-pressed="true">Labs</button>
             </div>
-          </fieldset>
+            <input type="text" id="midLabTests" spellcheck="false">
+          </div>
         </div>
       </section>
       <section class="group">

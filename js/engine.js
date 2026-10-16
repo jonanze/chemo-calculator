@@ -299,12 +299,15 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
         // Each standalone labs row can be switched off or given its own tests
         const labKey = `${k}:${t.day}`;
         const lo = input.labOpts?.[labKey] || {};
-        // Labs before a later treatment day (D8, D15) are mid-cycle labs, with their own default tests
+        // Labs before a later treatment day (D8, D15) are mid-cycle labs
         const mid = t.day !== treatments[0].day;
+        // A TCU cycle's own D1 labs, moved off the TCU day, keep the TCU tests; every other labs
+        // row is a pre-dose check with the pre-dose tests
+        const tcuSet = !mid && !!review;
         // A mid-cycle labs check can be turned into a clinic visit on the same day
         const tcu = mid && !!lo.tcu;
         const flags = tcu ? [...L.flags, ...closure(L.date, 'clinic', false)] : L.flags;
-        events.push({ kind: 'labs', date: L.date, flags, cycle, k, day: t.day, shown: t.shown, labKey, mid, tcu, off: !!lo.off, tests: lo.tests });
+        events.push({ kind: 'labs', date: L.date, flags, cycle, k, day: t.day, shown: t.shown, labKey, mid, tcuSet, tcu, off: !!lo.off, tests: lo.tests });
       }
     }
     events.push(...treatments);
@@ -330,16 +333,22 @@ function inpatientSummary(blocks, lastK, isInpatient) {
   return { note: first.length === blocks.length ? 'inpatient' : `${first.map(name).join(', ')} inpatient`, perLine: false };
 }
 
-// The default tests for a labs line: mid-cycle labs use their own set when one is given
-export function baseTests(e, labTests = '', midLabTests = '') {
-  return (e.kind === 'labs' && e.mid && midLabTests.trim()) || labTests.trim();
+// The default tests for a line: TCU labs use the TCU set; labs before the other doses use the
+// pre-dose set when one is given, else the TCU set (Jonan, 16 Oct 2026)
+export function baseTests(e, labTests = '', doseLabTests = '') {
+  return (e.kind === 'labs' && !e.tcuSet && doseLabTests.trim()) || labTests.trim();
+}
+
+// A row's own tests, set on the schedule, win over the default set
+export function rowTests(e) {
+  return ((e.kind === 'labs' ? e.tests : e.kind === 'review' ? e.opts?.tests : '') || '').trim();
 }
 
 // The row text for an event, e.g. 'TCU with labs (FBC) and scan prior', 'Labs (FBC) pre-D8', 'C4 D1'
 export function label(e, result, input) {
   const day = e.shown ?? e.day;
   const dayTag = result.multiDay ? ` D${day}` : '';
-  const own = (e.kind === 'labs' && e.tests?.trim()) || baseTests(e, input.labTests, input.midLabTests);
+  const own = rowTests(e) || baseTests(e, input.labTests, input.midLabTests);
   const tests = own ? ` (${own})` : '';
   switch (e.kind) {
     case 'review': {

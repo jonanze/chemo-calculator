@@ -1,4 +1,4 @@
-import { plan, toText, toHTML, formatDay, fromDay, toDay, label, flagText, baseTests, parseDays, groupConsecutive } from './engine.js';
+import { plan, toText, toHTML, formatDay, fromDay, toDay, label, flagText, baseTests, rowTests, parseDays, groupConsecutive } from './engine.js';
 import { SG_HOLIDAYS } from './holidays.js';
 import { DEFAULT_SETTINGS, DEFAULT_ENTRY } from './defaults.js';
 import { copyText } from './clip.js';
@@ -66,11 +66,16 @@ function restoreEntry() {
   setLabsAt(entry.labsAt);
 }
 
-// Pre-treatment labs before every dose, or only at the TCU (Jonan, 16 Oct 2026: Phesgo with a
-// TCU every 4 cycles). Remembered with the entry; back to every dose for a different regimen.
-const labsAtRadios = document.querySelectorAll('input[name="labsAt"]');
-function setLabsAt(v) { for (const r of labsAtRadios) r.checked = r.value === (v === 'tcu' ? 'tcu' : 'dose'); }
-const labsAt = () => ([...labsAtRadios].find((r) => r.checked)?.value === 'tcu' ? 'tcu' : 'dose');
+// Labs before the doses between TCUs can be switched off, leaving labs at the TCU only (Jonan,
+// 16 Oct 2026: Phesgo with a TCU every 4 cycles). Remembered with the entry; back on for a
+// different regimen. An empty pre-dose box uses the TCU tests.
+const doseLabsOn = $('#dose-labs-on');
+function setLabsAt(v) { doseLabsOn.setAttribute('aria-pressed', String(v !== 'tcu')); }
+const labsAt = () => (doseLabsOn.getAttribute('aria-pressed') === 'false' ? 'tcu' : 'dose');
+doseLabsOn.addEventListener('click', () => {
+  setLabsAt(labsAt() === 'tcu' ? 'dose' : 'tcu');
+  doseLabsOn.dispatchEvent(new Event('input', { bubbles: true }));
+});
 
 function saveEntry(input) {
   store.set('cc.entry', {
@@ -319,16 +324,12 @@ function inpatientToggle(e) {
   }));
 }
 
-// A labs row can be switched off (dropped from the copy text), given its own tests, or,
-// mid-cycle, turned into a clinic visit on the same day
-function labsControls(e, name, res, input) {
+// A labs row can be switched off (dropped from the copy text) or, mid-cycle, turned into a
+// clinic visit on the same day. Its tests are edited on the row text itself.
+function labsControls(e) {
   const set = (o) => { labOpts[e.labKey] = { ...labOpts[e.labKey], ...o }; render(); };
   const box = toggleBox();
   if (e.mid) box.append(toggle('TCU', e.tcu, () => set({ tcu: !e.tcu })));
-  if (!e.off) {
-    const t = toggle('Tests', e.tests?.trim(), () => editTests(t, e, name, res, input));
-    box.append(t);
-  }
   box.append(toggle('Labs', !e.off, () => set({ off: !e.off })));
   return box;
 }
@@ -367,23 +368,40 @@ function renderInpDays(days) {
   if (focused >= 0) inpTrack.children[focused]?.focus();
 }
 
-// Opens with this row's tests; clearing the box, or matching the default set, drops the override.
-function editTests(button, e, name, res, input) {
+// The labs phrase of a row ('labs (FBC RP)') is a button: click it to give that visit its own
+// tests (Jonan, 16 Oct 2026: replaces the Tests pill). Clearing the box, or typing the default
+// set, goes back to the default.
+const LABS_PHRASE = /\b[Ll]abs(?: \([^)]*\))?/;
+function renderName(name, text, e, input) {
+  const drawn = e.kind === 'labs' ? !e.off : e.kind === 'review' && (e.labs || e.labsAtScan);
+  const m = drawn ? LABS_PHRASE.exec(text) : null;
+  if (!m) { name.textContent = text; return; }
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'tests-edit' + (rowTests(e) ? ' own' : '');
+  b.textContent = m[0];
+  b.addEventListener('click', () => editTests(b, e, input));
+  name.append(text.slice(0, m.index), b, text.slice(m.index + m[0].length));
+}
+
+function editTests(button, e, input) {
   const box = document.createElement('input');
   box.type = 'text';
   box.className = 'tests';
+  box.spellcheck = false;
   box.setAttribute('aria-label', 'Tests');
   const base = baseTests(e, input.labTests, input.midLabTests);
-  box.value = e.tests?.trim() || base;
-  box.addEventListener('input', () => {
-    name.textContent = label({ ...e, tests: box.value }, res, input);
-  });
+  box.value = rowTests(e) || base;
+  box.size = Math.max(8, box.value.length + 2);
+  box.addEventListener('input', () => { box.size = Math.max(8, box.value.length + 2); });
   let done = false;
   const finish = (keep) => {
     if (done) return;
     done = true;
     const v = box.value.trim();
-    if (keep) labOpts[e.labKey] = { ...labOpts[e.labKey], tests: v && v !== base ? v : undefined };
+    const tests = v && v !== base ? v : undefined;
+    if (keep && e.kind === 'labs') labOpts[e.labKey] = { ...labOpts[e.labKey], tests };
+    if (keep && e.kind === 'review') tcuOpts[e.k] = { ...e.opts, tests };
     render();
   };
   box.addEventListener('keydown', (ev) => {
@@ -399,8 +417,9 @@ function editTests(button, e, name, res, input) {
 function render() {
   const input = readInput();
   el.days.classList.toggle('invalid', !input.days);
-  // Mid-cycle labs only exist when a cycle has a later treatment day (D8, D15) and labs go before each dose
-  $('#mid-labs-field').hidden = !(input.days && groupConsecutive(input.days).length > 1) || input.labsAt === 'tcu';
+  // Pre-dose labs only exist with doses between TCUs: TCU every 2+ cycles, or D8/D15
+  $('#dose-labs-field').hidden = !(input.every > 1 || (input.days && groupConsecutive(input.days).length > 1));
+  el.midLabTests.disabled = input.labsAt === 'tcu';
   renderInpDays(input.days);
   el.timeline.innerHTML = '';
   el.copy.hidden = true;
@@ -444,7 +463,7 @@ function render() {
     const what = document.createElement('span');
     what.className = 'what';
     const name = document.createElement('span');
-    name.textContent = label(e, res, input) + (last !== e ? `-${last.shown}` : '');
+    renderName(name, label(e, res, input) + (last !== e ? `-${last.shown}` : ''), e, input);
     what.append(name);
     if (last !== e) {
       const until = document.createElement('span');
@@ -478,7 +497,7 @@ function render() {
     if (e.inpKey) li.append(inpatientToggle(e));
     if (e.kind === 'labs') {
       li.classList.toggle('off', e.off && !e.tcu);
-      li.append(labsControls(e, name, res, input));
+      li.append(labsControls(e));
     }
 
     if (e.pending) {
