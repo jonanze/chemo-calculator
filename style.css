@@ -42,7 +42,7 @@
   --r-lg: 0;     /* no rounded boxes */
   --h-control: 32px;
   --ease: cubic-bezier(.2, 0, 0, 1);
-  --rail-w: 244px;
+  --rail-w: 340px;
   --font: "Inter", -apple-system, "Helvetica Neue", system-ui, sans-serif;
   color-scheme: light;
 }
@@ -120,14 +120,20 @@ h3 { font-size: 10.5px; font-weight: 600; color: var(--muted); text-transform: u
 svg { flex: none; }
 
 /* ---------- Rail ---------- */
+/* The rail carries the active tab's inputs, so no column is spent on navigation alone (Jonan, 16 Oct 2026) */
 .rail {
   position: sticky; top: 0; z-index: 10; flex: 0 0 auto; width: var(--rail-w); height: 100vh; height: 100dvh;
-  display: flex; flex-direction: column; gap: 8px; padding: 10px 8px 8px;
-  background: var(--rail); border-right: 1px solid var(--grid);
+  display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--rail); border-right: 1px solid var(--hair);
 }
-.rail-top { display: flex; align-items: center; padding: 0 2px 0 8px; margin-bottom: 8px; min-height: 28px; }
+/* Head row: same height and rule as the schedule's column heads, so one line runs across the page */
+.rail-top {
+  position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 4px;
+  min-height: calc(18px + 32px + 6px + 1.2px); padding: 18px 12px 6px 16px;
+  background: var(--rail); border-bottom: 1.2px solid var(--hair);
+}
 .rail-fill { flex: 1; }
-.wm { font-family: "Montserrat", var(--font); font-weight: 700; font-size: 18px; letter-spacing: -0.03em; line-height: 1; color: var(--ink); white-space: nowrap; }
+.wm { font-family: "Montserrat", var(--font); font-weight: 700; font-size: 16px; letter-spacing: -0.03em; line-height: 1; color: var(--ink); white-space: nowrap; margin-right: 12px; }
 .wm span { color: var(--accent); }
 .rail-icon {
   display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
@@ -137,27 +143,30 @@ svg { flex: none; }
 }
 .rail-icon:hover { background: var(--hover); color: var(--ink); }
 .rail-icon:active { background: var(--press); }
-.rail-icon svg, .tabs svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+.rail-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
 #theme .sun, :root[data-dark] #theme .moon { display: none; }
 :root[data-dark] #theme .sun { display: block; }
-.tabs { display: flex; flex-direction: column; gap: 2px; }
+/* Tabs: a text-only segmented switch */
+.tabs { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--hair); border-radius: var(--r-sm); background: var(--ground); }
+.tabs svg { display: none; }
 .tabs button {
-  display: flex; align-items: center; justify-content: flex-start; gap: 8px; width: 100%; height: 28px; padding: 0 8px;
-  border: 0; border-radius: var(--r-sm); background: transparent; color: var(--slate);
-  font: inherit; font-size: 13px; font-weight: 400; text-align: left; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 10px;
+  border: 0; border-radius: 4px; background: transparent; color: var(--muted);
+  font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
   transition: background 110ms var(--ease), color 110ms var(--ease);
 }
-.tabs button:hover { background: var(--hover); color: var(--ink); }
-.tabs button:active { background: var(--press); }
+.tabs button:hover { color: var(--ink); }
 .tabs button[aria-selected="true"] { background: var(--press); color: var(--ink); }
+.rail > .panel { padding: 16px 16px 24px; }
+/* Inside the rail the section titles no longer need to match the column-head height */
+.rail .group-title { min-height: 0; padding-bottom: 7px; }
+.rail .group-head { min-height: 0; padding-bottom: 4px; }
+.rail .group-head .group-title { min-height: 0; padding: 0; }
 
 /* ---------- Layout ---------- */
-main { flex: 1 1 auto; min-width: 0; padding: 18px clamp(16px, 4vw, 26px) 60px; }
-.layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 28px; align-items: start; max-width: 1320px; }
+main { flex: 1 1 auto; min-width: 0; padding: 18px clamp(16px, 3vw, 28px) 60px; }
 /* The schedule keeps its toggles close to the text instead of across a wide gap (Jonan, 16 Oct 2026) */
-#schedule-view { max-width: 1180px; }
-/* No boxes: both columns sit on the page */
-.layout > .panel:first-child { position: sticky; top: 18px; }
+#schedule-view { max-width: 980px; }
 .panel { background: none; }
 .group { padding: 0 0 16px; }
 /* Section labels as oncOS: small tracked capitals with a rule running to the right */
@@ -358,7 +367,7 @@ button.chip { height: 20px; cursor: pointer; font: inherit; font-size: 10.5px; f
 .chip.edited:hover { background: var(--accent-soft); text-decoration: line-through; }
 
 /* ---------- Doses ---------- */
-#doses-view .side .fields { margin: 0; }
+.side .fields { margin: 0; }
 #derived { display: grid; grid-template-columns: 1fr auto; gap: 0; margin: 0; font-variant-numeric: tabular-nums; }
 #derived dd { padding-left: 16px; }
 #derived dt, #derived dd { padding: 7px 0; border-bottom: 1px solid var(--grid); }
@@ -440,34 +449,15 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
 .add { display: flex; gap: 8px; }
 .add input { width: auto; flex: 1; }
 
-/* ---------- Mid-size windows: an icon-only rail leaves the schedule its width ---------- */
-@media (min-width: 901px) and (max-width: 1439px) {
-  .rail { width: 52px; align-items: center; padding: 10px 6px 8px; }
-  .rail-top { display: contents; }
-  .wm { display: none; }
-  .tabs { order: 0; }
-  .tabs button { width: 36px; height: 32px; padding: 0; justify-content: center; }
-  .tabs button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .rail-fill { order: 1; flex: 1; }
-  .rail-icon { order: 2; width: 36px; height: 32px; }
-}
-
-/* ---------- Narrow windows: the rail becomes a top strip (Doses on a phone) ---------- */
+/* ---------- Narrow windows: the rail stacks above the output (Doses on a phone) ---------- */
 @media (max-width: 900px) {
   body { flex-direction: column; }
-  .rail {
-    width: auto; height: auto; flex-direction: row; align-items: center; gap: 4px;
-    padding: calc(6px + env(safe-area-inset-top)) 8px 6px; border-right: 0; border-bottom: 1px solid var(--grid);
-  }
-  .rail-top { display: contents; }
-  .wm { order: 0; margin: 0 10px 0 6px; font-size: 16px; }
-  .tabs { order: 1; flex-direction: row; }
-  .tabs button { width: auto; height: 36px; padding: 0 10px; }
-  .rail-fill { order: 2; }
-  .rail-icon { order: 3; width: 36px; height: 36px; }
+  .rail { position: static; width: auto; height: auto; overflow: visible; border-right: 0; border-bottom: 1px solid var(--hair); }
+  .rail-top { position: static; min-height: 0; padding: calc(8px + env(safe-area-inset-top)) 10px 8px 16px; }
+  .tabs button { height: 30px; padding: 0 12px; font-size: 13px; }
+  .rail-icon { width: 36px; height: 36px; }
+  .rail > .panel { padding: 12px 16px 8px; }
   main { padding: 16px 16px 40px; }
-  .layout { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-  .layout > .panel:first-child { position: static; padding-right: 0; }
   /* iOS zooms into inputs under 16px */
   input, select { font-size: 16px; height: 40px; }
   .seg-track { height: 40px; }
@@ -480,7 +470,8 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
   #timeline .toggles { grid-column: 3; justify-content: flex-start; flex-wrap: wrap; }
 }
 @media (max-width: 380px) {
-  .tabs svg { display: none; }
+  .wm { margin-right: 6px; }
+  .tabs button { padding: 0 9px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

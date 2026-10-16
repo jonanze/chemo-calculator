@@ -8,8 +8,8 @@ const $ = (sel, root = document) => root.querySelector(sel);
 
 function showTab(name) {
   const tab = name === 'doses' ? 'doses' : 'schedule';
-  $('#schedule-view').hidden = tab !== 'schedule';
-  $('#doses-view').hidden = tab !== 'doses';
+  // Each tab owns its inputs in the sidebar and its output in main
+  for (const el of document.querySelectorAll('[data-view]')) el.hidden = el.dataset.view !== tab;
   $('#open-settings').hidden = tab !== 'schedule';
   for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
 }
