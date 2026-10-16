@@ -73,6 +73,8 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   if (offset < 0) return { error: 'Treatment date is before clinic date', events: [] };
   // A clinic visit is never more than a week before its treatment (Jonan, 16 Oct 2026)
   if (offset > MAX_TCU_GAP) return { error: 'Treatment date is more than a week after clinic date', events: [] };
+  // Labs at TCU only (e.g. Phesgo, TCU every 4 cycles): none before the other doses (Jonan, 16 Oct 2026)
+  const tcuLabsOnly = input.labsAt === 'tcu';
 
   const ph = new Map(Object.entries(holidays.dates).map(([d, name]) => [toDay(d), name]));
   // A closed date shuts clinic, labs and the unit, or just one of them ('YYYY-MM-DD@chemo')
@@ -280,13 +282,15 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     if (current.labs) {
       for (const t of treatments) {
         if (S.blockLabs === 'first' && !t.blockStart) continue;
+        if (tcuLabsOnly && (!review || t.day !== treatments[0].day)) continue;
         if (t.day === treatments[0].day && review?.scanPrior && S.scanLabs === 'scan') {
           review.labsAtScan = true;
           continue;
         }
-        // Labs at the TCU serve its D1 only while fresh; a D1 further out gets its own labs
-        if (t.day === treatments[0].day && review && (S.preCycleLabs === 'review' || review.tech)
-            && t.date - review.date <= (S.tcuLabsDays ?? 7)
+        // Labs at the TCU serve its D1 only while fresh; a D1 further out gets its own labs,
+        // unless labs are at TCU only
+        if (t.day === treatments[0].day && review && (S.preCycleLabs === 'review' || review.tech || tcuLabsOnly)
+            && (tcuLabsOnly || t.date - review.date <= (S.tcuLabsDays ?? 7))
             && (review.pending || (labOK(review.date) && review.date <= t.date))) {
           review.labs = true;
           continue;

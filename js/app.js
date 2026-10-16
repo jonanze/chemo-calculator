@@ -63,12 +63,19 @@ function restoreEntry() {
   $('#every').value = entry.every;
   el.labTests.value = entry.labTests;
   el.midLabTests.value = entry.midLabTests || '';
+  setLabsAt(entry.labsAt);
 }
+
+// Pre-treatment labs before every dose, or only at the TCU (Jonan, 16 Oct 2026: Phesgo with a
+// TCU every 4 cycles). Remembered with the entry; back to every dose for a different regimen.
+const labsAtRadios = document.querySelectorAll('input[name="labsAt"]');
+function setLabsAt(v) { for (const r of labsAtRadios) r.checked = r.value === (v === 'tcu' ? 'tcu' : 'dose'); }
+const labsAt = () => ([...labsAtRadios].find((r) => r.checked)?.value === 'tcu' ? 'tcu' : 'dose');
 
 function saveEntry(input) {
   store.set('cc.entry', {
     name: el.name.value.trim(), cycleDays: Number(el.cycleDays.value) || DEFAULT_ENTRY.cycleDays,
-    days: el.days.value.trim(), every: input.every, labTests: input.labTests, midLabTests: input.midLabTests, ref: pickedKey,
+    days: el.days.value.trim(), every: input.every, labTests: input.labTests, midLabTests: input.midLabTests, labsAt: input.labsAt, ref: pickedKey,
   });
 }
 
@@ -156,6 +163,7 @@ function pickRegimen(r) {
   el.name.value = r.name;
   if (r.cycleDays) el.cycleDays.value = r.cycleDays;
   el.days.value = r.days;
+  if (r.key !== pickedKey) setLabsAt('dose');
   pickedKey = r.key;
   closePicker();
   resetPlan();
@@ -168,6 +176,7 @@ function pickRegimen(r) {
 }
 
 el.name.addEventListener('input', () => {
+  setLabsAt('dose'); // a new regimen starts with labs before every dose
   if (el.name.value.trim().length >= 2) openPicker(el.name.value);
   else closePicker();
 });
@@ -209,6 +218,7 @@ function readInput() {
     labOpts,
     labTests: el.labTests.value,
     midLabTests: el.midLabTests.value,
+    labsAt: labsAt(),
     cycle: num(el.cycle),
     inpDays: [...inpDays],
     inpOpts,
@@ -389,8 +399,8 @@ function editTests(button, e, name, res, input) {
 function render() {
   const input = readInput();
   el.days.classList.toggle('invalid', !input.days);
-  // Mid-cycle labs only exist when a cycle has a later treatment day (D8, D15)
-  $('#mid-labs-field').hidden = !(input.days && groupConsecutive(input.days).length > 1);
+  // Mid-cycle labs only exist when a cycle has a later treatment day (D8, D15) and labs go before each dose
+  $('#mid-labs-field').hidden = !(input.days && groupConsecutive(input.days).length > 1) || input.labsAt === 'tcu';
   renderInpDays(input.days);
   el.timeline.innerHTML = '';
   el.copy.hidden = true;

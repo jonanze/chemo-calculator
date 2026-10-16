@@ -625,3 +625,17 @@ test('BEP: D1-5 inpatient, D8 and D15 outpatient', () => {
   const tagged = toText(mixed, input, S({ visits: 1 })).split('\n').filter((l) => l.includes('(inpatient)'));
   assert.deepEqual(tagged.map((l) => l.replace(/^\S+ \S+ /, '')), ['C1 D1 (inpatient)', 'C1 D8 (inpatient)', 'C2 D1 (inpatient)']);
 });
+
+test('labs at TCU only: none before the doses between TCUs (Phesgo, TCU every 4 cycles)', () => {
+  const phesgo = { name: 'Phesgo', cycleDays: 21, days: [1] };
+  const input = { regimen: phesgo, review: '2026-11-02', chemo: '2026-11-03', every: 4, cycle: 1 };
+  const each = plan(input, S({ visits: 2 }), SG_HOLIDAYS);
+  const tcu = plan({ ...input, labsAt: 'tcu' }, S({ visits: 2 }), SG_HOLIDAYS);
+  assert.ok(each.events.some((e) => e.kind === 'labs'));
+  assert.equal(tcu.events.filter((e) => e.kind === 'labs').length, 0);
+  assert.ok(tcu.events.filter((e) => e.kind === 'review').every((e) => e.labs));
+  // D8 and D15 lose their labs too; only the TCU carries them
+  const gn = plan({ ...input, regimen: { name: 'Gem-nab', cycleDays: 28, days: [1, 8, 15] }, every: 2, labsAt: 'tcu' }, S({ visits: 2 }), SG_HOLIDAYS);
+  assert.equal(gn.events.filter((e) => e.kind === 'labs').length, 0);
+  assert.match(toText(gn, input, S({ visits: 2 })), /TCU with labs/);
+});
