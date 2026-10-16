@@ -267,13 +267,14 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 
 /* ---------- Schedule ---------- */
 .out .bar {
-  position: sticky; top: 0; z-index: 2; display: flex; align-items: flex-end; gap: 16px;
-  margin-top: -18px; padding: 18px 0 12px; background: var(--ground);
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 16px;
+  height: 58px; margin-top: -18px; padding: 18px 0 8px; background: var(--ground);
 }
 .summary { min-width: 0; }
-.summary h2 { font-size: 22px; font-weight: 550; letter-spacing: -0.01em; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.summary p { font-size: 12px; color: var(--slate); margin-top: 3px; }
-.summary h2:empty + p:empty { display: none; }
+.summary { padding-left: 12px; }
+/* Regimen name in the small capitals of the column heads */
+.summary .keep-case { text-transform: none; }
+.summary h2 { font-size: 12px; font-weight: 600; color: var(--ink); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .out .actions { margin-left: auto; display: flex; gap: 6px; }
 #error { color: var(--danger); padding: 14px 0; }
 
@@ -283,7 +284,7 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 .out:has(#timeline:empty) .thead { display: none; }
 /* Column heads, as the Evidence table */
 .thead {
-  position: sticky; top: 78px; z-index: 1; display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 0 14px;
+  position: sticky; top: 58px; z-index: 1; display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 0 14px;
   padding: 0 12px; background: var(--ground); border-bottom: 1.2px solid var(--hair);
   font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
 }
