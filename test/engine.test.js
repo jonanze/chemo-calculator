@@ -540,8 +540,9 @@ test('inpatient: chemo and its labs stay put on PHs and weekends, PH still label
   // No short-interval knock-on, since nothing moved
   assert.deepEqual(find(res, 'chemo', 6).flags, []);
   const text = toText(res, { ...folfoxInput, inpatient: true }, S());
-  assert.match(text.split('\n')[0], /, inpatient$/);
-  assert.match(text, /Mon 9\/11\/26 C5 \(inpatient\) \[PH\]/);
+  assert.equal(text.split('\n')[0], 'FOLFOX q14d (inpatient), TCU every 3 cycles');
+  assert.match(text, /Mon 9\/11\/26 C5 \[PH\]/); // said once, in the header
+  assert.doesNotMatch(text, /C\d+ \(inpatient\)/);
 });
 
 test('inpatient: a block over a PH or closed date neither slips nor flags the closure', () => {
@@ -558,4 +559,21 @@ test('inpatient: TCUs keep outpatient clinic rules', () => {
   const r2 = find(res, 'review', 2);
   assert.equal(fromDay(r2.date), '2026-11-09');
   assert.equal(r2.pending, true); // the PH TCU still asks for a reschedule
+});
+
+test('inpatient per cycle: overrides the default and tags only the first day of each admission', () => {
+  const input = { regimen: R.carboEto, review: '2026-10-13', chemo: '2026-10-14', every: 2, cycle: 1, inpOpts: { 1: true } };
+  const res = plan(input, S({ visits: 1 }), SG_HOLIDAYS);
+  assert.equal(res.allInpatient, false);
+  assert.deepEqual(res.events.filter((e) => e.kind === 'chemo').map((e) => [e.cycle, e.day, e.inpatient]),
+    [[1, 1, false], [1, 2, false], [1, 3, false], [2, 1, true], [2, 2, true], [2, 3, true],
+      [3, 1, false], [3, 2, false], [3, 3, false]]);
+  assert.ok(res.events.filter((e) => e.cycleStart).every((e) => e.day === 1));
+  const text = toText(res, input, S({ visits: 1 }));
+  assert.equal(text.split('\n')[0], 'Carbo-etoposide q21d, TCU every 2 cycles');
+  assert.deepEqual(text.split('\n').filter((l) => l.includes('inpatient')).map((l) => l.replace(/^\S+ \S+ /, '')), ['C2 D1 (inpatient)']);
+  // Switching one cycle off an inpatient default drops the header tag
+  const mixed = plan({ ...input, inpatient: true, inpOpts: { 2: false } }, S({ visits: 1 }), SG_HOLIDAYS);
+  assert.equal(mixed.allInpatient, false);
+  assert.equal(find(mixed, 'chemo', 3).inpatient, false);
 });

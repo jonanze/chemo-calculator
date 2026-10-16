@@ -27,6 +27,7 @@ let choices = {};
 let edits = {};
 let tcuOpts = {};
 let labOpts = {};
+let inpOpts = {};
 let lastText = '';
 let lastHTML = '';
 // Recent-regimen chips were removed (Jonan, 14 Oct 2026); clear what they stored
@@ -207,6 +208,7 @@ function readInput() {
     midLabTests: el.midLabTests.value,
     cycle: num(el.cycle),
     inpatient: $('#inputs').elements.setting.value === 'inpatient',
+    inpOpts,
   };
 }
 
@@ -305,6 +307,22 @@ function tcuToggles(e) {
 
 // A labs row can be switched off (dropped from the copy text) or given its own tests.
 // Typing updates the row in place so the field keeps focus.
+// Each cycle can be given as an inpatient or not, whatever the Visit card says
+function inpatientToggle(e) {
+  const box = document.createElement('div');
+  box.className = 'toggles';
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = 'Inpatient';
+  b.setAttribute('aria-pressed', String(e.inpatient));
+  b.addEventListener('click', () => {
+    inpOpts[e.k] = !e.inpatient;
+    render();
+  });
+  box.append(b);
+  return box;
+}
+
 function labsControls(e, name, multiDay, input) {
   const box = document.createElement('div');
   box.className = 'toggles';
@@ -379,7 +397,7 @@ function render() {
   const R = input.regimen;
   $('#summary-title').textContent = R && input.review && input.chemo ? (R.name || `q${R.cycleDays}d`) : '';
   $('#summary-meta').textContent = R && input.review && input.chemo
-    ? [`q${R.cycleDays}d`, el.days.value.trim() || 'D1', `TCU every ${input.every === 1 ? 'cycle' : `${input.every} cycles`}`, input.cycle && `from C${input.cycle}`, input.inpatient && 'Inpatient'].filter(Boolean).join(' · ')
+    ? [`q${R.cycleDays}d`, el.days.value.trim() || 'D1', `TCU every ${input.every === 1 ? 'cycle' : `${input.every} cycles`}`, input.cycle && `from C${input.cycle}`].filter(Boolean).join(' · ')
     : '';
   if (!input.regimen || !input.review || !input.chemo) return;
 
@@ -389,6 +407,7 @@ function render() {
     el.error.hidden = false;
     return;
   }
+  if (res.allInpatient) $('#summary-meta').textContent += ' · Inpatient';
 
   for (const e of res.events) {
     const li = document.createElement('li');
@@ -430,6 +449,7 @@ function render() {
     li.append(date, what);
 
     if (e.kind === 'review') li.append(tcuToggles(e));
+    if (e.cycleStart) li.append(inpatientToggle(e));
     if (e.kind === 'labs') {
       li.classList.toggle('off', e.off && !e.tcu);
       li.append(labsControls(e, name, res.multiDay, input));
@@ -477,6 +497,7 @@ function resetPlan() {
   edits = {};
   tcuOpts = {};
   labOpts = {};
+  inpOpts = {};
 }
 
 $('#inputs').addEventListener('input', (ev) => {
@@ -489,7 +510,8 @@ $('#inputs').addEventListener('input', (ev) => {
     } else if (chemoAuto) el.chemo.value = '';
   }
   // Name, lab tests and inpatient keep the TCUs as they are; anything else re-plans from scratch
-  if (![el.name, el.labTests, el.midLabTests].includes(ev.target) && ev.target.name !== 'setting') resetPlan();
+  if (ev.target.name === 'setting') inpOpts = {}; // the Visit card sets every cycle afresh
+  else if (![el.name, el.labTests, el.midLabTests].includes(ev.target)) resetPlan();
   saveEntry(readInput());
   render();
   renderRefDoses();

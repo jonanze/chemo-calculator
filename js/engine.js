@@ -70,8 +70,10 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const chemoOK = open(S.chemoDays);
   const why = (n, ctx) => (ph.has(n) ? { t: 'ph', name: ph.get(n) } : closed.has(n) ? { t: 'closed' } : { t: 'off', ctx });
   // Inpatient chemo is given on the ward, so PHs, closed dates and unit days don't apply and
-  // nothing moves; a PH is still labelled so it can be seen (Jonan, 15 Oct 2026)
-  const inpatient = !!input.inpatient;
+  // nothing moves; a PH is still labelled so it can be seen (Jonan, 15 Oct 2026).
+  // The Visit card sets every cycle; a cycle's own toggle overrides it (Jonan, 16 Oct 2026).
+  const inpatientOf = (k) => input.inpOpts?.[k] ?? !!input.inpatient;
+  let inpatient = false;
   const phOnly = (n) => (ph.has(n) ? [{ t: 'ph', name: ph.get(n) }] : []);
   const chemoFlags = (n) => (inpatient ? phOnly(n) : chemoOK(n) ? [] : [why(n, 'chemo')]);
 
@@ -150,6 +152,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   let current = optsFor(0);
 
   for (let k = 0; k <= lastK; k++) {
+    inpatient = inpatientOf(k);
     let planned = S.knockOn === 'reanchor' && k > 0 ? prevD1 + cd : anchor + (k - anchorK) * cd;
     const cycle = input.cycle ? input.cycle + k : null;
     const isReview = k % every === 0;
@@ -196,6 +199,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
         const flags = i === 0 ? [...first.flags] : chemoFlags(date);
         const t = { kind: 'chemo', date, day, cycle, k, blockStart: i === 0, flags, inpatient };
         if (i === 0 && !isKeyed) Object.assign(t, { editKey, minDate });
+        if (i === 0 && block === blocks[0]) t.cycleStart = true;
         treatments.push(t);
         lastTreat = date;
       });
@@ -271,7 +275,8 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const order = { review: 0, labs: 1, chemo: 2 };
   for (const e of events) if (e.date > covered) e.flags.push({ t: 'nodata' });
   events.sort((a, b) => a.date - b.date || order[a.kind] - order[b.kind]);
-  return { error: null, events, multiDay };
+  const chemo = events.filter((e) => e.kind === 'chemo');
+  return { error: null, events, multiDay, allInpatient: chemo.length > 0 && chemo.every((e) => e.inpatient) };
 }
 
 // The default tests for a labs line: mid-cycle labs use their own set when one is given
@@ -301,7 +306,7 @@ export function label(e, multiDay, labTests = '', midLabTests = '') {
       if (e.tcu) return `TCU${e.off ? '' : ` with labs${tests}`}${pre}`;
       return `Labs${tests}${pre}`;
     }
-    default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}${e.inpatient ? ' (inpatient)' : ''}`;
+    default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;
   }
 }
 
@@ -322,14 +327,17 @@ export function flagText(f, fmt) {
 function emrLines(result, input, S) {
   const R = input.regimen;
   const every = Math.max(1, Math.floor(input.every) || 1);
-  const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${every > 1 ? `, TCU every ${every} cycles` : ''}${input.inpatient ? ', inpatient' : ''}`;
+  // Inpatient is said once: in the header when every cycle is, otherwise on the first day of each admission
+  const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${result.allInpatient ? ' (inpatient)' : ''}${every > 1 ? `, TCU every ${every} cycles` : ''}`;
   const lines = result.events.filter((e) => !e.off || e.tcu).map((e) => {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
     if (e.pending) flags.push('reschedule');
     const visit = e.kind === 'review' || !!e.tcu;
     return {
       kind: visit ? 'review' : e.kind, gap: visit, date: formatDay(e.date, S.dateFormat),
-      text: label(e, result.multiDay, input.labTests, input.midLabTests), flags,
+      text: label(e, result.multiDay, input.labTests, input.midLabTests)
+        + (e.inpatient && e.blockStart && !result.allInpatient ? ' (inpatient)' : ''),
+      flags,
     };
   });
   return { head, lines };
