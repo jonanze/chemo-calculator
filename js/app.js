@@ -44,7 +44,7 @@ let pickedKey = entry.ref ?? null;
 const el = {
   name: $('#name'), cycleDays: $('#cycleDays'), days: $('#days'), review: $('#review'), chemo: $('#chemo'),
   cycle: $('#cycle'), labTests: $('#labTests'), midLabTests: $('#midLabTests'),
-  error: $('#error'), timeline: $('#timeline'), copy: $('#copy'), clear: $('#clear'),
+  error: $('#error'), timeline: $('#timeline'), copy: $('#copy'),
 };
 
 // ---------- Inputs ----------
@@ -389,7 +389,6 @@ function render() {
   el.timeline.innerHTML = '';
   el.copy.hidden = true;
   el.error.hidden = true;
-  el.clear.hidden = !(el.review.value || el.chemo.value || el.cycle.value || inpDays.size);
   if (!input.regimen || !input.review || !input.chemo) return;
 
   const res = plan(input, settings, SG_HOLIDAYS, choices, edits);
@@ -529,8 +528,10 @@ $('#inputs').addEventListener('input', (ev) => {
   renderRefDoses();
 });
 
-// Next patient: keep the regimen, clear the dates, cycle and per-visit choices
-el.clear.addEventListener('click', () => {
+// Next patient (Esc): keep the regimen, clear the dates, cycle and per-visit choices.
+// The Clear button was removed (Jonan, 16 Oct 2026); the shortcut stays.
+const hasVisit = () => !!(el.review.value || el.chemo.value || el.cycle.value || inpDays.size);
+function nextPatient() {
   el.review.value = '';
   el.chemo.value = '';
   chemoAuto = false;
@@ -539,7 +540,7 @@ el.clear.addEventListener('click', () => {
   resetPlan();
   render();
   el.review.focus();
-});
+}
 
 // ---------- Settings ----------
 
@@ -659,8 +660,8 @@ document.addEventListener('keydown', (ev) => {
   } else if (ev.key === 'Enter' && mod && !el.copy.hidden) {
     ev.preventDefault();
     el.copy.click();
-  } else if (ev.key === 'Escape' && !t.matches?.('.date-picker, input.tests') && !el.clear.hidden) {
-    el.clear.click();
+  } else if (ev.key === 'Escape' && !t.matches?.('.date-picker, input.tests') && hasVisit()) {
+    nextPatient();
   }
 });
 

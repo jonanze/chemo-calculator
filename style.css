@@ -286,10 +286,11 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
   font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
 }
 .thead .actions { text-transform: none; letter-spacing: normal; }
-/* Before there is a plan the heads hide; Clear stays while there is anything to clear */
-.out:has(#timeline:empty) .thead { border-bottom-color: transparent; }
-.out:has(#timeline:empty) .thead > span { visibility: hidden; }
-.out:has(#timeline:empty):has(#clear[hidden]) .thead { display: none; }
+/* Copy is compact and sits flush with the toggle column, centred on the heads (Jonan, 16 Oct 2026) */
+.thead #copy { height: 26px; min-width: 0; padding: 0 12px 0 10px; font-size: 12px; gap: 6px; }
+.thead #copy svg { width: 14px; height: 14px; }
+/* Before there is a plan the heads hide */
+.out:has(#timeline:empty) .thead { display: none; }
 
 #timeline { list-style: none; margin: 0; padding: 0 0 10px; }
 #timeline:empty { display: none; }
