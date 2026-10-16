@@ -70,12 +70,8 @@ function restoreEntry() {
 // 16 Oct 2026: Phesgo with a TCU every 4 cycles). Remembered with the entry; back on for a
 // different regimen. An empty pre-dose box uses the TCU tests.
 const doseLabsOn = $('#dose-labs-on');
-function setLabsAt(v) { doseLabsOn.setAttribute('aria-pressed', String(v !== 'tcu')); }
-const labsAt = () => (doseLabsOn.getAttribute('aria-pressed') === 'false' ? 'tcu' : 'dose');
-doseLabsOn.addEventListener('click', () => {
-  setLabsAt(labsAt() === 'tcu' ? 'dose' : 'tcu');
-  doseLabsOn.dispatchEvent(new Event('input', { bubbles: true }));
-});
+function setLabsAt(v) { doseLabsOn.checked = v !== 'tcu'; }
+const labsAt = () => (doseLabsOn.checked ? 'dose' : 'tcu');
 
 function saveEntry(input) {
   store.set('cc.entry', {
