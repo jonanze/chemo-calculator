@@ -64,8 +64,54 @@ test('treatment days beyond the cycle length are rejected', () => {
   assert.equal(parseDays('D1, D8, D22', 21), null);
 });
 
-test('a TCU entered well before C1 does not set the gap for later TCUs', { todo: 'spec gap: the entered TCU-to-chemo gap is used for every cycle' }, () => {
-  // FOLFOX: TCU Mon 5/10/26, C1 delayed to Wed 21/10/26; the C3 TCU lands before C2
-  const res = plan({ regimen: { name: 'FOLFOX', cycleDays: 14, days: [1] }, review: '2026-10-05', chemo: '2026-10-21', every: 2, cycle: 1 }, S(), SG_HOLIDAYS);
-  invariants(res, 'FOLFOX delayed C1');
+// A clinic visit is at most a week before its treatment (Jonan, 16 Oct 2026)
+test('a treatment more than a week after its clinic date is refused', () => {
+  const ff = { name: 'FOLFOX', cycleDays: 14, days: [1] };
+  assert.equal(plan({ regimen: ff, review: '2026-10-05', chemo: '2026-10-21', every: 2, cycle: 1 }, S(), SG_HOLIDAYS).error,
+    'Treatment date is more than a week after clinic date');
+  assert.equal(plan({ regimen: ff, review: '2026-10-05', chemo: '2026-10-12', every: 2, cycle: 1 }, S(), SG_HOLIDAYS).error, null);
+  // The entered TCU on a PH is offered only days within a week of the entered treatment:
+  // TCU Mon 9/11/26 (Deepavali in lieu), chemo Mon 16/11/26; Fri 6/11 would be 10 days before
+  const r = plan({ regimen: ff, review: '2026-11-09', chemo: '2026-11-16', every: 2, cycle: 1 }, S({ visits: 1 }), SG_HOLIDAYS)
+    .events.find((e) => e.kind === 'review' && e.k === 0);
+  assert.equal(r.pending, true);
+  assert.deepEqual(r.options.map(fromDay), ['2026-11-10']);
+});
+
+test('TCU labs serve D1 only within the valid window; a later D1 gets its own labs', () => {
+  // Carbo-etoposide: TCU Mon 12/4/27, C1 Mon 19/4/27 (7 days): labs at the TCU
+  const ce = { name: 'CE', cycleDays: 21, days: [1, 2, 3] };
+  const tcuOf = (res) => res.events.find((e) => e.kind === 'review' && e.k === 0);
+  const ownLabs = (res) => res.events.find((e) => e.kind === 'labs' && e.k === 0 && e.day === 1);
+  const at7 = plan({ regimen: ce, review: '2027-04-12', chemo: '2027-04-19', every: 1, cycle: 1 }, S({ visits: 1 }), SG_HOLIDAYS);
+  assert.equal(tcuOf(at7).labs, true);
+  // A shorter window gives C1 its own labs the working day before
+  const at3 = plan({ regimen: ce, review: '2027-04-12', chemo: '2027-04-19', every: 1, cycle: 1 }, S({ visits: 1, tcuLabsDays: 3 }), SG_HOLIDAYS);
+  assert.equal(tcuOf(at3).labs, false);
+  assert.equal(fromDay(ownLabs(at3).date), '2027-04-16');
+  // TCU Fri 9/4/27, C1 entered Fri 16/4: the block can't run into Sunday, moves to Mon 19/4,
+  // 10 days after the TCU, so C1 gets its own labs on Fri 16/4
+  const slipped = plan({ regimen: ce, review: '2027-04-09', chemo: '2027-04-16', every: 1, cycle: 1 }, S({ visits: 1 }), SG_HOLIDAYS);
+  assert.equal(fromDay(slipped.events.find((e) => e.kind === 'chemo' && e.k === 0).date), '2027-04-19');
+  assert.equal(tcuOf(slipped).labs, false);
+  assert.equal(fromDay(ownLabs(slipped).date), '2027-04-16');
+});
+
+test('a closed date can shut only the clinic, the labs or the unit', () => {
+  const ff = { name: 'FOLFOX', cycleDays: 14, days: [1] };
+  // TCU Mon 12/10/26, chemo Tue 13/10/26; C2 TCU Mon 26/10, labs at it, chemo Tue 27/10
+  const run = (closedDates) => plan({ regimen: ff, review: '2026-10-12', chemo: '2026-10-13', every: 1, cycle: 1 }, S({ visits: 1, closedDates }), SG_HOLIDAYS)
+    .events.filter((e) => e.k === 1);
+  const unit = run(['2026-10-27@chemo']);
+  assert.equal(fromDay(unit.find((e) => e.kind === 'chemo').date), '2026-10-28');
+  assert.equal(unit.find((e) => e.kind === 'review').pending, undefined);
+  const clinic = run(['2026-10-26@clinic']);
+  assert.equal(clinic.find((e) => e.kind === 'review').pending, true);
+  assert.equal(fromDay(clinic.find((e) => e.kind === 'chemo').date), '2026-10-27');
+  const labs = run(['2026-10-26@labs']);
+  assert.equal(labs.find((e) => e.kind === 'review').pending, undefined);
+  assert.equal(fromDay(labs.find((e) => e.kind === 'labs').date), '2026-10-23'); // Fri before
+  // A bare date shuts all three, as before
+  const all = run(['2026-10-26']);
+  assert.equal(all.find((e) => e.kind === 'review').pending, true);
 });

@@ -173,6 +173,7 @@
           <label class="row"><span>Days before treatment</span><input type="number" min="0" max="7" data-key="labsBefore" data-num></label>
           <label class="row"><span>When scanned</span>
             <select data-key="scanLabs"><option value="tcu">TCU day</option><option value="scan">Scan day</option></select></label>
+          <label class="row"><span>TCU labs valid, days</span><input type="number" min="0" max="14" data-key="tcuLabsDays" data-num></label>
           <label class="row"><span>Before a TCU cycle</span>
             <select data-key="preCycleLabs"><option value="review">TCU day</option><option value="offset">Days before</option></select></label>
           <label class="row"><span>Consecutive-day blocks</span>
@@ -205,7 +206,7 @@
         <section>
           <h3>Closed dates</h3>
           <ul id="closed" class="chips"></ul>
-          <div class="add"><input type="date" id="closed-new"><button type="button" id="closed-add">Add</button></div>
+          <div class="add"><input type="date" id="closed-new"><select id="closed-kind"><option value="">All</option><option value="clinic">Clinic</option><option value="labs">Labs</option><option value="chemo">Unit</option></select><button type="button" id="closed-add">Add</button></div>
         </section>
       </div>
 

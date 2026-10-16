@@ -448,6 +448,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
 .chips li button:hover { background: var(--hover); color: var(--ink); }
 .add { display: flex; gap: 8px; }
 .add input { width: auto; flex: 1; }
+.add select { width: auto; flex: none; }
 
 /* ---------- Narrow windows: the rail stacks above the output (Doses on a phone) ---------- */
 @media (max-width: 900px) {
