@@ -266,29 +266,23 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 .ref-doses b { font-weight: 550; color: var(--ink); }
 
 /* ---------- Schedule ---------- */
-.out .bar {
-  position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 16px;
-  height: 58px; margin-top: -18px; padding: 18px 0 8px; background: var(--ground);
-}
-.summary { min-width: 0; }
-.summary { padding-left: 12px; }
-/* Regimen name in the small capitals of the column heads */
-.summary .keep-case { text-transform: none; }
-.summary h2 { font-size: 12px; font-weight: 600; color: var(--ink); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.out .actions { margin-left: auto; display: flex; gap: 6px; }
+.out .actions { grid-column: 4; justify-self: end; display: flex; gap: 6px; }
 #error { color: var(--danger); padding: 14px 0; }
 
 .out .empty { display: none; place-items: center; height: 280px; color: var(--hair); }
 .out .empty svg { stroke-linecap: square; }
 .out:has(#timeline:empty):not(:has(#error:not([hidden]))) .empty { display: grid; }
-.out:has(#timeline:empty) .thead { display: none; }
-/* Column heads, as the Evidence table */
+/* Column heads, as the Evidence table, with Clear and Copy at the right (no title row, Jonan 16 Oct 2026) */
 .thead {
-  position: sticky; top: 58px; z-index: 1; display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 0 14px;
-  padding: 0 12px; background: var(--ground); border-bottom: 1.2px solid var(--hair);
+  position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 0 14px;
+  align-items: center; margin-top: -18px; padding: 18px 12px 6px; background: var(--ground); border-bottom: 1.2px solid var(--hair);
   font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
 }
-.thead span { padding: 11px 0 10px; }
+.thead .actions { text-transform: none; letter-spacing: normal; }
+/* Before there is a plan the heads hide; Clear stays while there is anything to clear */
+.out:has(#timeline:empty) .thead { border-bottom-color: transparent; }
+.out:has(#timeline:empty) .thead > span { visibility: hidden; }
+.out:has(#timeline:empty):has(#clear[hidden]) .thead { display: none; }
 
 #timeline { list-style: none; margin: 0; padding: 0 0 10px; }
 #timeline:empty { display: none; }
@@ -473,7 +467,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
   .drug { padding: 9px 10px 8px; margin-bottom: 8px; font-size: 14px; }
   .drug td:first-child, .drug th:first-child { padding-right: 8px; }
   .drug td.note { font-size: 11px; padding-left: 6px; }
-  .out .bar { position: static; }
+  .thead { position: static; margin-top: 0; padding-top: 0; }
   #timeline li { grid-template-columns: 8px 8.6em minmax(0, 1fr); }
   #timeline .toggles { grid-column: 3; justify-content: flex-start; flex-wrap: wrap; }
 }

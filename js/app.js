@@ -380,21 +380,6 @@ function editTests(button, e, name, res, input) {
   box.select();
 }
 
-// The title is set in capitals; intervals (q28d, q3w) and units (mg, mg/m²) keep their case
-function setTitle(text) {
-  const h = $('#summary-title');
-  h.textContent = '';
-  for (const part of text.split(/(\bq\d+[dhw]\b|\b\d*\s?(?:mg|mcg|g|ml|mL|kg)(?:\/(?:m²|m2|kg))?\b)/)) {
-    if (!part) continue;
-    if (/^(q\d+[dhw]|\d*\s?(mg|mcg|g|ml|mL|kg)(\/(m²|m2|kg))?)$/.test(part)) {
-      const k = document.createElement('span');
-      k.className = 'keep-case';
-      k.textContent = part;
-      h.append(k);
-    } else h.append(part);
-  }
-}
-
 function render() {
   const input = readInput();
   el.days.classList.toggle('invalid', !input.days);
@@ -405,9 +390,6 @@ function render() {
   el.copy.hidden = true;
   el.error.hidden = true;
   el.clear.hidden = !(el.review.value || el.chemo.value || el.cycle.value || inpDays.size);
-  // The schedule header names the regimen; empty until there is a plan (no rhythm line, Jonan 16 Oct 2026)
-  const R = input.regimen;
-  setTitle(R && input.review && input.chemo ? (R.name || `q${R.cycleDays}d`) : '');
   if (!input.regimen || !input.review || !input.chemo) return;
 
   const res = plan(input, settings, SG_HOLIDAYS, choices, edits);
