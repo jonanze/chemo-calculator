@@ -153,15 +153,22 @@ svg { flex: none; }
 
 /* ---------- Layout ---------- */
 main { flex: 1 1 auto; min-width: 0; padding: 18px clamp(16px, 4vw, 26px) 60px; }
-.layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 36px; align-items: start; max-width: 1320px; }
+.layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 28px; align-items: start; max-width: 1320px; }
+/* The schedule keeps its toggles close to the text instead of across a wide gap (Jonan, 16 Oct 2026) */
+#schedule-view { max-width: 1180px; }
 /* No boxes: both columns sit on the page */
 .layout > .panel:first-child { position: sticky; top: 18px; }
 .panel { background: none; }
-.group { padding: 0 0 22px; }
+.group { padding: 0 0 16px; }
 /* Section labels as oncOS: small tracked capitals with a rule running to the right */
-.group-title { font-size: 13px; font-weight: 600; color: var(--ink); padding: 8px 0 9px; border-bottom: 1.2px solid var(--hair); margin-bottom: 14px; }
-.group-head { display: flex; align-items: center; gap: 12px; border-bottom: 1.2px solid var(--hair); margin-bottom: 14px; }
-.group-head .group-title { flex: 1; margin: 0; border: 0; }
+/* Section titles share the column heads' small capitals and row height, so the Regimen rule
+   and the schedule's heading rule line up across the page (Jonan, 16 Oct 2026) */
+.group-title {
+  display: flex; align-items: center; min-height: calc(32px + 6px + 1.2px); padding: 0 0 6px; margin-bottom: 10px; border-bottom: 1.2px solid var(--hair);
+  font-size: 11px; font-weight: 500; line-height: 1; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
+}
+.group-head { display: flex; align-items: center; gap: 12px; min-height: calc(32px + 6px + 1.2px); padding-bottom: 6px; border-bottom: 1.2px solid var(--hair); margin-bottom: 10px; }
+.group-head .group-title { flex: 1; min-height: 32px; margin: 0; padding: 0; border: 0; }
 
 /* ---------- Controls ---------- */
 button, .button {
@@ -181,7 +188,7 @@ button.small { height: 26px; padding: 0 10px; font-size: 12px; }
 button.danger { color: var(--danger); }
 button.danger:hover { background: var(--danger-soft); border-color: transparent; }
 
-.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 12px; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
 .fields .wide { grid-column: 1 / -1; }
 .fields > * { min-width: 0; }
 /* Rows inside the two-column grid: the cycle rhythm in three boxes, Cycle beside the inpatient track */
@@ -274,8 +281,8 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 .out:has(#timeline:empty):not(:has(#error:not([hidden]))) .empty { display: grid; }
 /* Column heads, as the Evidence table, with Clear and Copy at the right (no title row, Jonan 16 Oct 2026) */
 .thead {
-  position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 0 14px;
-  align-items: center; margin-top: -18px; padding: 18px 12px 6px; background: var(--ground); border-bottom: 1.2px solid var(--hair);
+  position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 0 12px;
+  grid-template-rows: 32px; align-items: center; margin-top: -18px; padding: 18px 10px 6px; background: var(--ground); border-bottom: 1.2px solid var(--hair);
   font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
 }
 .thead .actions { text-transform: none; letter-spacing: normal; }
@@ -287,8 +294,8 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 #timeline { list-style: none; margin: 0; padding: 0 0 10px; }
 #timeline:empty { display: none; }
 #timeline li {
-  display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 4px 14px; align-items: center;
-  min-height: 44px; padding: 5px 12px; font-size: 14px; border-bottom: 1px solid var(--grid);
+  display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 2px 12px; align-items: center;
+  min-height: 36px; padding: 3px 10px; font-size: 14px; border-bottom: 1px solid var(--grid);
   transition: background 110ms var(--ease);
 }
 /* Kind markers, square as oncOS bullets: filled for chemo, open for a TCU, small grey for labs */
@@ -406,7 +413,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
 .dialog-foot { display: flex; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--grid); background: var(--raised); }
 .dialog-foot #reset { margin-left: auto; }
 #settings section { padding: 16px 0 6px; }
-#settings h3 { font-size: 13px; font-weight: 600; color: var(--ink); text-transform: none; letter-spacing: 0; padding-bottom: 8px; border-bottom: 1.2px solid var(--hair); }
+#settings h3 { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 9px; border-bottom: 1.2px solid var(--hair); }
 #settings .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 6px 0; border-bottom: 1px solid var(--grid); }
 #settings .row:last-child { border-bottom: 0; }
 #settings .row > span { font-size: 13px; flex: 1 1 auto; min-width: 0; }
