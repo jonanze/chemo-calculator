@@ -12,7 +12,7 @@ test('every listed regimen has a unique key, valid days and a sane cycle', () =>
   for (const r of REGIMENS) {
     assert.ok(r.key && !keys.has(r.key), r.name);
     keys.add(r.key);
-    assert.ok(parseDays(r.days), `${r.name}: ${r.days}`);
+    assert.ok(parseDays(r.days, r.cycleDays), `${r.name}: ${r.days} in ${r.cycleDays} days`);
     assert.ok(r.cycleDays === null || (r.cycleDays >= 7 && r.cycleDays <= 366), `${r.name}: ${r.cycleDays}`);
   }
 });

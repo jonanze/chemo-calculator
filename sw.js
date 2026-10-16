@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION on every release so clients pick up changes.
-const VERSION = 'cc-v67';
+const VERSION = 'cc-v69';
 const FILES = [
   './', 'index.html', 'style.css', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon-180.png', 'manifest.webmanifest',
   'js/app.js', 'js/engine.js', 'js/holidays.js', 'js/defaults.js', 'js/doses.js', 'js/doses-ui.js', 'js/theme.js', 'js/clip.js',

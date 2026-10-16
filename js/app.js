@@ -34,9 +34,15 @@ let lastText = '';
 let lastHTML = '';
 // Recent-regimen chips were removed (Jonan, 14 Oct 2026); clear what they stored
 try { localStorage.removeItem('cc.recent'); } catch { /* storage unavailable */ }
-// The usual TCU-to-chemo gap, learned from the last copy, fills an empty chemo date
-let usualGap = store.get('cc.gap', null);
+// Clinic date opens on today and treatment on the day after (Jonan, 16 Oct 2026); the
+// treatment date follows the clinic date until it is typed over
+const AUTO_GAP = 1;
+try { localStorage.removeItem('cc.gap'); } catch { /* storage unavailable */ }
 let chemoAuto = false;
+const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 // Listed regimen the entry was picked from; its doses show while the entry still matches
 const BY_KEY = new Map(REGIMENS.map((r) => [r.key, r]));
 let pickedKey = entry.ref ?? null;
@@ -190,7 +196,7 @@ el.name.addEventListener('blur', closePicker);
 function readInput() {
   const num = (x) => (x.value ? Math.max(1, Math.floor(Number(x.value))) : null);
   const cycleDays = num(el.cycleDays);
-  const days = parseDays(el.days.value);
+  const days = parseDays(el.days.value, cycleDays);
   // A date being typed passes through years like 0002; wait for a whole one
   const date = (x) => (x.value >= '2000' ? x.value : '');
   return {
@@ -496,8 +502,6 @@ function render() {
 
 el.copy.addEventListener('click', async () => {
   await copyText(lastText, lastHTML);
-  const gap = (toDay(el.chemo.value) - toDay(el.review.value));
-  if (Number.isFinite(gap) && gap >= 0) { usualGap = gap; store.set('cc.gap', gap); }
   const t = el.copy.querySelector('span');
   t.textContent = 'Copied';
   el.copy.classList.add('done');
@@ -513,11 +517,11 @@ function resetPlan() {
 }
 
 $('#inputs').addEventListener('input', (ev) => {
-  // An empty chemo date follows the TCU at the usual gap until it is typed over
+  // The treatment date follows the clinic date at D+1 until it is typed over
   if (ev.target === el.chemo) chemoAuto = false;
-  if (ev.target === el.review && usualGap != null && (chemoAuto || !el.chemo.value)) {
+  if (ev.target === el.review && (chemoAuto || !el.chemo.value)) {
     if (el.review.value >= '2000') {
-      el.chemo.value = fromDay(toDay(el.review.value) + usualGap);
+      el.chemo.value = fromDay(toDay(el.review.value) + AUTO_GAP);
       chemoAuto = true;
     } else if (chemoAuto) el.chemo.value = '';
   }
@@ -528,13 +532,17 @@ $('#inputs').addEventListener('input', (ev) => {
   renderRefDoses();
 });
 
-// Next patient (Esc): keep the regimen, clear the dates, cycle and per-visit choices.
-// The Clear button was removed (Jonan, 16 Oct 2026); the shortcut stays.
-const hasVisit = () => !!(el.review.value || el.chemo.value || el.cycle.value || inpDays.size);
+// Next patient (Esc): keep the regimen, put the dates back to today and D+1, clear the cycle
+// and per-visit choices. The Clear button was removed (Jonan, 16 Oct 2026); the shortcut stays.
+function setDefaultDates() {
+  el.review.value = todayISO();
+  el.chemo.value = fromDay(toDay(el.review.value) + AUTO_GAP);
+  chemoAuto = true;
+}
+const hasVisit = () => el.review.value !== todayISO() || !chemoAuto || !!el.cycle.value || inpDays.size > 0
+  || [choices, edits, tcuOpts, labOpts, inpOpts].some((o) => Object.keys(o).length > 0);
 function nextPatient() {
-  el.review.value = '';
-  el.chemo.value = '';
-  chemoAuto = false;
+  setDefaultDates();
   el.cycle.value = '';
   inpDays.clear();
   resetPlan();
@@ -644,6 +652,7 @@ $('#reset').addEventListener('click', () => {
 // ---------- Start ----------
 
 restoreEntry();
+setDefaultDates();
 render();
 renderRefDoses();
 
@@ -654,8 +663,7 @@ document.addEventListener('keydown', (ev) => {
   const mod = ev.ctrlKey || ev.metaKey;
   if (t.type === 'date' && ev.key.toLowerCase() === 't' && !mod && !ev.altKey) {
     ev.preventDefault();
-    const d = new Date();
-    t.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    t.value = todayISO();
     t.dispatchEvent(new Event(t.classList.contains('date-picker') ? 'change' : 'input', { bubbles: true }));
   } else if (ev.key === 'Enter' && mod && !el.copy.hidden) {
     ev.preventDefault();

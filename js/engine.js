@@ -24,7 +24,8 @@ export function formatDay(n, fmt = 'EEE d/M/yy') {
 }
 
 // Accepts '1', 'D1/D8', '1,8,15', 'D1-3', 'd1-3, d8'. Returns sorted days, or null if invalid.
-export function parseDays(text) {
+// With a cycle length, a day past the end of the cycle is rejected (it would land on the next cycle)
+export function parseDays(text, cycleDays = null) {
   const src = String(text ?? '').trim() || '1';
   const days = new Set();
   for (const part of src.split(/[,/;\s]+/).filter(Boolean)) {
@@ -32,6 +33,7 @@ export function parseDays(text) {
     if (!m) return null;
     const a = Number(m[1]), b = m[2] ? Number(m[2]) : a;
     if (a < 1 || b < a || b - a > 60) return null;
+    if (cycleDays && b > cycleDays) return null;
     for (let d = a; d <= b; d++) days.add(d);
   }
   return [...days].sort((x, y) => x - y);
@@ -92,7 +94,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   };
 
   // A consecutive block (D1-3, D1-5) moves as a whole to the first start where
-  // every one of its days is open, so it stays consecutive (Jonan, 11 Oct 2026).
+  // every one of its days is open, so it stays consecutive (Jonan, 11 Oct 2026), up to 3 days.
   // floor: earliest start that keeps the shortest interval after the previous block.
   // earliest: a 'back' move never reaches the cycle's TCU.
   const adjustChemo = (p, len, floor, earliest, inp) => {
@@ -111,7 +113,9 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     // 'back' falls through to forward when no earlier day fits
     if (ok || S.chemoPH !== 'flag') {
       const start = Math.max(ok ? p : p + 1, floor);
-      const f = blockOK(start) ? start : step(start, 1, blockOK);
+      // A block moves at most 3 days; past that it stays put, flagged, for a hand edit
+      // (Jonan, 16 Oct 2026). Single days keep the open search.
+      const f = blockOK(start) ? start : step(start, 1, blockOK, len > 1 ? Math.max(0, p + 3 - start) : undefined);
       if (f !== null) return { date: f, flags };
     }
     return { date: p, flags: closure(p, 'chemo', false) };

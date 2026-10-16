@@ -22,7 +22,9 @@ function sweep(regimen, check, { weekdays = [1, 2, 3, 4, 5], settings = {} } = {
 function invariants(res, at) {
   const chemo = res.events.filter((e) => e.kind === 'chemo');
   for (const c of chemo) {
-    assert.ok(DEFAULT_SETTINGS.chemoDays.includes(weekday(c.date)) && !PH.has(c.date), `${at}: chemo on a closed day ${formatDay(c.date)}`);
+    // A block with no open start within 3 days stays put, its closed day flagged for a hand edit
+    const open = DEFAULT_SETTINGS.chemoDays.includes(weekday(c.date)) && !PH.has(c.date);
+    assert.ok(open || c.flags.some((f) => ['ph', 'off', 'closed'].includes(f.t)), `${at}: chemo on a closed day ${formatDay(c.date)}, unflagged`);
   }
   for (let j = 1; j < chemo.length; j++) assert.ok(chemo[j].date > chemo[j - 1].date, `${at}: treatments out of order`);
   for (const l of res.events.filter((e) => e.kind === 'labs')) {
@@ -46,18 +48,19 @@ test('single-day and D1/D8/D15 regimens keep every invariant over 2026-27', () =
   ]) sweep(r, invariants);
 });
 
-test('outpatient D1-5 never runs two cycles a week apart', { todo: 'block slips are unbounded and the 6-day floor lets q21 collapse to 7 days' }, () => {
-  // Topotecan C1 Mon 30/11/26: C2 slips 21/12 -> 4/1/27 (Christmas, New Year); C3 stays on 11/1/27
+// Blocks move at most 3 days, else stay flagged for a hand edit (Jonan, 16 Oct 2026)
+test('outpatient D1-5 never runs two cycles a week apart', () => {
+  // Topotecan C1 Mon 30/11/26: C2's week has Christmas, the next New Year; C2 stays on 21/12, flagged
   const res = plan({ regimen: { name: 'Topo', cycleDays: 21, days: [1, 2, 3, 4, 5] }, review: '2026-11-27', chemo: '2026-11-30', every: 1, cycle: 1 }, S(), SG_HOLIDAYS);
   const d1 = res.events.filter((e) => e.kind === 'chemo' && e.day === 1).map((e) => e.date);
   for (let j = 1; j < d1.length; j++) assert.ok(d1[j] - d1[j - 1] > 14, `C${j + 1} only ${d1[j] - d1[j - 1]} days after C${j}`);
 });
 
-test('outpatient BEP: a slipped D1-5 does not leave the next TCU inside the previous cycle', { todo: 'D8/D15 keep planned days; the floor cascades the slip while TCUs stay on the grid' }, () => {
+test('outpatient BEP: a slipped D1-5 does not leave the next TCU inside the previous cycle', () => {
   sweep({ name: 'BEP', cycleDays: 21, days: [1, 2, 3, 4, 5, 8, 15] }, invariants, { weekdays: [1] });
 });
 
-test('treatment days beyond the cycle length are rejected', { todo: 'parseDays has no cycle length; D22 in q21 overlaps C2 D1' }, () => {
+test('treatment days beyond the cycle length are rejected', () => {
   assert.equal(parseDays('D1, D8, D22', 21), null);
 });
 
