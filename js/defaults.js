@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS = {
   labsBefore: 1,            // days before a treatment day
   scanLabs: 'tcu',          // labs for a TCU with a scan: 'tcu' day or 'scan' day
   preCycleLabs: 'review',   // 'review' = same day as the review, 'offset' = labsBefore rule
+  tcuLabsDays: 7,           // TCU-day labs serve a D1 up to this many days later; beyond, D1 gets its own labs
   blockLabs: 'first',       // consecutive-day blocks: 'first' day only, or 'each'
   chemoPH: 'forward',       // 'forward' = next working day, 'back' = previous one if it fits, 'flag' = flag only
   minGap: 6,                // shortest interval between treatment starts, in days
@@ -16,5 +17,5 @@ export const DEFAULT_SETTINGS = {
   dateFormat: 'EEE d/M/yy',
   copyFont: 'Aptos',        // font and size of the formatted copy; Word falls back to Times without one
   copySize: 12,             // pt
-  closedDates: [],          // extra unit closures, 'YYYY-MM-DD'
+  closedDates: [],          // extra closures: 'YYYY-MM-DD' shuts everything, 'YYYY-MM-DD@clinic|labs|chemo' one kind
 };

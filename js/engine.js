@@ -50,6 +50,9 @@ export function groupConsecutive(days) {
   return blocks;
 }
 
+// Longest gap from a clinic visit to its treatment, in days
+const MAX_TCU_GAP = 7;
+
 // TCU every N cycles, from the form or a saved entry
 const everyOf = (input) => Math.max(1, Math.floor(input.every) || 1);
 
@@ -68,17 +71,24 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const chemo0 = toDay(input.chemo);
   const offset = chemo0 - review0;
   if (offset < 0) return { error: 'Treatment date is before clinic date', events: [] };
+  // A clinic visit is never more than a week before its treatment (Jonan, 16 Oct 2026)
+  if (offset > MAX_TCU_GAP) return { error: 'Treatment date is more than a week after clinic date', events: [] };
 
   const ph = new Map(Object.entries(holidays.dates).map(([d, name]) => [toDay(d), name]));
-  const closed = new Set((S.closedDates || []).map(toDay));
+  // A closed date shuts clinic, labs and the unit, or just one of them ('YYYY-MM-DD@chemo')
+  const closed = { clinic: new Set(), labs: new Set(), chemo: new Set() };
+  for (const c of S.closedDates || []) {
+    const [d, kind] = String(c).split('@');
+    for (const ctx of closed[kind] ? [kind] : Object.keys(closed)) closed[ctx].add(toDay(d));
+  }
   const covered = toDay(holidays.coveredThrough);
-  const shut = (n) => ph.has(n) || closed.has(n);
-  const open = (days) => (n) => days.includes(weekday(n)) && !shut(n);
-  const clinicOK = open(S.clinicDays);
-  const labOK = open(S.labDays);
-  const chemoOK = open(S.chemoDays);
+  const shut = (n, ctx) => ph.has(n) || closed[ctx].has(n);
+  const open = (days, ctx) => (n) => days.includes(weekday(n)) && !shut(n, ctx);
+  const clinicOK = open(S.clinicDays, 'clinic');
+  const labOK = open(S.labDays, 'labs');
+  const chemoOK = open(S.chemoDays, 'chemo');
   // Why a day is closed for this kind of event: a PH, a closed date, or not one of its weekdays
-  const why = (n, ctx) => (ph.has(n) ? { t: 'ph', name: ph.get(n) } : closed.has(n) ? { t: 'closed' } : { t: 'off', ctx });
+  const why = (n, ctx) => (ph.has(n) ? { t: 'ph', name: ph.get(n) } : closed[ctx]?.has(n) ? { t: 'closed' } : { t: 'off', ctx });
   // Flags for a treatment or labs day. Inpatient care is given on the ward, so PHs, closed
   // dates and unit days don't apply and nothing moves; a PH is still labelled so it can be
   // seen (Jonan, 15 Oct 2026).
@@ -125,7 +135,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     let c = T - S.labsBefore;
     if (inp) return { date: c, flags: closure(c, 'labs', true) }; // ward bloods, any day
     while (!S.labDays.includes(weekday(c)) && c > T - 14) c--; // weekend: back to Friday
-    if (!shut(c)) return { date: c, flags: [] };
+    if (!shut(c, 'labs')) return { date: c, flags: [] };
     const f = step(c, 1, labOK);
     if (f !== null && f < T) return { date: f, flags: [why(c, 'labs'), { t: 'moved', from: c }] };
     const b = step(c, -1, labOK);
@@ -136,9 +146,9 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   // Later TCUs carry their chemo with them at the usual gap, so a day is offered only if that
   // chemo still lands after the previous treatment. The entered TCU keeps the entered chemo,
   // so it has to stay on or before it.
-  const scheduleReview = (p, k, base, { prevTreat = null, maxDate = null } = {}) => {
+  const scheduleReview = (p, k, base, { prevTreat = null, maxDate = null, earliest = null } = {}) => {
     if (clinicOK(p)) return { ...base, date: p, flags: [] };
-    const minDate = prevTreat === null ? null : prevTreat + 1 - offset;
+    const minDate = prevTreat === null ? earliest : prevTreat + 1 - offset;
     const options = [step(p, -1, clinicOK, 14), step(p, 1, clinicOK, 14)]
       .filter((n) => n !== null && (minDate === null || n >= minDate) && (maxDate === null || n <= maxDate));
     if (choices[k] != null) return { ...base, date: toDay(choices[k]), flags: [why(p, 'clinic'), { t: 'moved', from: p }] };
@@ -237,7 +247,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     let review = null;
     if (isReview) {
       const base = { kind: 'review', cycle, k, labs: false };
-      if (k === 0) review = scheduleReview(review0, 0, base, { maxDate: treatments[0].date });
+      if (k === 0) review = scheduleReview(review0, 0, base, { maxDate: treatments[0].date, earliest: chemo0 - MAX_TCU_GAP });
       else if (tcuEdit) {
         const t = toDay(tcuEdit);
         review = { ...base, date: t, flags: [...closure(t, 'clinic', false), { t: 'edited' }] };
@@ -274,7 +284,9 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
           review.labsAtScan = true;
           continue;
         }
+        // Labs at the TCU serve its D1 only while fresh; a D1 further out gets its own labs
         if (t.day === treatments[0].day && review && (S.preCycleLabs === 'review' || review.tech)
+            && t.date - review.date <= (S.tcuLabsDays ?? 7)
             && (review.pending || (labOK(review.date) && review.date <= t.date))) {
           review.labs = true;
           continue;

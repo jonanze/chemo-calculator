@@ -558,6 +558,9 @@ function saveSettings() {
   store.set('cc.settings', settings);
 }
 
+// A closed date shuts everything, or only the clinic, the labs or the unit
+const CLOSED_KIND = { clinic: 'No clinic', labs: 'No labs', chemo: 'Unit closed' };
+
 function renderSettings() {
   for (const box of dialog.querySelectorAll('.days')) {
     const key = box.dataset.key;
@@ -592,7 +595,8 @@ function renderSettings() {
   [...settings.closedDates].sort().forEach((d) => {
     const li = document.createElement('li');
     li.className = 'chip';
-    li.textContent = formatDay(toDay(d), settings.dateFormat);
+    const [day, kind] = d.split('@');
+    li.textContent = formatDay(toDay(day), settings.dateFormat) + (CLOSED_KIND[kind] ? ` · ${CLOSED_KIND[kind]}` : '');
     const x = document.createElement('button');
     x.type = 'button';
     x.textContent = '×';
@@ -615,7 +619,9 @@ function changed(rerenderSettings = false) {
 $('#open-settings').addEventListener('click', () => { renderSettings(); dialog.showModal(); });
 
 $('#closed-add').addEventListener('click', () => {
-  const v = $('#closed-new').value;
+  const day = $('#closed-new').value;
+  const kind = $('#closed-kind').value;
+  const v = day && (kind ? `${day}@${kind}` : day);
   if (v && !settings.closedDates.includes(v)) settings.closedDates = [...settings.closedDates, v];
   $('#closed-new').value = '';
   changed(true);
