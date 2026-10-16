@@ -37,8 +37,8 @@
   --danger: #a8402f;
   --danger-soft: rgba(168, 64, 47, .12);
   --shadow-pop: 0 16px 44px rgba(60, 50, 35, .13);
-  --r-sm: 6px;   /* rail rows only, as oncOS */
-  --r-md: 2px;   /* controls: sharp */
+  --r-sm: 6px;
+  --r-md: 6px;   /* controls, as the Evidence suite */
   --r-lg: 0;     /* no rounded boxes */
   --h-control: 32px;
   --ease: cubic-bezier(.2, 0, 0, 1);
@@ -153,17 +153,15 @@ svg { flex: none; }
 
 /* ---------- Layout ---------- */
 main { flex: 1 1 auto; min-width: 0; padding: 18px clamp(16px, 4vw, 26px) 60px; }
-.layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 0; align-items: start; max-width: 1320px; }
-/* No boxes: the form column sits on the page, ruled off from the schedule */
-.layout > .panel:first-child { position: sticky; top: 18px; padding-right: 26px; }
-.layout > :nth-child(2) { border-left: 1px solid var(--grid); padding-left: 26px; min-height: calc(100vh - 78px); }
+.layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 36px; align-items: start; max-width: 1320px; }
+/* No boxes: both columns sit on the page */
+.layout > .panel:first-child { position: sticky; top: 18px; }
 .panel { background: none; }
 .group { padding: 0 0 22px; }
 /* Section labels as oncOS: small tracked capitals with a rule running to the right */
-.group-title { display: flex; align-items: center; gap: 12px; font-size: 10.5px; font-weight: 550; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px; }
-.group-title::after { content: ""; flex: 1; height: 1px; background: var(--grid); }
-.group-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-.group-head .group-title { flex: 1; margin: 0; }
+.group-title { font-size: 13px; font-weight: 600; color: var(--ink); padding: 8px 0 9px; border-bottom: 1.2px solid var(--hair); margin-bottom: 14px; }
+.group-head { display: flex; align-items: center; gap: 12px; border-bottom: 1.2px solid var(--hair); margin-bottom: 14px; }
+.group-head .group-title { flex: 1; margin: 0; border: 0; }
 
 /* ---------- Controls ---------- */
 button, .button {
@@ -187,13 +185,14 @@ button.danger:hover { background: var(--danger-soft); border-color: transparent;
 .fields .wide { grid-column: 1 / -1; }
 .fields > * { min-width: 0; }
 /* Rows inside the two-column grid: the cycle rhythm in three boxes, Cycle beside the inpatient track */
-.rhythm { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 12px; }
+.rhythm { display: grid; grid-template-columns: 1.15fr 1.45fr 1fr; gap: 12px; }
 .cycle-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; align-items: end; }
 .rhythm > *, .cycle-row > * { min-width: 0; }
 /* With no mid-cycle labs, the pre-clinic labs box takes the row */
 .lab-tests:has(+ [hidden]) { grid-column: 1 / -1; }
 .fields > label, .rhythm > label, .cycle-row > label, fieldset legend, .combo > label {
-  display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 500; color: var(--slate);
+  display: flex; flex-direction: column; gap: 5px; font-size: 11px; font-weight: 550; color: var(--slate);
+  text-transform: uppercase; letter-spacing: 0.04em;
 }
 input, select {
   font: inherit; font-size: 13px; color: var(--ink); background: var(--paper);
@@ -217,7 +216,8 @@ input.invalid { border-color: var(--danger); }
 .suffix { position: relative; display: block; }
 .suffix input { padding-right: 40px; }
 .wide-suffix input { padding-right: 52px; }
-.suffix span { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 12px; font-weight: 400; pointer-events: none; }
+.fields input, .fields .seg-track, .rhythm input, .cycle-row input { text-transform: none; letter-spacing: normal; font-weight: 400; }
+.suffix span { text-transform: none; letter-spacing: normal; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 12px; font-weight: 400; pointer-events: none; }
 
 /* Segmented controls: flat buttons sharing one hairline frame, the selected one in the pressed tint */
 fieldset.seg { border: none; padding: 0; margin: 0; min-width: 0; }
@@ -268,7 +268,7 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 /* ---------- Schedule ---------- */
 .out .bar {
   position: sticky; top: 0; z-index: 2; display: flex; align-items: flex-end; gap: 16px;
-  margin-top: -18px; padding: 18px 0 14px; background: var(--ground); border-bottom: 1px solid var(--hair);
+  margin-top: -18px; padding: 18px 0 12px; background: var(--ground);
 }
 .summary { min-width: 0; }
 .summary h2 { font-size: 22px; font-weight: 550; letter-spacing: -0.01em; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -280,13 +280,20 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 .out .empty { display: none; place-items: center; height: 280px; color: var(--hair); }
 .out .empty svg { stroke-linecap: square; }
 .out:has(#timeline:empty):not(:has(#error:not([hidden]))) .empty { display: grid; }
-.out:has(#timeline:empty) .bar { border-bottom-color: transparent; }
+.out:has(#timeline:empty) .thead { display: none; }
+/* Column heads, as the Evidence table */
+.thead {
+  position: sticky; top: 78px; z-index: 1; display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 0 14px;
+  padding: 0 12px; background: var(--ground); border-bottom: 1.2px solid var(--hair);
+  font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
+}
+.thead span { padding: 11px 0 10px; }
 
 #timeline { list-style: none; margin: 0; padding: 0 0 10px; }
 #timeline:empty { display: none; }
 #timeline li {
   display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 4px 14px; align-items: center;
-  min-height: 36px; padding: 4px 8px; font-size: 14px; border-top: 1px solid var(--grid);
+  min-height: 44px; padding: 5px 12px; font-size: 14px; border-bottom: 1px solid var(--grid);
   transition: background 110ms var(--ease);
 }
 /* Kind markers, square as oncOS bullets: filled for chemo, open for a TCU, small grey for labs */
@@ -296,10 +303,9 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 #timeline li.labs::before { background: var(--muted); width: 4px; height: 4px; }
 /* A light band follows the eye from a date across to its toggles */
 #timeline li:hover { background: var(--hover); }
-/* Each TCU heads its block: more air above and a firmer rule */
-#timeline li.review { border-top-color: var(--hair); }
-#timeline li.review:not(:first-child) { margin-top: 18px; }
-#timeline li:first-child { border-top: 0; }
+/* Each TCU heads its block in the raised band Evidence uses for an open row */
+#timeline li.review { background: var(--raised); }
+#timeline li.review:hover { background: var(--raised); box-shadow: inset 0 0 0 100vmax var(--hover); }
 /* A TCU waiting for a reschedule pick stands out until it is resolved */
 #timeline li.review.pending { background: var(--warn-soft); }
 
@@ -324,32 +330,35 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 /* Toggles: chip geometry; on = pressed tint (as oncOS filter chips), off = hairline */
 #timeline .toggles { grid-column: 4; display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
 #timeline .toggles button {
-  height: 22px; padding: 0 9px; font-size: 11.5px; font-weight: 500; border-radius: var(--r-md);
-  background: var(--paper); color: var(--slate); border: 1px solid var(--hair);
+  height: 22px; min-width: 44px; padding: 0 10px; font-size: 11px; font-weight: 500; border-radius: 999px;
+  background: var(--grid); color: var(--slate); border: 0;
 }
-#timeline .toggles button:hover { color: var(--ink); border-color: var(--muted); }
-#timeline .toggles button[aria-pressed="true"] { background: var(--press); border-color: var(--ink); color: var(--ink); font-weight: 550; }
-#timeline .toggles input.tests { width: 16em; height: 22px; font-size: 12px; padding: 0 8px; }
+#timeline .toggles button:hover { background: var(--hair); color: var(--ink); }
+#timeline .toggles button[aria-pressed="true"] { background: transparent; box-shadow: inset 0 0 0 1px var(--slate); color: var(--ink); }
+#timeline .toggles button[aria-pressed="true"]:hover { background: var(--hover); }
+#timeline .toggles input.tests { width: 16em; height: 22px; font-size: 12px; padding: 0 10px; border-radius: 999px; }
 /* Pills that are on always show; the rest appear when the row is hovered or focused (Jonan, 16 Oct 2026) */
 #timeline .toggles button[aria-pressed="false"] { opacity: 0; transition: opacity 110ms var(--ease); }
 #timeline li:hover .toggles button, #timeline li:focus-within .toggles button { opacity: 1; }
 #timeline .choose { grid-column: 3 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 2px 0 4px; }
-#timeline .choose button { height: 24px; padding: 0 10px; font-size: 12px; background: var(--paper); font-variant-numeric: tabular-nums; }
-#timeline .choose input[type=date] { width: auto; height: 24px; padding: 0 8px; font-size: 12px; }
+#timeline .choose button { height: 24px; padding: 0 10px; font-size: 12px; border-radius: 999px; background: var(--paper); font-variant-numeric: tabular-nums; }
+#timeline .choose input[type=date] { width: auto; height: 24px; padding: 0 8px; font-size: 12px; border-radius: 999px; }
 
 .chip {
   display: inline-flex; align-items: center; height: 20px; padding: 0 8px; font-size: 10.5px; font-weight: 500; line-height: 1;
-  border-radius: var(--r-md); border: 1px solid var(--hair); background: transparent; color: var(--slate); white-space: nowrap;
+  border-radius: 999px; border: 0; background: var(--grid); color: var(--slate); white-space: nowrap;
 }
-.chip.ph, .chip.closed, .chip.off, .chip.nodata { background: var(--warn-soft); border-color: transparent; color: var(--warn); }
-.chip.short, .chip.reschedule { background: var(--danger-soft); border-color: transparent; color: var(--danger); }
+.chip.ph, .chip.closed, .chip.off, .chip.nodata { background: var(--warn-soft); color: var(--warn); }
+.chip.short, .chip.reschedule { background: var(--danger-soft); color: var(--danger); }
 button.chip { height: 20px; cursor: pointer; font: inherit; font-size: 10.5px; font-weight: 500; padding: 0 8px; }
 .chip.edited { background: var(--accent-soft); border-color: transparent; color: var(--accent-on-soft); }
 .chip.edited:hover { background: var(--accent-soft); text-decoration: line-through; }
 
 /* ---------- Doses ---------- */
 #doses-view .side .fields { margin: 0; }
-#derived { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; margin: 0; font-variant-numeric: tabular-nums; }
+#derived { display: grid; grid-template-columns: 1fr auto; gap: 0; margin: 0; font-variant-numeric: tabular-nums; }
+#derived dd { padding-left: 16px; }
+#derived dt, #derived dd { padding: 7px 0; border-bottom: 1px solid var(--grid); }
 #derived dt { color: var(--slate); }
 #derived dd { margin: 0; text-align: right; }
 #derived dd.flag { color: var(--danger); font-weight: 600; }
@@ -402,9 +411,9 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
 .dialog-foot { display: flex; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--grid); background: var(--raised); }
 .dialog-foot #reset { margin-left: auto; }
 #settings section { padding: 16px 0 6px; }
-#settings h3 { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; letter-spacing: 0.12em; font-weight: 550; }
-#settings h3::after { content: ""; flex: 1; height: 1px; background: var(--grid); }
-#settings .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 5px 0; }
+#settings h3 { font-size: 13px; font-weight: 600; color: var(--ink); text-transform: none; letter-spacing: 0; padding-bottom: 8px; border-bottom: 1.2px solid var(--hair); }
+#settings .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 6px 0; border-bottom: 1px solid var(--grid); }
+#settings .row:last-child { border-bottom: 0; }
 #settings .row > span { font-size: 13px; flex: 1 1 auto; min-width: 0; }
 #settings .row input[type=number] { width: 72px; text-align: right; font-variant-numeric: tabular-nums; }
 #settings .row select { width: auto; min-width: 12em; max-width: 60%; }
@@ -456,7 +465,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
   main { padding: 16px 16px 40px; }
   .layout { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .layout > .panel:first-child { position: static; padding-right: 0; }
-  .layout > :nth-child(2) { border-left: 0; padding-left: 0; min-height: 0; }
   /* iOS zooms into inputs under 16px */
   input, select { font-size: 16px; height: 40px; }
   .seg-track { height: 40px; }
@@ -476,4 +484,4 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
 }
 
 /* Derived values under the patient form, ruled off */
-.side .group + .group { border-top: 1px solid var(--grid); padding-top: 14px; }
+.side .group + .group { padding-top: 0; }
