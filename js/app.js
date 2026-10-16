@@ -281,7 +281,8 @@ function toggleBox(...buttons) {
   return box;
 }
 
-const TOGGLES = [['labs', 'Labs'], ['scan', 'Scan'], ['tech', 'Technical'], ['tele', 'Teleconsult']];
+// Labs comes last on every row so the pills that are usually on line up at the right edge
+const TOGGLES = [['scan', 'Scan'], ['tech', 'Technical'], ['tele', 'Teleconsult'], ['labs', 'Labs']];
 // A visit is either technical or a teleconsult, never both
 const EXCLUSIVE = { tech: 'tele', tele: 'tech' };
 
@@ -308,11 +309,11 @@ function labsControls(e, name, res, input) {
   const set = (o) => { labOpts[e.labKey] = { ...labOpts[e.labKey], ...o }; render(); };
   const box = toggleBox();
   if (e.mid) box.append(toggle('TCU', e.tcu, () => set({ tcu: !e.tcu })));
-  box.append(toggle('Labs', !e.off, () => set({ off: !e.off })));
   if (!e.off) {
     const t = toggle('Tests', e.tests?.trim(), () => editTests(t, e, name, res, input));
     box.append(t);
   }
+  box.append(toggle('Labs', !e.off, () => set({ off: !e.off })));
   return box;
 }
 
@@ -406,7 +407,13 @@ function render() {
   const note = res.inpatient.note;
   if (note) $('#summary-meta').textContent += ` · ${note[0].toUpperCase()}${note.slice(1)}`;
 
+  // On screen a consecutive block (D1-5) is one row from its first day to its last; the copy
+  // still lists every day (Jonan, 16 Oct 2026)
+  const blockDays = (e) => res.events.filter((x) => x.kind === 'chemo' && x.k === e.k && x.block === e.block);
   for (const e of res.events) {
+    if (e.kind === 'chemo' && e.blockLen > 1 && !e.blockStart) continue;
+    const days = e.kind === 'chemo' && e.blockLen > 1 ? blockDays(e) : [e];
+    const last = days[days.length - 1];
     const li = document.createElement('li');
     // A mid-cycle labs row turned into a clinic visit looks like a TCU row
     li.className = (e.tcu ? 'review' : e.kind) + (e.pending ? ' pending' : '');
@@ -430,12 +437,27 @@ function render() {
     const what = document.createElement('span');
     what.className = 'what';
     const name = document.createElement('span');
-    name.textContent = label(e, res, input);
+    name.textContent = label(e, res, input) + (last !== e ? `-${last.shown}` : '');
     what.append(name);
-    for (const f of e.flags) {
+    if (last !== e) {
+      const until = document.createElement('span');
+      until.className = 'until';
+      until.textContent = `to ${formatDay(last.date, settings.dateFormat)}`;
+      what.append(until);
+    }
+    // A later day's flag names its day (D5 PH); a flag shared by every day shows once
+    const flags = [];
+    const seen = new Set();
+    for (const d of days) {
+      for (const f of d.flags) {
+        const text = (d === e || f.t === 'nodata' ? '' : `D${d.shown} `) + flagText(f, settings.dateFormat, true);
+        if (!seen.has(text)) { seen.add(text); flags.push([f, text]); }
+      }
+    }
+    for (const [f, text] of flags) {
       const c = document.createElement(f.t === 'edited' ? 'button' : 'span');
       c.className = `chip ${f.t}`;
-      c.textContent = flagText(f, settings.dateFormat, true);
+      c.textContent = text;
       if (f.t === 'edited') {
         c.type = 'button';
         c.setAttribute('aria-label', 'Undo edit');

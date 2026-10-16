@@ -215,7 +215,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       block.forEach((day, i) => {
         const date = p + day - block[0] + shift;
         const flags = i === 0 ? [...first.flags] : closure(date, 'chemo', inp);
-        const t = { kind: 'chemo', date, day, cycle, k, blockStart: i === 0, flags, inpatient: inp };
+        const t = { kind: 'chemo', date, day, cycle, k, block: block[0], blockLen: block.length, blockStart: i === 0, flags, inpatient: inp };
         if (i === 0) t.inpKey = `${k}:${block[0]}`;
         if (i === 0 && !entered) Object.assign(t, { editKey, minDate });
         treatments.push(t);

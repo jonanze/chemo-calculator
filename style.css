@@ -117,7 +117,7 @@ h3 { font-size: 11.5px; font-weight: 600; color: var(--muted); text-transform: u
 
 /* ---------- Layout ---------- */
 main { max-width: 1240px; margin: 0 auto; padding: 24px 32px 56px; }
-.layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 24px; align-items: start; }
+.layout { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 24px; align-items: start; }
 .layout > .panel:first-child { position: sticky; top: 76px; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .group { padding: 18px 20px; }
@@ -152,7 +152,13 @@ button.danger { color: var(--alert); }
 .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; }
 .fields .wide { grid-column: 1 / -1; }
 .fields > * { min-width: 0; }
-.fields > label, fieldset legend {
+/* Rows inside the two-column grid: the cycle rhythm in three boxes, Cycle beside the inpatient track */
+.rhythm { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 12px; }
+.cycle-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; align-items: end; }
+.rhythm > *, .cycle-row > * { min-width: 0; }
+/* With no mid-cycle labs, the pre-clinic labs box takes the row */
+.lab-tests:has(+ [hidden]) { grid-column: 1 / -1; }
+.fields > label, .rhythm > label, .cycle-row > label, fieldset legend {
   display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; font-weight: 500; color: var(--muted);
 }
 input, select {
@@ -176,9 +182,9 @@ input.invalid { border-color: var(--alert); }
 input.invalid:focus { box-shadow: 0 0 0 3px rgb(161 42 42 / .25); }
 
 .suffix { position: relative; display: block; }
-.suffix input { padding-right: 46px; }
-.wide-suffix input { padding-right: 62px; }
-.suffix span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--faint); font-size: 13px; font-weight: 400; pointer-events: none; }
+.suffix input { padding-right: 42px; }
+.wide-suffix input { padding-right: 52px; }
+.suffix span { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); color: var(--faint); font-size: 12.5px; font-weight: 400; pointer-events: none; }
 
 /* Segmented controls (Sex, CrCl weight) */
 fieldset.seg { border: none; padding: 0; margin: 0; min-width: 0; }
@@ -269,6 +275,7 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 }
 #timeline button.date:hover { background: var(--panel); text-decoration: underline dotted; text-underline-offset: 3px; }
 #timeline .date-picker { width: auto; height: 30px; padding: 0 8px; font-size: 13.5px; }
+#timeline .until { color: var(--muted); font-variant-numeric: tabular-nums; }
 #timeline .what { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
 #timeline li.review .what > span:first-child { font-weight: 600; }
 #timeline li.chemo .what > span:first-child { color: var(--accent); font-weight: 600; }
@@ -284,9 +291,9 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 #timeline .toggles button:hover { color: var(--text); border-color: var(--line-strong); background: var(--panel); }
 #timeline .toggles button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 #timeline .toggles input.tests { width: 16em; height: 26px; font-size: 12.5px; padding: 0 10px; border-radius: 999px; }
-/* A chemo row's Inpatient pill is quiet until the row is hovered or focused, unless it is on */
-#timeline li.chemo .toggles button[aria-pressed="false"] { opacity: 0; transition: opacity .12s; }
-#timeline li.chemo:hover .toggles button, #timeline li.chemo:focus-within .toggles button { opacity: 1; }
+/* Pills that are on always show; the rest appear when the row is hovered or focused (Jonan, 16 Oct 2026) */
+#timeline .toggles button[aria-pressed="false"] { opacity: 0; transition: opacity .12s; }
+#timeline li:hover .toggles button, #timeline li:focus-within .toggles button { opacity: 1; }
 #timeline .choose { grid-column: 3 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 2px 0 4px; }
 #timeline .choose button { padding: 3px 10px; font-size: 13px; background: var(--panel); }
 #timeline .choose input[type=date] { width: auto; height: 28px; padding: 0 8px; font-size: 13px; }

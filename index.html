@@ -54,16 +54,18 @@
               </div>
             </div>
             <ul class="wide ref-doses" id="ref-doses" hidden></ul>
-            <label>Frequency
-              <span class="suffix"><input type="number" id="cycleDays" min="1" inputmode="numeric"><span>days</span></span>
-            </label>
-            <label>Treatment days
-              <input type="text" id="days">
-            </label>
-            <label>TCU every
-              <span class="suffix wide-suffix"><input type="number" id="every" min="1" inputmode="numeric"><span>cycles</span></span>
-            </label>
-            <label>Pre-clinic labs
+            <div class="wide rhythm">
+              <label>Frequency
+                <span class="suffix"><input type="number" id="cycleDays" min="1" inputmode="numeric"><span>days</span></span>
+              </label>
+              <label>Treatment days
+                <input type="text" id="days">
+              </label>
+              <label>TCU every
+                <span class="suffix wide-suffix"><input type="number" id="every" min="1" inputmode="numeric"><span>cycles</span></span>
+              </label>
+            </div>
+            <label class="lab-tests">Pre-clinic labs
               <input type="text" id="labTests">
             </label>
             <label id="mid-labs-field" hidden>Mid-cycle labs
@@ -80,13 +82,15 @@
             <label>Treatment date
               <input type="date" id="chemo">
             </label>
-            <label>Cycle
-              <input type="number" id="cycle" min="1" inputmode="numeric">
-            </label>
-            <fieldset class="seg wide">
-              <legend id="inp-legend">Treatment</legend>
-              <div class="seg-track" id="inp-days" role="group" aria-labelledby="inp-legend"></div>
-            </fieldset>
+            <div class="wide cycle-row">
+              <label>Cycle
+                <input type="number" id="cycle" min="1" inputmode="numeric">
+              </label>
+              <fieldset class="seg">
+                <legend id="inp-legend">Treatment</legend>
+                <div class="seg-track" id="inp-days" role="group" aria-labelledby="inp-legend"></div>
+              </fieldset>
+            </div>
           </div>
         </section>
       </form>
