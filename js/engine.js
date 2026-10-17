@@ -345,14 +345,20 @@ export function rowTests(e) {
 }
 
 // The row text for an event, e.g. 'TCU with labs (FBC) and scan prior', 'Labs (FBC) pre-D8', 'C4 D1'
+// The labs as a line names them: the tests themselves ('FBC RP LFT'), or 'labs' when none are set.
+// On the ward, where the line is only the labs, 'Labs (FBC RP LFT)'.
+export function labsPhrase(e, input) {
+  const own = rowTests(e) || baseTests(e, input.labTests, input.midLabTests);
+  if (e.kind === 'labs' && e.inpatient && !e.tcu) return `Labs${own ? ` (${own})` : ''}`;
+  return own || 'labs';
+}
+
 export function label(e, result, input) {
   const day = e.shown ?? e.day;
   const dayTag = result.multiDay ? ` D${day}` : '';
-  const own = rowTests(e) || baseTests(e, input.labTests, input.midLabTests);
-  const tests = own ? ` (${own})` : '';
+  const labs = labsPhrase(e, input);
   switch (e.kind) {
     case 'review': {
-      const labs = `labs${tests}`;
       if (e.tech) {
         const what = [e.labs && labs, e.scan && 'scan'].filter(Boolean).join(' and ');
         return `Technical visit${what ? ` for ${what}` : ''}`;
@@ -368,9 +374,9 @@ export function label(e, result, input) {
     }
     case 'labs': {
       const pre = result.multiDay ? ` pre-D${day}` : '';
-      if (e.tcu) return `TCU${pre}${e.off ? '' : ` with labs${tests} on arrival`}`;
+      if (e.tcu) return `TCU${pre}${e.off ? '' : ` with ${labs} on arrival`}`;
       // A visit for labs alone is a technical visit; on the ward they are just labs
-      return e.inpatient ? `Labs${tests}${pre}` : `Technical visit for labs${tests}${pre}`;
+      return e.inpatient ? `${labs}${pre}` : `Technical visit for ${labs}${pre}`;
     }
     default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;
   }

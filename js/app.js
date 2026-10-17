@@ -1,4 +1,4 @@
-import { plan, toText, formatDay, fromDay, toDay, label, flagText, baseTests, rowTests, parseDays, groupConsecutive } from './engine.js';
+import { plan, toText, labsPhrase, formatDay, fromDay, toDay, label, flagText, baseTests, rowTests, parseDays, groupConsecutive } from './engine.js';
 import { SG_HOLIDAYS } from './holidays.js';
 import { DEFAULT_SETTINGS, DEFAULT_ENTRY } from './defaults.js';
 import { copyText } from './clip.js';
@@ -366,17 +366,18 @@ function renderInpDays(days) {
 // The labs phrase of a row ('labs (FBC RP)') is a button: click it to give that visit its own
 // tests (Jonan, 16 Oct 2026: replaces the Tests pill). Clearing the box, or typing the default
 // set, goes back to the default.
-const LABS_PHRASE = /\b[Ll]abs(?: \([^)]*\))?/;
+// The tests on a row are a button that edits them; they follow 'with' or 'for', or open a ward labs line
 function renderName(name, text, e, input) {
   const drawn = e.kind === 'labs' ? !e.off : e.kind === 'review' && (e.labs || e.labsAtScan);
-  const m = drawn ? LABS_PHRASE.exec(text) : null;
-  if (!m) { name.textContent = text; return; }
+  const phrase = labsPhrase(e, input);
+  const at = drawn ? text.indexOf(phrase, Math.max(0, text.search(/ (with|for) /))) : -1;
+  if (at < 0) { name.textContent = text; return; }
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'tests-edit' + (rowTests(e) ? ' own' : '');
-  b.textContent = m[0];
+  b.textContent = phrase;
   b.addEventListener('click', () => editTests(b, e, input));
-  name.append(text.slice(0, m.index), b, text.slice(m.index + m[0].length));
+  name.append(text.slice(0, at), b, text.slice(at + phrase.length));
 }
 
 function editTests(button, e, input) {
