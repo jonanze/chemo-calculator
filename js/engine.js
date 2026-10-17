@@ -307,7 +307,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
         // A mid-cycle labs check can be turned into a clinic visit on the same day
         const tcu = mid && !!lo.tcu;
         const flags = tcu ? [...L.flags, ...closure(L.date, 'clinic', false)] : L.flags;
-        events.push({ kind: 'labs', date: L.date, flags, cycle, k, day: t.day, shown: t.shown, labKey, mid, tcuSet, tcu, off: !!lo.off, tests: lo.tests });
+        events.push({ kind: 'labs', date: L.date, flags, cycle, k, day: t.day, shown: t.shown, labKey, mid, tcuSet, tcu, off: !!lo.off, tests: lo.tests, inpatient: !!t.inpatient });
       }
     }
     events.push(...treatments);
@@ -357,15 +357,20 @@ export function label(e, result, input) {
         const what = [e.labs && labs, e.scan && 'scan'].filter(Boolean).join(' and ');
         return `Technical visit${what ? ` for ${what}` : ''}`;
       }
-      const tcu = e.tele ? 'TCU (teleconsult)' : 'TCU';
-      if (!e.scanPrior) return `${tcu}${e.labs ? ` with ${labs}` : ''}`;
-      if (e.labsAtScan) return `${tcu} with scan and ${labs} prior`;
-      return `${tcu} with ${e.labs ? `${labs} and ` : ''}scan prior`;
+      if (e.tele) {
+        if (!e.scanPrior) return `TCU (teleconsult)${e.labs ? ` with ${labs}` : ''}`;
+        if (e.labsAtScan) return `TCU (teleconsult) with scan and ${labs} prior`;
+        return `TCU (teleconsult) with ${e.labs ? `${labs} and ` : ''}scan prior`;
+      }
+      if (!e.scanPrior) return `TCU${e.labs ? ` with ${labs} on arrival` : ''}`;
+      if (e.labsAtScan) return `TCU with ${labs} and scan prior`;
+      return e.labs ? `TCU with ${labs} on arrival and scan prior` : 'TCU with scan prior';
     }
     case 'labs': {
       const pre = result.multiDay ? ` pre-D${day}` : '';
-      if (e.tcu) return `TCU${e.off ? '' : ` with labs${tests}`}${pre}`;
-      return `Labs${tests}${pre}`;
+      if (e.tcu) return `TCU${pre}${e.off ? '' : ` with labs${tests} on arrival`}`;
+      // A visit for labs alone is a technical visit; on the ward they are just labs
+      return e.inpatient ? `Labs${tests}${pre}` : `Technical visit for labs${tests}${pre}`;
     }
     default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;
   }

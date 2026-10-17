@@ -156,10 +156,10 @@ test('EMR text', () => {
   const lines = text.split('\n');
   assert.equal(lines[0], 'FOLFOX q14d');
   assert.equal(lines[1], '');
-  assert.equal(lines[2], 'Fri 9/10/26 TCU with labs');
+  assert.equal(lines[2], 'Fri 9/10/26 TCU with labs on arrival');
   assert.ok(lines.includes('Tue 10/11/26 C5 [PH, moved from Mon 9/11/26]'));
   assert.ok(lines.includes('Mon 23/11/26 C6 [13d interval]'));
-  assert.ok(lines.includes('Fri 1/1/27 TCU with labs [PH, reschedule]'));
+  assert.ok(lines.includes('Fri 1/1/27 TCU with labs on arrival [PH, reschedule]'));
 });
 
 test('review stays on its usual day when the chemo it precedes moves off a PH', () => {
@@ -250,8 +250,8 @@ test('edited dates are not annotated in EMR text', () => {
 test('lab tests are named on every labs entry and in EMR text', () => {
   const input = { ...folfoxInput, labTests: 'FBC, RP, LFT, CEA' };
   const lines = toText(plan(input, S(), SG_HOLIDAYS), input, S()).split('\n');
-  assert.equal(lines[2], 'Fri 9/10/26 TCU with labs (FBC, RP, LFT, CEA)');
-  assert.ok(lines.includes('Fri 23/10/26 Labs (FBC, RP, LFT, CEA)'));
+  assert.equal(lines[2], 'Fri 9/10/26 TCU with labs (FBC, RP, LFT, CEA) on arrival');
+  assert.ok(lines.includes('Fri 23/10/26 Technical visit for labs (FBC, RP, LFT, CEA)'));
   assert.ok(lines.includes('Mon 26/10/26 C4'));
 });
 
@@ -291,7 +291,7 @@ test('scan before a TCU is undated, stated as prior, on one TCU line', () => {
   assert.equal(r6.scanPrior, true);
   assert.equal(res.events.some((e) => e.kind === 'scan'), false);
   const lines = toText(res, input, S()).split('\n');
-  assert.ok(lines.includes('Fri 20/11/26 TCU with labs (FBC) and scan prior'));
+  assert.ok(lines.includes('Fri 20/11/26 TCU with labs (FBC) on arrival and scan prior'));
 });
 
 test('scan-only TCU reads as scan prior', () => {
@@ -307,7 +307,7 @@ test('labs can go with the scan instead of the TCU', () => {
   assert.equal(r6.labs, false);
   assert.equal(r6.labsAtScan, true);
   const lines = toText(res, input, S({ scanLabs: 'scan' })).split('\n');
-  assert.ok(lines.includes('Fri 20/11/26 TCU with scan and labs (FBC) prior'));
+  assert.ok(lines.includes('Fri 20/11/26 TCU with labs (FBC) and scan prior'));
   assert.ok(find(res, 'labs', 7));
 });
 
@@ -324,7 +324,7 @@ test('teleconsult TCU reads TCU (teleconsult)', () => {
 test('labs before a later treatment day name the day', () => {
   const input = { regimen: R.gemcis, review: '2026-10-13', chemo: '2026-10-14', every: 1, cycle: 1 };
   const lines = toText(plan(input, S(), SG_HOLIDAYS), input, S()).split('\n');
-  assert.ok(lines.some((l) => / Labs pre-D8$/.test(l)), lines.join('\n'));
+  assert.ok(lines.some((l) => / Technical visit for labs pre-D8$/.test(l)), lines.join('\n'));
   assert.ok(lines.every((l) => !/pre-C/.test(l)));
 });
 
@@ -336,9 +336,9 @@ test('a labs row can be switched off or given its own tests', () => {
   const withOpts = { ...input, labOpts: { [d8[0].labKey]: { tests: 'FBC' }, [d8[1].labKey]: { off: true } } };
   const res = plan(withOpts, S(), SG_HOLIDAYS);
   const lines = toText(res, withOpts, S()).split('\n');
-  const labLines = lines.filter((l) => / Labs /.test(l));
+  const labLines = lines.filter((l) => / Technical visit for labs/.test(l));
   assert.equal(labLines.length, base.events.filter((e) => e.kind === 'labs').length - 1);
-  assert.ok(labLines.some((l) => l.endsWith('Labs (FBC) pre-D8')));
+  assert.ok(labLines.some((l) => l.endsWith('Technical visit for labs (FBC) pre-D8')));
   assert.ok(lines.some((l) => l.includes('TCU with labs (FBC, RP, LFT)')));
 });
 
@@ -446,12 +446,12 @@ test('pre-dose labs before D8 use their own tests; TCU labs keep the TCU set', (
   const res = plan(input, S(), SG_HOLIDAYS);
   const text = toText(res, input, S());
   assert.match(text, /TCU with labs \(FBC, RP, LFT\)/);
-  assert.match(text, /Labs \(FBC\) pre-D8/);
+  assert.match(text, /Technical visit for labs \(FBC\) pre-D8/);
   // With no pre-dose set, D8 labs fall back to the TCU set
-  assert.match(toText(res, { ...input, midLabTests: '' }, S()), /Labs \(FBC, RP, LFT\) pre-D8/);
+  assert.match(toText(res, { ...input, midLabTests: '' }, S()), /visit for labs \(FBC, RP, LFT\) pre-D8/);
   // A row's own tests still win
   const own = plan({ ...input, labOpts: { '0:8': { tests: 'FBC, Mg' } } }, S(), SG_HOLIDAYS);
-  assert.match(toText(own, input, S()), /Labs \(FBC, Mg\) pre-D8/);
+  assert.match(toText(own, input, S()), /visit for labs \(FBC, Mg\) pre-D8/);
 });
 
 test('after a PH TCU move, D8 and D15 keep their planned days', () => {
@@ -486,8 +486,8 @@ test('a mid-cycle labs check can be turned into a clinic visit', () => {
   const row = find(res, 'labs', 1, 8);
   assert.ok(row.tcu);
   const text = toText(res, input, S()).split('\n');
-  assert.ok(text.includes('Tue 20/10/26 TCU with labs (FBC) pre-D8'));
-  assert.equal(text[text.indexOf('Tue 20/10/26 TCU with labs (FBC) pre-D8') - 1], '');
+  assert.ok(text.includes('Tue 20/10/26 TCU pre-D8 with labs (FBC) on arrival'));
+  assert.equal(text[text.indexOf('Tue 20/10/26 TCU pre-D8 with labs (FBC) on arrival') - 1], '');
   // With its labs off it stays a visit without labs
   const noLabs = plan({ ...input, labOpts: { '0:8': { tcu: true, off: true } } }, S(), SG_HOLIDAYS);
   assert.ok(toText(noLabs, input, S()).includes('Tue 20/10/26 TCU pre-D8'));
@@ -502,7 +502,7 @@ test('an edited D8 pushes D15, and day labels count from the actual D1', () => {
   const ph = plan(input, S(), SG_HOLIDAYS, { 1: '2026-11-10' });
   let text = toText(ph, input, S());
   assert.ok(text.includes('Tue 17/11/26 C2 D7'));
-  assert.ok(text.includes('Mon 16/11/26 Labs pre-D7'));
+  assert.ok(text.includes('Mon 16/11/26 Technical visit for labs pre-D7'));
   assert.ok(text.includes('Tue 24/11/26 C2 D14'));
   // Editing that D8 to Wed 18 Nov pushes D15 to Wed 25 Nov; the next cycle stays on schedule
   const ed = plan(input, S(), SG_HOLIDAYS, { 1: '2026-11-10' }, { 'chemo:1:8': '2026-11-18' });
@@ -638,11 +638,20 @@ test('TCU labs and pre-dose labs: each row kind takes its own set, and any row c
   const text = toText(res, input, S());
   assert.match(text, /TCU with labs \(FBC RP LFT\)/);
   // The D1 between TCUs and every D8 get the pre-dose set
-  assert.match(text, /Labs \(FBC RP\) pre-D1/);
-  assert.match(text, /Labs \(FBC RP\) pre-D8/);
-  assert.doesNotMatch(text, /Labs \(FBC RP LFT\)/);
+  assert.match(text, /visit for labs \(FBC RP\) pre-D1/);
+  assert.match(text, /visit for labs \(FBC RP\) pre-D8/);
+  assert.doesNotMatch(text, /visit for labs \(FBC RP LFT\)/);
   // A TCU's own tests change that visit only
   const own = plan({ ...input, tcuOpts: { 2: { tests: 'FBC RP LFT CEA' } } }, S(), SG_HOLIDAYS);
   const lines = toText(own, input, S()).split('\n').filter((l) => l.includes('TCU with labs'));
-  assert.deepEqual(lines.map((l) => l.replace(/^\S+ \S+ /, '')), ['TCU with labs (FBC RP LFT)', 'TCU with labs (FBC RP LFT CEA)', 'TCU with labs (FBC RP LFT)']);
+  assert.deepEqual(lines.map((l) => l.replace(/^\S+ \S+ /, '')), ['TCU with labs (FBC RP LFT) on arrival', 'TCU with labs (FBC RP LFT CEA) on arrival', 'TCU with labs (FBC RP LFT) on arrival']);
+});
+
+test('a visit for labs alone is a technical visit, except on the ward', () => {
+  const out = toText(plan(folfoxInput, S(), SG_HOLIDAYS), folfoxInput, S());
+  assert.match(out, /Technical visit for labs\n/);
+  const inp = { ...folfoxInput, inpDays: [1] };
+  const ward = toText(plan(inp, S(), SG_HOLIDAYS), inp, S());
+  assert.doesNotMatch(ward, /Technical visit/);
+  assert.match(ward, / Labs\n/);
 });
