@@ -1,4 +1,4 @@
-import { plan, toText, toHTML, formatDay, fromDay, toDay, label, flagText, baseTests, rowTests, parseDays, groupConsecutive } from './engine.js';
+import { plan, toText, formatDay, fromDay, toDay, label, flagText, baseTests, rowTests, parseDays, groupConsecutive } from './engine.js';
 import { SG_HOLIDAYS } from './holidays.js';
 import { DEFAULT_SETTINGS, DEFAULT_ENTRY } from './defaults.js';
 import { copyText } from './clip.js';
@@ -31,7 +31,6 @@ let inpOpts = {};
 // Treatment blocks (by start day) given as an inpatient in every cycle; reset for each patient
 const inpDays = new Set();
 let lastText = '';
-let lastHTML = '';
 // Recent-regimen chips were removed (Jonan, 14 Oct 2026); clear what they stored
 try { localStorage.removeItem('cc.recent'); } catch { /* storage unavailable */ }
 // Clinic date opens on today and treatment on the day after (Jonan, 16 Oct 2026); the
@@ -521,12 +520,11 @@ function render() {
   }
 
   lastText = toText(res, input, settings);
-  lastHTML = toHTML(res, input, settings);
   el.copy.hidden = false;
 }
 
 el.copy.addEventListener('click', async () => {
-  await copyText(lastText, lastHTML);
+  await copyText(lastText);
   const t = el.copy.querySelector('span');
   t.textContent = 'Copied';
   el.copy.classList.add('done');

@@ -386,14 +386,17 @@ export function flagText(f, fmt, chip = false) {
   }
 }
 
-// EMR lines shared by the plain and formatted copies. A blank line before each TCU
+// EMR lines for the copy. A blank line before each TCU
 // groups it with the chemo that follows.
 function emrLines(result, input, S) {
   const R = input.regimen;
-  const every = everyOf(input);
   // Inpatient is said once: in the header when every cycle is, otherwise on the first day of each admission
   const inp = result.inpatient || {};
-  const head = `${R.name ? `${R.name} ` : ''}q${R.cycleDays}d${inp.note ? ` (${inp.note})` : ''}${every > 1 ? `, TCU every ${every} cycles` : ''}`;
+  // Treatment days only when there is more than D1: D1/8/15, D1-5/8/15
+  const days = R.days.length > 1 || R.days[0] !== 1
+    ? `D${groupConsecutive(R.days).map((b) => (b.length > 1 ? `${b[0]}-${b[b.length - 1]}` : b[0])).join('/')} `
+    : '';
+  const head = `${R.name ? `${R.name} ` : ''}${days}q${R.cycleDays}d${inp.note ? ` (${inp.note})` : ''}`;
   const lines = result.events.filter((e) => !e.off || e.tcu).map((e) => {
     const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
     if (e.pending) flags.push('reschedule');
@@ -414,28 +417,4 @@ export function toText(result, input, S) {
     return l.gap ? ['', line] : [line];
   });
   return [head, ...out].join('\n');
-}
-
-// The same list as rich text for pasting into notes: TCUs bold, chemo bold in the app's
-// blue, labs grey, flags amber. One line per entry with no spacing between lines and an
-// empty line between TCU groups. Word ignores the page's font and falls back to Times, so
-// the font and size come from Settings. Light-theme colours, since notes are usually white.
-const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const COLOR = { chemo: '#1967d2', labs: '#646d78', flag: '#8a5a00' };
-export function toHTML(result, input, S) {
-  const { head, lines } = emrLines(result, input, S);
-  const font = (S.copyFont || '').replace(/["';<>{}]/g, '').trim();
-  const size = Number(S.copySize) > 0 ? Number(S.copySize) : 0;
-  const style = ['margin:0', font && `font-family:'${font}'`, size && `font-size:${size}pt`].filter(Boolean).join(';');
-  const para = (inner) => `<p style="${style}">${inner}</p>`;
-  const blank = para('&nbsp;');
-  const paint = (c, t) => `<span style="color:${c}">${t}</span>`;
-  const what = (l) => {
-    const t = esc(l.text);
-    if (l.kind === 'review') return `<b>${t}</b>`;
-    if (l.kind === 'chemo') return `<b>${paint(COLOR.chemo, t)}</b>`;
-    return paint(COLOR.labs, t);
-  };
-  const line = (l) => para(`${esc(l.date)} ${what(l)}${l.flags.length ? ` ${paint(COLOR.flag, `[${esc(l.flags.join(', '))}]`)}` : ''}`);
-  return para(`<b>${esc(head)}</b>`) + lines.map((l) => (l.gap ? blank : '') + line(l)).join('');
 }

@@ -15,7 +15,5 @@ export const DEFAULT_SETTINGS = {
   knockOn: 'original',      // 'original' = keep schedule, 'reanchor' = count from moved date
   visits: 2,
   dateFormat: 'EEE d/M/yy',
-  copyFont: 'Aptos',        // font and size of the formatted copy; Word falls back to Times without one
-  copySize: 12,             // pt
   closedDates: [],          // extra closures: 'YYYY-MM-DD' shuts everything, 'YYYY-MM-DD@clinic|labs|chemo' one kind
 };

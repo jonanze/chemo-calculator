@@ -154,7 +154,7 @@ test('EMR text', () => {
   const res = plan(folfoxInput, S(), SG_HOLIDAYS);
   const text = toText(res, folfoxInput, S());
   const lines = text.split('\n');
-  assert.equal(lines[0], 'FOLFOX q14d, TCU every 3 cycles');
+  assert.equal(lines[0], 'FOLFOX q14d');
   assert.equal(lines[1], '');
   assert.equal(lines[2], 'Fri 9/10/26 TCU with labs');
   assert.ok(lines.includes('Tue 10/11/26 C5 [PH, moved from Mon 9/11/26]'));
@@ -196,7 +196,7 @@ test('treatment days parsing', () => {
 test('EMR header without a regimen name', () => {
   const input = { ...folfoxInput, regimen: { name: '', cycleDays: 21, days: [1] } };
   const text = toText(plan(input, S(), SG_HOLIDAYS), input, S());
-  assert.equal(text.split('\n')[0], 'q21d, TCU every 3 cycles');
+  assert.equal(text.split('\n')[0], 'q21d');
 });
 
 test('editing a chemo D1 re-anchors that cycle and everything after', () => {
@@ -514,22 +514,14 @@ test('an edited D8 pushes D15, and day labels count from the actual D1', () => {
   assert.equal(find(ed, 'chemo', 2, 8).editKey, 'chemo:1:8');
 });
 
-test('the formatted copy matches the plain text, with TCUs bold and chemo blue', async () => {
-  const { toHTML } = await import('../js/engine.js');
-  const input = { ...folfoxInput, labTests: 'FBC <CEA>' };
-  const res = plan(input, S(), SG_HOLIDAYS);
-  const html = toHTML(res, input, S());
-  const P = '<p style="margin:0;font-family:\'Aptos\';font-size:12pt">';
-  assert.ok(html.startsWith(`${P}<b>FOLFOX q14d, TCU every 3 cycles</b></p>${P}&nbsp;</p>`));
-  assert.ok(html.includes(`${P}Fri 9/10/26 <b>TCU with labs (FBC &lt;CEA&gt;)</b></p>`));
-  assert.match(html, /<b><span style="color:#1967d2">C3<\/span><\/b>/);
-  assert.doesNotMatch(html, /<ul|<li|<br/);
-  // Line for line the same as the plain text, blank lines included
-  const plain = html.split('</p>').filter(Boolean).map((p) => p.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, '')
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
-  assert.deepEqual(plain, toText(res, input, S()).split('\n'));
-  // Font and size come from Settings
-  assert.match(toHTML(res, input, S({ copyFont: 'Calibri', copySize: 11 })), /font-family:'Calibri';font-size:11pt/);
+test('the copy header gives name, days and cycle length only', () => {
+  const head = (days) => {
+    const input = { ...folfoxInput, regimen: { ...folfoxInput.regimen, name: 'Paclitaxel', cycleDays: 28, days } };
+    return toText(plan(input, S(), SG_HOLIDAYS), input, S()).split('\n')[0];
+  };
+  assert.equal(head([1]), 'Paclitaxel q28d');
+  assert.equal(head([1, 8, 15]), 'Paclitaxel D1/8/15 q28d');
+  assert.equal(head([1, 2, 3, 4, 5, 8, 15]), 'Paclitaxel D1-5/8/15 q28d');
 });
 
 test('inpatient: chemo and its labs stay put on PHs and weekends, PH still labelled', () => {
@@ -544,7 +536,7 @@ test('inpatient: chemo and its labs stay put on PHs and weekends, PH still label
   // No short-interval knock-on, since nothing moved
   assert.deepEqual(find(res, 'chemo', 6).flags, []);
   const text = toText(res, { ...folfoxInput, inpDays: [1] }, S());
-  assert.equal(text.split('\n')[0], 'FOLFOX q14d (inpatient), TCU every 3 cycles');
+  assert.equal(text.split('\n')[0], 'FOLFOX q14d (inpatient)');
   assert.match(text, /Mon 9\/11\/26 C5 \[PH\]/); // said once, in the header
   assert.doesNotMatch(text, /C\d+ \(inpatient\)/);
 });
@@ -574,7 +566,7 @@ test('inpatient per cycle: overrides the default and tags only the first day of 
       [3, 1, false], [3, 2, false], [3, 3, false]]);
   assert.ok(res.events.filter((e) => e.inpKey).every((e) => e.day === 1));
   const text = toText(res, input, S({ visits: 1 }));
-  assert.equal(text.split('\n')[0], 'Carbo-etoposide q21d, TCU every 2 cycles');
+  assert.equal(text.split('\n')[0], 'Carbo-etoposide D1-3 q21d');
   assert.deepEqual(text.split('\n').filter((l) => l.includes('inpatient')).map((l) => l.replace(/^\S+ \S+ /, '')), ['C2 D1 (inpatient)']);
   // Switching one cycle off an inpatient default drops the header tag
   const mixed = plan({ ...input, inpDays: [1], inpOpts: { '2:1': false } }, S({ visits: 1 }), SG_HOLIDAYS);
@@ -614,7 +606,7 @@ test('BEP: D1-5 inpatient, D8 and D15 outpatient', () => {
   assert.deepEqual(c1.map((e) => [fromDay(e.date).slice(5), e.inpatient]),
     [['11-04', true], ['11-05', true], ['11-06', true], ['11-07', true], ['11-08', true], ['11-11', false], ['11-18', false]]);
   assert.deepEqual(res.inpatient, { note: 'D1-5 inpatient', perLine: false });
-  assert.equal(toText(res, input, S({ visits: 1 })).split('\n')[0], 'BEP q21d (D1-5 inpatient)');
+  assert.equal(toText(res, input, S({ visits: 1 })).split('\n')[0], 'BEP D1-5/8/15 q21d (D1-5 inpatient)');
   // The same block as an outpatient has no open start within 3 days, so it stays, D5 flagged
   const out = plan({ ...input, inpDays: [] }, S({ visits: 1 }), SG_HOLIDAYS);
   assert.equal(fromDay(find(out, 'chemo', 1).date), '2026-11-04');
