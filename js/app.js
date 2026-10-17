@@ -363,10 +363,9 @@ function renderInpDays(days) {
   if (focused >= 0) inpTrack.children[focused]?.focus();
 }
 
-// The labs phrase of a row ('labs (FBC RP)') is a button: click it to give that visit its own
-// tests (Jonan, 16 Oct 2026: replaces the Tests pill). Clearing the box, or typing the default
-// set, goes back to the default.
-// The tests on a row are a button that edits them; they follow 'with' or 'for', or open a ward labs line
+// The tests on a row ('FBC RP', or 'labs' when none are set) are a button: click it to give that
+// visit its own tests (Jonan, 16 Oct 2026: replaces the Tests pill). Clearing the box, or typing
+// the default set, goes back to the default. They follow 'with' or 'for', or open a ward labs line.
 function renderName(name, text, e, input) {
   const drawn = e.kind === 'labs' ? !e.off : e.kind === 'review' && (e.labs || e.labsAtScan);
   const phrase = labsPhrase(e, input);

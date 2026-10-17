@@ -344,14 +344,14 @@ export function rowTests(e) {
   return ((e.kind === 'labs' ? e.tests : e.kind === 'review' ? e.opts?.tests : '') || '').trim();
 }
 
-// The row text for an event, e.g. 'TCU with labs (FBC) and scan prior', 'Labs (FBC) pre-D8', 'C4 D1'
-// The labs as a line names them: the tests themselves ('FBC RP LFT'), or 'labs' when none are set.
-// On the ward, where the line is only the labs, 'Labs (FBC RP LFT)'.
+// The labs as a line names them: the tests themselves ('FBC RP LFT'), or 'labs' only when none
+// are set ('Labs' where it opens a ward line).
 export function labsPhrase(e, input) {
   const own = rowTests(e) || baseTests(e, input.labTests, input.midLabTests);
-  if (e.kind === 'labs' && e.inpatient && !e.tcu) return `Labs${own ? ` (${own})` : ''}`;
-  return own || 'labs';
+  return own || (e.kind === 'labs' && e.inpatient && !e.tcu ? 'Labs' : 'labs');
 }
+
+// The row text for an event, e.g. 'TCU with FBC and scan prior', 'Technical visit for FBC pre-D8', 'C4 D1'
 
 export function label(e, result, input) {
   const day = e.shown ?? e.day;

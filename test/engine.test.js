@@ -654,4 +654,8 @@ test('a visit for labs alone is a technical visit, except on the ward', () => {
   const ward = toText(plan(inp, S(), SG_HOLIDAYS), inp, S());
   assert.doesNotMatch(ward, /Technical visit/);
   assert.match(ward, / Labs\n/);
+  const named = { ...inp, labTests: 'FBC RP' };
+  const wardTests = toText(plan(named, S(), SG_HOLIDAYS), named, S());
+  assert.doesNotMatch(wardTests, /[Ll]abs/);
+  assert.match(wardTests, / FBC RP\n/);
 });
