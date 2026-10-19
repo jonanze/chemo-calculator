@@ -353,7 +353,7 @@ export function labsPhrase(e, input) {
 
 // The row text for an event, e.g. 'TCU with FBC and scan prior', 'Technical visit for FBC pre-D8', 'C4 D1'
 
-export function label(e, result, input) {
+export function label(e, result, input, S = {}) {
   const day = e.shown ?? e.day;
   const dayTag = result.multiDay ? ` D${day}` : '';
   const labs = labsPhrase(e, input);
@@ -378,7 +378,7 @@ export function label(e, result, input) {
       // A visit for labs alone is a technical visit; on the ward they are just labs
       return e.inpatient ? `${labs}${pre}` : `Technical visit for ${labs}${pre}`;
     }
-    default: return `${e.cycle ? `C${e.cycle}` : 'Chemo'}${dayTag}`;
+    default: return `${e.cycle ? `${S.cycleLabel === '#' ? '#' : 'C'}${e.cycle}` : 'Chemo'}${dayTag}`;
   }
 }
 
@@ -414,7 +414,7 @@ function emrLines(result, input, S) {
     const visit = e.kind === 'review' || !!e.tcu;
     return {
       kind: visit ? 'review' : e.kind, gap: visit, date: formatDay(e.date, S.dateFormat),
-      text: label(e, result, input) + (inp.perLine && e.inpatient && e.blockStart ? ' (inpatient)' : ''),
+      text: label(e, result, input, S) + (inp.perLine && e.inpatient && e.blockStart ? ' (inpatient)' : ''),
       flags,
     };
   });

@@ -659,3 +659,12 @@ test('a visit for labs alone is a technical visit, except on the ward', () => {
   assert.doesNotMatch(wardTests, /[Ll]abs/);
   assert.match(wardTests, / FBC RP\n/);
 });
+
+test('cycles can be labelled #3 instead of C3, on every chemo line', () => {
+  const input = { regimen: R.gemcis, review: '2026-10-13', chemo: '2026-10-14', every: 1, cycle: 3 };
+  const res = plan(input, S(), SG_HOLIDAYS);
+  const hash = toText(res, input, S({ cycleLabel: '#' }));
+  assert.ok(hash.includes(' #3 D1') && hash.includes(' #3 D8'));
+  assert.doesNotMatch(hash, / C\d/);
+  assert.match(toText(res, input, S()), / C3 D1/);
+});

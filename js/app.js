@@ -458,7 +458,7 @@ function render() {
     const what = document.createElement('span');
     what.className = 'what';
     const name = document.createElement('span');
-    renderName(name, label(e, res, input) + (last !== e ? `-${last.shown}` : ''), e, input);
+    renderName(name, label(e, res, input, settings) + (last !== e ? `-${last.shown}` : ''), e, input);
     what.append(name);
     if (last !== e) {
       const until = document.createElement('span');
