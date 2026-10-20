@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS = {
   knockOn: 'original',      // 'original' = keep schedule, 'reanchor' = count from moved date
   visits: 2,
   dateFormat: 'EEE d/M/yy',
-  cycleLabel: 'C',          // cycles as 'C3' or '#3'
+  cycleLabel: 'C',          // cycle prefix: 'C' (C3) or '#' (#3)
+  dayLabel: 'D',            // treatment day: 'D' (C3 D8) or 'dot', its place in the cycle (C3.2)
   closedDates: [],          // extra closures: 'YYYY-MM-DD' shuts everything, 'YYYY-MM-DD@clinic|labs|chemo' one kind
 };

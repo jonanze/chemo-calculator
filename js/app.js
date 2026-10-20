@@ -604,6 +604,13 @@ function renderSettings() {
     });
   }
 
+  for (const track of dialog.querySelectorAll('[data-seg]')) {
+    for (const r of track.querySelectorAll('input')) {
+      r.checked = settings[track.dataset.seg] === r.value;
+      r.onchange = () => { settings[track.dataset.seg] = r.value; changed(); };
+    }
+  }
+
   for (const f of dialog.querySelectorAll('[data-key]:not(.days)')) {
     f.value = settings[f.dataset.key];
     f.onchange = () => {

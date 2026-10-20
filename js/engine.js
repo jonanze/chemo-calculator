@@ -353,9 +353,20 @@ export function labsPhrase(e, input) {
 
 // The row text for an event, e.g. 'TCU with FBC and scan prior', 'Technical visit for FBC pre-D8', 'C4 D1'
 
+// Cycle and day as Settings write them: 'C3 D8', '#3 D8', 'C3.2', '#3.2'. The dot form gives the
+// day's place in the cycle (D15 of D1/8/15 is .3); regimens with consecutive-day blocks keep the day.
+function cycleDay(e, input, S) {
+  const c = e.cycle ? `${S.cycleLabel === '#' ? '#' : 'C'}${e.cycle}` : '';
+  const R = input.regimen;
+  const dot = S.dayLabel === 'dot' && c && groupConsecutive(R.days).every((b) => b.length === 1);
+  if (dot) return { cycle: c, day: `${c}.${R.days.indexOf(e.day) + 1}`, tag: `.${R.days.indexOf(e.day) + 1}` };
+  const d = `D${e.shown ?? e.day}`;
+  return { cycle: c, day: d, tag: ` ${d}` };
+}
+
 export function label(e, result, input, S = {}) {
-  const day = e.shown ?? e.day;
-  const dayTag = result.multiDay ? ` D${day}` : '';
+  const cd = cycleDay(e, input, S);
+  const dayTag = result.multiDay ? cd.tag : '';
   const labs = labsPhrase(e, input);
   switch (e.kind) {
     case 'review': {
@@ -373,12 +384,12 @@ export function label(e, result, input, S = {}) {
       return e.labs ? `TCU with ${labs} on arrival and scan prior` : 'TCU with scan prior';
     }
     case 'labs': {
-      const pre = result.multiDay ? ` pre-D${day}` : '';
+      const pre = result.multiDay ? ` pre-${cd.day}` : '';
       if (e.tcu) return `TCU${pre}${e.off ? '' : ` with ${labs} on arrival`}`;
       // A visit for labs alone is a technical visit; on the ward they are just labs
       return e.inpatient ? `${labs}${pre}` : `Technical visit for ${labs}${pre}`;
     }
-    default: return `${e.cycle ? `${S.cycleLabel === '#' ? '#' : 'C'}${e.cycle}` : 'Chemo'}${dayTag}`;
+    default: return `${cd.cycle || 'Chemo'}${dayTag}`;
   }
 }
 

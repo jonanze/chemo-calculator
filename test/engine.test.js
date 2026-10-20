@@ -660,11 +660,22 @@ test('a visit for labs alone is a technical visit, except on the ward', () => {
   assert.match(wardTests, / FBC RP\n/);
 });
 
-test('cycles can be labelled #3 instead of C3, on every chemo line', () => {
+test('cycle and day labels: C or #, and D8 or the day\'s place in the cycle', () => {
   const input = { regimen: R.gemcis, review: '2026-10-13', chemo: '2026-10-14', every: 1, cycle: 3 };
   const res = plan(input, S(), SG_HOLIDAYS);
-  const hash = toText(res, input, S({ cycleLabel: '#' }));
-  assert.ok(hash.includes(' #3 D1') && hash.includes(' #3 D8'));
-  assert.doesNotMatch(hash, / C\d/);
-  assert.match(toText(res, input, S()), / C3 D1/);
+  const lines = (s) => toText(res, input, S(s)).split('\n').map((l) => l.replace(/^\S+ \S+ /, ''));
+  assert.ok(lines({}).includes('C3 D8'));
+  assert.ok(lines({}).some((l) => l.endsWith(' pre-D8')));
+  assert.ok(lines({ cycleLabel: '#' }).includes('#3 D8'));
+  const dot = lines({ cycleLabel: '#', dayLabel: 'dot' });
+  assert.ok(dot.includes('#3.1') && dot.includes('#3.2'));
+  assert.ok(dot.some((l) => l.endsWith(' pre-#3.2')), dot.join('\n'));
+  assert.ok(lines({ dayLabel: 'dot' }).includes('C3.2'));
+  // The header keeps D notation
+  assert.equal(toText(res, input, S({ dayLabel: 'dot' })).split('\n')[0], 'Gem-cis D1/8 q21d');
+  // Consecutive-day blocks keep the day
+  const bep = { regimen: { name: 'BEP', cycleDays: 21, days: [1, 2, 3, 4, 5, 8, 15] }, review: '2026-10-13', chemo: '2026-10-14', every: 1, cycle: 2 };
+  const b = toText(plan(bep, S({ visits: 1 }), SG_HOLIDAYS), bep, S({ cycleLabel: '#', dayLabel: 'dot' }));
+  assert.match(b, / #2 D8\n/);
+  assert.doesNotMatch(b, /#2\./);
 });

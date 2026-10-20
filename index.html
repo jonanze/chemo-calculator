@@ -203,11 +203,16 @@
               <option value="EEE d MMM yyyy">Wed 14 Oct 2026</option>
               <option value="d MMM yyyy">14 Oct 2026</option>
             </select></label>
-          <label class="row"><span>Cycles shown as</span>
-            <select data-key="cycleLabel">
-              <option value="C">C3</option>
-              <option value="#">#3</option>
-            </select></label>
+          <div class="row"><span>Cycle</span>
+            <div class="seg-track" data-seg="cycleLabel">
+              <label><input type="radio" name="cycleLabel" value="C"><span>C</span></label>
+              <label><input type="radio" name="cycleLabel" value="#"><span>#</span></label>
+            </div></div>
+          <div class="row"><span>Treatment day</span>
+            <div class="seg-track" data-seg="dayLabel">
+              <label><input type="radio" name="dayLabel" value="D"><span>D1</span></label>
+              <label><input type="radio" name="dayLabel" value="dot"><span>.1</span></label>
+            </div></div>
         </section>
 
         <section>
