@@ -425,6 +425,8 @@ function emrLines(result, input, S) {
     const visit = e.kind === 'review' || !!e.tcu;
     return {
       kind: visit ? 'review' : e.kind, gap: visit, date: formatDay(e.date, S.dateFormat),
+      // □ a TCU, ■ chemo, ・ investigations alone (labs, or a technical visit)
+      mark: e.kind === 'chemo' ? '■' : visit && !e.tech ? '□' : '・',
       text: label(e, result, input, S) + (inp.perLine && e.inpatient && e.blockStart ? ' (inpatient)' : ''),
       flags,
     };
@@ -432,11 +434,12 @@ function emrLines(result, input, S) {
   return { head, lines };
 }
 
+// The copy marks each line as the schedule does, the header in 【】, flags after ※
 export function toText(result, input, S) {
   const { head, lines } = emrLines(result, input, S);
   const out = lines.flatMap((l) => {
-    const line = `${l.date} ${l.text}${l.flags.length ? ` [${l.flags.join(', ')}]` : ''}`;
+    const line = `${l.mark} ${l.date} ${l.text}${l.flags.length ? ` ※${l.flags.join(', ')}` : ''}`;
     return l.gap ? ['', line] : [line];
   });
-  return [head, ...out].join('\n');
+  return [`【${head}】`, ...out].join('\n');
 }
