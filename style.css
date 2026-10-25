@@ -325,7 +325,7 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 .out:has(#timeline:empty):not(:has(#error:not([hidden]))) .empty { display: grid; }
 /* Column heads, as the Evidence table, with Clear and Copy at the right (no title row, Jonan 16 Oct 2026) */
 .thead {
-  position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 0 12px;
+  position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: 8px var(--date-w, 8.6em) minmax(0, 1fr) auto; gap: 0 12px;
   grid-template-rows: 32px; align-items: center; margin-top: -18px; padding: 18px 10px 6px; background: var(--ground); border-bottom: 1.2px solid var(--hair);
   font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
 }
@@ -339,7 +339,7 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 #timeline { list-style: none; margin: 0; padding: 0 0 10px; }
 #timeline:empty { display: none; }
 #timeline li {
-  display: grid; grid-template-columns: 8px 8.6em minmax(0, 1fr) auto; gap: 2px 12px; align-items: center;
+  display: grid; grid-template-columns: 8px var(--date-w, 8.6em) minmax(0, 1fr) auto; gap: 2px 12px; align-items: center;
   min-height: 36px; padding: 3px 10px; font-size: 14px; border-bottom: 1px solid var(--grid);
   transition: background 110ms var(--ease);
 }
@@ -510,7 +510,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
   .drug td:first-child, .drug th:first-child { padding-right: 8px; }
   .drug td.note { font-size: 11px; padding-left: 6px; }
   .thead { position: static; margin-top: 0; padding-top: 0; }
-  #timeline li { grid-template-columns: 8px 8.6em minmax(0, 1fr); }
+  #timeline li { grid-template-columns: 8px var(--date-w, 8.6em) minmax(0, 1fr); }
   #timeline .toggles { grid-column: 3; justify-content: flex-start; flex-wrap: wrap; }
 }
 @media (max-width: 380px) {
@@ -604,7 +604,7 @@ fieldset.seg legend {
 #timeline li {
   border-bottom-color: var(--grid);
   background-image: linear-gradient(var(--grid), var(--grid)); background-repeat: no-repeat; background-size: 1px 100%;
-  background-position: calc(10px + 8px + 12px + 8.6em + 6px) 0;
+  background-position: calc(10px + 8px + 12px + var(--date-w, 8.6em) + 6px) 0;
 }
 #timeline li:has(+ li.review) { border-bottom-color: var(--hair); }
 #timeline li:last-child { border-bottom: 0; }

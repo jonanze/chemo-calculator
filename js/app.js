@@ -521,7 +521,19 @@ function render() {
 
   lastText = toText(res, input, settings);
   el.copy.hidden = false;
+  fitDates();
 }
+
+// The date column takes the width of its longest date, whatever the format and font
+function fitDates() {
+  const r = document.createRange();
+  const w = Math.max(0, ...[...el.timeline.querySelectorAll('.date')].map((d) => {
+    r.selectNodeContents(d);
+    return r.getBoundingClientRect().width;
+  }));
+  if (w) document.documentElement.style.setProperty('--date-w', `${Math.ceil(w) + 2}px`);
+}
+document.fonts?.ready.then(fitDates);
 
 el.copy.addEventListener('click', async () => {
   await copyText(lastText);
