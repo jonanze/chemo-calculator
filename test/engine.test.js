@@ -154,7 +154,7 @@ test('EMR text', () => {
   const res = plan(folfoxInput, S(), SG_HOLIDAYS);
   const text = toText(res, folfoxInput, S());
   const lines = text.split('\n');
-  assert.equal(lines[0], '【FOLFOX q14d】');
+  assert.equal(lines[0], 'FOLFOX q14d');
   assert.equal(lines[1], '');
   assert.equal(lines[2], '□ Fri 9/10/26 TCU with labs on arrival');
   assert.ok(lines.includes('■ Tue 10/11/26 C5 ※PH, moved from Mon 9/11/26'));
@@ -196,7 +196,7 @@ test('treatment days parsing', () => {
 test('EMR header without a regimen name', () => {
   const input = { ...folfoxInput, regimen: { name: '', cycleDays: 21, days: [1] } };
   const text = toText(plan(input, S(), SG_HOLIDAYS), input, S());
-  assert.equal(text.split('\n')[0], '【q21d】');
+  assert.equal(text.split('\n')[0], 'q21d');
 });
 
 test('editing a chemo D1 re-anchors that cycle and everything after', () => {
@@ -519,9 +519,9 @@ test('the copy header gives name, days and cycle length only', () => {
     const input = { ...folfoxInput, regimen: { ...folfoxInput.regimen, name: 'Paclitaxel', cycleDays: 28, days } };
     return toText(plan(input, S(), SG_HOLIDAYS), input, S()).split('\n')[0];
   };
-  assert.equal(head([1]), '【Paclitaxel q28d】');
-  assert.equal(head([1, 8, 15]), '【Paclitaxel D1/8/15 q28d】');
-  assert.equal(head([1, 2, 3, 4, 5, 8, 15]), '【Paclitaxel D1-5/8/15 q28d】');
+  assert.equal(head([1]), 'Paclitaxel q28d');
+  assert.equal(head([1, 8, 15]), 'Paclitaxel D1/8/15 q28d');
+  assert.equal(head([1, 2, 3, 4, 5, 8, 15]), 'Paclitaxel D1-5/8/15 q28d');
 });
 
 test('inpatient: chemo and its labs stay put on PHs and weekends, PH still labelled', () => {
@@ -536,7 +536,7 @@ test('inpatient: chemo and its labs stay put on PHs and weekends, PH still label
   // No short-interval knock-on, since nothing moved
   assert.deepEqual(find(res, 'chemo', 6).flags, []);
   const text = toText(res, { ...folfoxInput, inpDays: [1] }, S());
-  assert.equal(text.split('\n')[0], '【FOLFOX q14d (inpatient)】');
+  assert.equal(text.split('\n')[0], 'FOLFOX q14d (inpatient)');
   assert.match(text, /■ Mon 9\/11\/26 C5 ※PH\n/); // said once, in the header
   assert.doesNotMatch(text, /C\d+ \(inpatient\)/);
 });
@@ -566,7 +566,7 @@ test('inpatient per cycle: overrides the default and tags only the first day of 
       [3, 1, false], [3, 2, false], [3, 3, false]]);
   assert.ok(res.events.filter((e) => e.inpKey).every((e) => e.day === 1));
   const text = toText(res, input, S({ visits: 1 }));
-  assert.equal(text.split('\n')[0], '【Carbo-etoposide D1-3 q21d】');
+  assert.equal(text.split('\n')[0], 'Carbo-etoposide D1-3 q21d');
   assert.deepEqual(text.split('\n').filter((l) => l.includes('inpatient')).map((l) => l.replace(/^\S+ \S+ \S+ /, '')), ['C2 D1 (inpatient)']);
   // Switching one cycle off an inpatient default drops the header tag
   const mixed = plan({ ...input, inpDays: [1], inpOpts: { '2:1': false } }, S({ visits: 1 }), SG_HOLIDAYS);
@@ -606,7 +606,7 @@ test('BEP: D1-5 inpatient, D8 and D15 outpatient', () => {
   assert.deepEqual(c1.map((e) => [fromDay(e.date).slice(5), e.inpatient]),
     [['11-04', true], ['11-05', true], ['11-06', true], ['11-07', true], ['11-08', true], ['11-11', false], ['11-18', false]]);
   assert.deepEqual(res.inpatient, { note: 'D1-5 inpatient', perLine: false });
-  assert.equal(toText(res, input, S({ visits: 1 })).split('\n')[0], '【BEP D1-5/8/15 q21d (D1-5 inpatient)】');
+  assert.equal(toText(res, input, S({ visits: 1 })).split('\n')[0], 'BEP D1-5/8/15 q21d (D1-5 inpatient)');
   // The same block as an outpatient has no open start within 3 days, so it stays, D5 flagged
   const out = plan({ ...input, inpDays: [] }, S({ visits: 1 }), SG_HOLIDAYS);
   assert.equal(fromDay(find(out, 'chemo', 1).date), '2026-11-04');
@@ -672,7 +672,7 @@ test('cycle and day labels: C or #, and D8 or the day\'s place in the cycle', ()
   assert.ok(dot.some((l) => l.endsWith(' pre-#3.2')), dot.join('\n'));
   assert.ok(lines({ dayLabel: 'dot' }).includes('C3.2'));
   // The header keeps D notation
-  assert.equal(toText(res, input, S({ dayLabel: 'dot' })).split('\n')[0], '【Gem-cis D1/8 q21d】');
+  assert.equal(toText(res, input, S({ dayLabel: 'dot' })).split('\n')[0], 'Gem-cis D1/8 q21d');
   // Consecutive-day blocks keep the day
   const bep = { regimen: { name: 'BEP', cycleDays: 21, days: [1, 2, 3, 4, 5, 8, 15] }, review: '2026-10-13', chemo: '2026-10-14', every: 1, cycle: 2 };
   const b = toText(plan(bep, S({ visits: 1 }), SG_HOLIDAYS), bep, S({ cycleLabel: '#', dayLabel: 'dot' }));

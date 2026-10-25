@@ -434,12 +434,12 @@ function emrLines(result, input, S) {
   return { head, lines };
 }
 
-// The copy marks each line as the schedule does, the header in 【】, flags after ※
+// The copy marks each line as the schedule does, flags after ※
 export function toText(result, input, S) {
   const { head, lines } = emrLines(result, input, S);
   const out = lines.flatMap((l) => {
     const line = `${l.mark} ${l.date} ${l.text}${l.flags.length ? ` ※${l.flags.join(', ')}` : ''}`;
     return l.gap ? ['', line] : [line];
   });
-  return [`【${head}】`, ...out].join('\n');
+  return [head, ...out].join('\n');
 }
