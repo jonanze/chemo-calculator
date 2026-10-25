@@ -5,66 +5,88 @@
   font-weight: 100 900;
   font-display: swap;
 }
-/* Montserrat 700 (OFL, fonts/Montserrat-LICENSE.txt), Latin subset, for the wordmark only */
+/* BIZ UDPGothic (OFL, fonts/BIZUDPGothic-LICENSE.txt), the oncOS typeface, Latin subset */
 @font-face {
-  font-family: "Montserrat";
-  src: url("fonts/montserrat-700.woff2") format("woff2");
+  font-family: "BIZ UDPGothic";
+  src: url("fonts/biz-udpgothic-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "BIZ UDPGothic";
+  src: url("fonts/biz-udpgothic-700.woff2") format("woff2");
   font-weight: 700;
   font-display: swap;
 }
 
-/* ---------- Tokens: the oncOS theme (oncos.vercel.app, 16 Oct 2026) ---------- */
+/* ---------- Tokens: the oncOS house design (oncos.vercel.app, 25 Oct 2026) ---------- */
 :root {
-  --ground: #faf9f5;       /* page */
+  --ground: #ffffff;       /* page */
   --paper: #ffffff;        /* panels */
-  --raised: #f5f4ef;       /* quiet fills inside panels */
-  --rail: #f0efe9;         /* sidebar */
-  --hair: #e5e4df;         /* control borders */
-  --grid: #eeede8;         /* panel borders and separators */
-  --ink: #1f1e1d;
-  --slate: #52514d;
+  --raised: #f4f6f8;       /* quiet fills inside panels */
+  --rail: #ffffff;         /* sidebar */
+  --hair: #9aa3ad;         /* control borders */
+  --grid: #c3c9d0;         /* panel borders and separators */
+  --cell: #eef0f2;         /* label cells, table heads */
+  --band: #dfe4ea;         /* section bands, selected */
+  --open: #f4f6f8;         /* TCU rows */
+  --tb: #dfe4ea;           /* toolbar band */
+  --tb-edge: #9aa3ad;
+  --tb-icon: #4f6178;
+  --tb-hover: rgba(30, 40, 55, .06);
+  --mark: #5f6f84;
+  --ink: #111111;
+  --slate: #5b6066;
   --muted: #71706c;
   --accent: #1967d2;
   --accent-soft: rgba(25, 103, 210, .12);
   --accent-on-soft: #185abc;
-  --solid: #2b2926;
-  --solid-text: #faf9f5;
-  --hover: rgba(40, 36, 30, .05);
-  --press: rgba(40, 36, 30, .09);
+  --solid: #1f2933;
+  --solid-text: #ffffff;
+  --hover: rgba(30, 40, 55, .06);
+  --press: rgba(30, 40, 55, .12);
   --ok: #3b7347;
   --warn: #85601f;
   --warn-soft: rgba(133, 96, 31, .12);
   --danger: #a8402f;
   --danger-soft: rgba(168, 64, 47, .12);
   --shadow-pop: 0 16px 44px rgba(60, 50, 35, .13);
-  --r-sm: 6px;
-  --r-md: 6px;   /* controls, as the Evidence suite */
+  --r-sm: 0;
+  --r-md: 0;   /* everything square, as oncOS */
   --r-lg: 0;     /* no rounded boxes */
   --h-control: 32px;
   --ease: cubic-bezier(.2, 0, 0, 1);
   --rail-w: 340px;
-  --font: "Inter", -apple-system, "Helvetica Neue", system-ui, sans-serif;
+  --font: "BIZ UDPGothic", "Inter", -apple-system, "Helvetica Neue", system-ui, sans-serif;
   color-scheme: light;
 }
 /* Dark follows the system unless the switch has picked a theme */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --ground: #151515;
-    --paper: #1f1f1f;
-    --raised: #2a2a2a;
-    --rail: #111111;
-    --hair: #2e2e2e;
-    --grid: #232323;
+    --paper: #151515;
+    --raised: #1b1e22;
+    --rail: #151515;
+    --hair: #454b53;
+    --grid: #2c3137;
+    --cell: #1f2226;
+    --band: #282c32;
+    --open: #1b1e22;
+    --tb: #0a0b0d;
+    --tb-edge: #000000;
+    --tb-icon: #d8dce1;
+    --tb-hover: rgba(255, 255, 255, .07);
+    --mark: #f3f3f3;
     --ink: #f3f3f3;
-    --slate: #c0c1be;
+    --slate: #9a9fa6;
     --muted: #8c8c8c;
     --accent: #7aa2f7;
     --accent-soft: rgba(122, 162, 247, .14);
     --accent-on-soft: #7aa2f7;
     --solid: #f3f3f3;
     --solid-text: #151515;
-    --hover: rgba(255, 255, 255, .05);
-    --press: rgba(255, 255, 255, .14);
+    --hover: rgba(255, 255, 255, .07);
+    --press: rgba(255, 255, 255, .13);
     --ok: #8fbf92;
     --warn: #d9ae6a;
     --warn-soft: rgba(217, 174, 106, .14);
@@ -76,21 +98,29 @@
 }
 :root[data-theme="dark"] {
   --ground: #151515;
-  --paper: #1f1f1f;
-  --raised: #2a2a2a;
-  --rail: #111111;
-  --hair: #2e2e2e;
-  --grid: #232323;
+  --paper: #151515;
+  --raised: #1b1e22;
+  --rail: #151515;
+  --hair: #454b53;
+  --grid: #2c3137;
+  --cell: #1f2226;
+  --band: #282c32;
+  --open: #1b1e22;
+  --tb: #0a0b0d;
+  --tb-edge: #000000;
+  --tb-icon: #d8dce1;
+  --tb-hover: rgba(255, 255, 255, .07);
+  --mark: #f3f3f3;
   --ink: #f3f3f3;
-  --slate: #c0c1be;
+  --slate: #9a9fa6;
   --muted: #8c8c8c;
   --accent: #7aa2f7;
   --accent-soft: rgba(122, 162, 247, .14);
   --accent-on-soft: #7aa2f7;
   --solid: #f3f3f3;
   --solid-text: #151515;
-  --hover: rgba(255, 255, 255, .05);
-  --press: rgba(255, 255, 255, .14);
+  --hover: rgba(255, 255, 255, .07);
+  --press: rgba(255, 255, 255, .13);
   --ok: #8fbf92;
   --warn: #d9ae6a;
   --warn-soft: rgba(217, 174, 106, .14);
@@ -133,8 +163,6 @@ svg { flex: none; }
   background: var(--rail); border-bottom: 1.2px solid var(--hair);
 }
 .rail-fill { flex: 1; }
-.wm { font-family: "Montserrat", var(--font); font-weight: 700; font-size: 16px; letter-spacing: -0.03em; line-height: 1; color: var(--ink); white-space: nowrap; margin-right: 12px; }
-.wm span { color: var(--accent); }
 .rail-icon {
   display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
   width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--r-sm);
@@ -151,7 +179,7 @@ svg { flex: none; }
 .tabs svg { display: none; }
 .tabs button {
   display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 10px;
-  border: 0; border-radius: 4px; background: transparent; color: var(--muted);
+  border: 0; border-radius: 0; background: transparent; color: var(--muted);
   font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
   transition: background 110ms var(--ease), color 110ms var(--ease);
 }
@@ -321,12 +349,12 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 #timeline li.review::before { border: 1.5px solid var(--ink); width: 8px; height: 8px; }
 #timeline li.labs::before { background: var(--muted); width: 4px; height: 4px; }
 /* A light band follows the eye from a date across to its toggles */
-#timeline li:hover { background: var(--hover); }
+#timeline li:hover { background-color: var(--hover); }
 /* Each TCU heads its block in the raised band Evidence uses for an open row */
-#timeline li.review { background: var(--raised); }
-#timeline li.review:hover { background: var(--raised); box-shadow: inset 0 0 0 100vmax var(--hover); }
+#timeline li.review { background-color: var(--raised); }
+#timeline li.review:hover { background-color: var(--raised); box-shadow: inset 0 0 0 100vmax var(--hover); }
 /* A TCU waiting for a reschedule pick stands out until it is resolved */
-#timeline li.review.pending { background: var(--warn-soft); }
+#timeline li.review.pending { background-color: var(--warn-soft); }
 
 #timeline .date { color: var(--slate); white-space: nowrap; font-variant-numeric: tabular-nums; }
 #timeline .date .wd { display: inline-block; width: 2.5em; }
@@ -357,7 +385,7 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 /* Toggles: chip geometry; on = pressed tint (as oncOS filter chips), off = hairline */
 #timeline .toggles { grid-column: 4; display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
 #timeline .toggles button {
-  height: 22px; min-width: 44px; padding: 0 10px; font-size: 11px; font-weight: 500; border-radius: 999px;
+  height: 22px; min-width: 44px; padding: 0 10px; font-size: 11px; font-weight: 500; border-radius: 0;
   background: var(--grid); color: var(--slate); border: 0;
 }
 #timeline .toggles button:hover { background: var(--hair); color: var(--ink); }
@@ -367,12 +395,12 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 #timeline .toggles button[aria-pressed="false"] { opacity: 0; transition: opacity 110ms var(--ease); }
 #timeline li:hover .toggles button, #timeline li:focus-within .toggles button { opacity: 1; }
 #timeline .choose { grid-column: 3 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 2px 0 4px; }
-#timeline .choose button { height: 24px; padding: 0 10px; font-size: 12px; border-radius: 999px; background: var(--paper); font-variant-numeric: tabular-nums; }
-#timeline .choose input[type=date] { width: auto; height: 24px; padding: 0 8px; font-size: 12px; border-radius: 999px; }
+#timeline .choose button { height: 24px; padding: 0 10px; font-size: 12px; border-radius: 0; background: var(--paper); font-variant-numeric: tabular-nums; }
+#timeline .choose input[type=date] { width: auto; height: 24px; padding: 0 8px; font-size: 12px; border-radius: 0; }
 
 .chip {
   display: inline-flex; align-items: center; height: 20px; padding: 0 8px; font-size: 10.5px; font-weight: 500; line-height: 1;
-  border-radius: 999px; border: 0; background: var(--grid); color: var(--slate); white-space: nowrap;
+  border-radius: 0; border: 0; background: var(--grid); color: var(--slate); white-space: nowrap;
 }
 .chip.ph, .chip.closed, .chip.off, .chip.nodata { background: var(--warn-soft); color: var(--warn); }
 .chip.short, .chip.reschedule { background: var(--danger-soft); color: var(--danger); }
@@ -486,7 +514,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
   #timeline .toggles { grid-column: 3; justify-content: flex-start; flex-wrap: wrap; }
 }
 @media (max-width: 380px) {
-  .wm { margin-right: 6px; }
   .tabs button { padding: 0 9px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -495,3 +522,117 @@ dialog::backdrop { background: rgba(0, 0, 0, .32); }
 
 /* Derived values under the patient form, ruled off */
 .side .group + .group { padding-top: 0; }
+
+/* ---------- oncOS house design (oncos.vercel.app, 25 Oct 2026) ----------
+   White page, cool grey lines, everything square, framed tables with cell rules, section bands in
+   brackets, and the inputs as a ruled form with label cells, as oncOS's own calculators (Jonan picked
+   this "B" variation, 25 Oct 2026). Layered over the rules above so each component keeps one home. */
+body { font-feature-settings: normal; -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; }
+svg { stroke-linecap: square; stroke-linejoin: miter; }
+
+/* Rail: white, its head row in the toolbar band, level with the schedule's table head */
+.rail { border-right-color: var(--hair); }
+.rail-top { min-height: 57px; padding: 10px 8px 10px 14px; background: var(--tb); border-bottom: 1px solid var(--tb-edge); }
+.rail-icon { color: var(--tb-icon); }
+.rail-icon:hover { background: var(--tb-hover); color: var(--ink); }
+.rail-icon svg { stroke-width: 1.8; stroke-linecap: square; stroke-linejoin: miter; }
+.tabs { padding: 0; gap: 0; border-color: var(--hair); background: var(--paper); }
+.tabs button { height: 26px; color: var(--ink); font-weight: 400; }
+.tabs button + button { border-left: 1px solid var(--hair); }
+.tabs button[aria-selected="true"] { background: var(--band); font-weight: 700; }
+.rail > .panel { padding-top: 0; }
+.rail .group { padding-bottom: 14px; }
+
+/* Section titles as oncOS section rows: a band across the rail, 【REGIMEN】 */
+.group-title, #settings h3 {
+  min-height: 0; margin: 0 -16px 12px; padding: 7px 16px; background: var(--band);
+  border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair);
+  font-size: 13px; font-weight: 700; line-height: 1.4; color: var(--ink); text-transform: uppercase; letter-spacing: .02em;
+}
+.group-title::before, #settings h3::before { content: "【"; }
+.group-title::after, #settings h3::after { content: "】"; }
+.rail .group:first-child .group-title { border-top: 0; }
+.rail .group-head { margin: 0 -16px 12px; padding: 0 8px 0 0; background: var(--band); border-bottom: 1px solid var(--hair); }
+.rail .group-head .group-title { margin: 0; padding: 7px 16px; border: 0; }
+
+/* Controls */
+button, .button { font-weight: 400; }
+button:hover, .button:hover { background: var(--cell); }
+button.primary { font-weight: 700; }
+input:hover, select:hover { border-color: var(--slate); }
+select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%235b6066' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E"); }
+.seg-track span, .seg-track button, .days label span { color: var(--ink); font-weight: 400; }
+.seg-track input:checked + span, .seg-track button[aria-pressed="true"], .days label input:checked + span { background: var(--band); font-weight: 700; }
+.dose-labs input[type=checkbox] { accent-color: var(--solid); }
+#regimen-list { padding: 0; }
+#regimen-list li { border-bottom: 1px solid var(--grid); }
+#regimen-list li:hover { background: var(--cell); }
+#regimen-list li[aria-selected="true"] { background: var(--band); }
+#regimen-list .rn, .ref-doses b { font-weight: 700; }
+.ref-doses { margin: 0; padding: 6px 10px 6px 12px; border-left: 0; }
+
+/* The form: one framed column of rows, a grey label cell on the left and the input filling the rest */
+:root { --label-w: 126px; }
+.fields, .rhythm, .cycle-row { display: block; }
+.rail .fields { border: 1px solid var(--hair); }
+.fields > *, .rhythm > *, .cycle-row > * { border-bottom: 1px solid var(--grid); }
+.fields > :last-child, .rhythm > :last-child, .cycle-row > :last-child { border-bottom: 0; }
+.fields > label, .rhythm > label, .cycle-row > label, .combo, .dose-labs, fieldset.seg {
+  background: linear-gradient(to right, var(--cell) var(--label-w), var(--grid) var(--label-w), var(--grid) calc(var(--label-w) + 1px), transparent calc(var(--label-w) + 1px));
+}
+.fields > label, .rhythm > label, .cycle-row > label, .combo, .dose-labs {
+  display: grid; grid-template-columns: calc(var(--label-w) - 10px) minmax(0, 1fr); align-items: center; gap: 0; padding-left: 10px;
+  font-size: 12px; font-weight: 700; color: var(--ink); text-transform: none; letter-spacing: 0;
+}
+.combo > label, .dose-labs .field-head label { font: inherit; color: inherit; text-transform: none; letter-spacing: 0; }
+.combo-pop { grid-column: 1 / -1; }
+.dose-labs .field-head { height: auto; }
+.fields input, .fields select { height: 32px; padding-left: 12px; border: 0; background: transparent; }
+.fields input:focus { box-shadow: inset 0 0 0 2px var(--accent); }
+fieldset.seg { position: relative; padding-left: calc(var(--label-w) + 1px); }
+fieldset.seg legend {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%); margin: 0;
+  font-size: 12px; font-weight: 700; color: var(--ink); text-transform: none; letter-spacing: 0;
+}
+.fields .seg-track { height: 32px; border: 0; }
+
+/* Schedule: the Evidence table, framed, with a rule after the date column */
+.thead { background: var(--ground); border-bottom: 0; }
+.thead::before { content: ""; position: absolute; z-index: -1; inset: 18px 0 0; background: var(--cell); border: 1px solid var(--hair); }
+.thead > span:nth-child(2), .thead > span:nth-child(3) { font-size: 12px; font-weight: 700; color: var(--ink); text-transform: none; letter-spacing: 0; }
+#timeline { padding: 0; border: 1px solid var(--hair); border-top: 0; }
+#timeline li {
+  border-bottom-color: var(--grid);
+  background-image: linear-gradient(var(--grid), var(--grid)); background-repeat: no-repeat; background-size: 1px 100%;
+  background-position: calc(10px + 8px + 12px + 8.6em + 6px) 0;
+}
+#timeline li:has(+ li.review) { border-bottom-color: var(--hair); }
+#timeline li:last-child { border-bottom: 0; }
+#timeline li.review .what > span:first-child, #timeline li.chemo .what > span:first-child { font-weight: 700; }
+#timeline li.review::before { border-color: var(--ink); }
+#timeline li.labs::before { background: var(--slate); }
+#timeline .date .wd { width: 2.9em; }   /* BIZ UDPGothic's weekday names run wider */
+/* Toggles: square, on = band with a dark edge, as oncOS filter chips */
+#timeline .toggles button { background: transparent; box-shadow: inset 0 0 0 1px var(--grid); color: var(--slate); font-weight: 400; }
+#timeline .toggles button:hover { background: var(--cell); color: var(--ink); }
+#timeline .toggles button[aria-pressed="true"] { background: var(--band); box-shadow: inset 0 0 0 1px var(--mark); color: var(--ink); font-weight: 700; }
+.chip { font-weight: 400; background: transparent; box-shadow: inset 0 0 0 1px var(--hair); color: var(--ink); }
+.chip.ph, .chip.closed, .chip.off, .chip.nodata, .chip.short, .chip.reschedule, .chip.edited { box-shadow: none; }
+
+/* Doses: the derived figures as the same ruled form */
+#derived, #derived.copyable { margin: 0; padding: 0; grid-template-columns: var(--label-w) minmax(0, 1fr); border: 1px solid var(--hair); }
+#derived dt, #derived dd { margin: 0; padding: 6px 10px; border-bottom: 1px solid var(--grid); }
+#derived dt, #derived dt.key { display: flex; align-items: center; align-self: stretch; background: var(--cell); border-right: 1px solid var(--grid); font-size: 12px; font-weight: 700; color: var(--ink); }
+#derived dd { white-space: nowrap; }
+#derived dd.key { font-size: 18px; font-weight: 700; letter-spacing: 0; line-height: 1.25; }
+#derived dt:nth-last-child(2), #derived dd:last-child { border-bottom: 0; }
+.drug { border-color: var(--hair); }
+.drug h3 { font-weight: 700; letter-spacing: 0; }
+.drug td.mg { font-weight: 700; }
+
+/* Settings */
+.dialog-head { background: var(--tb); border-bottom: 1px solid var(--tb-edge); }
+.dialog-head h2 { font-size: 14px; font-weight: 700; }
+.dialog-foot { background: var(--cell); border-top: 1px solid var(--hair); }
+#settings section { padding: 0 0 6px; }
+#settings h3 { margin: 0 -20px; padding: 7px 20px; }

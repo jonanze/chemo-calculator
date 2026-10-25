@@ -6,14 +6,15 @@
   <title>ChemoCalc</title>
   <meta name="apple-mobile-web-app-title" content="ChemoCalc">
   <meta name="application-name" content="ChemoCalc">
-  <meta name="theme-color" content="#f0efe9" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#dfe4ea" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0b0d" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="apple-touch-icon-180.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preload" href="fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="fonts/montserrat-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/biz-udpgothic-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/biz-udpgothic-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
   <script>
     // Apply a saved theme before first paint so the page doesn't flash
@@ -23,7 +24,6 @@
 <body>
   <aside class="rail" aria-label="ChemoCalc">
     <div class="rail-top">
-      <span class="wm">Chemo<span>Calc</span></span>
       <nav class="tabs" role="tablist" aria-label="Modules">
         <button type="button" role="tab" data-tab="schedule"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/></svg><span>Schedule</span></button>
         <button type="button" role="tab" data-tab="doses"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg><span>Doses</span></button>

@@ -1,10 +1,10 @@
 // Offline cache. Bump VERSION on every release so clients pick up changes.
-const VERSION = 'cc-v79';
+const VERSION = 'cc-v80';
 const FILES = [
   './', 'index.html', 'style.css', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon-180.png', 'manifest.webmanifest',
   'js/app.js', 'js/engine.js', 'js/holidays.js', 'js/defaults.js', 'js/doses.js', 'js/doses-ui.js', 'js/theme.js', 'js/clip.js',
   'js/regimens.js', 'js/picker.js',
-  'fonts/inter.woff2', 'fonts/montserrat-700.woff2',
+  'fonts/inter.woff2', 'fonts/biz-udpgothic-400.woff2', 'fonts/biz-udpgothic-700.woff2',
 ];
 
 self.addEventListener('install', (e) => {
