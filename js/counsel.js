@@ -1,5 +1,8 @@
 import { DRUGS, INTENT } from './counsel-data.js';
 
+// Sentence case for anything that stands as an item of its own
+export const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
 export const TIERS = [['common', 'Common'], ['serious', 'Serious, potentially life-threatening'], ['rare', 'Rare but significant']];
 
 // A regimen's side effects, tier by tier. An effect several drugs cause is listed once, with every drug behind it,
@@ -62,7 +65,7 @@ export function scheduleText(reg) {
   const parts = entries.map(([name, e]) => `${name} ${e.routes.join(' then ')}${sameDays ? '' : ` on ${list(e.days)}`}`);
   const when = sameDays && entries.length ? ` on ${list(entries[0][1].days)}` : '';
   const every = reg.cycleDays ? `, every ${reg.cycleDays} days` : '';
-  return `${sameDays ? list(parts) : parts.join('; ')}${when}${every}${gcsf ? ', with G-CSF support' : ''}`;
+  return cap(`${sameDays ? list(parts) : parts.join('; ')}${when}${every}${gcsf ? ', with G-CSF support' : ''}`);
 }
 
 // The regimen's name as written in a note: the list's tumour tag dropped
@@ -75,8 +78,8 @@ export function noteName(name) {
 const DPYD = {
   discussed: 'DPYD genotyping discussed.',
   planned: 'DPYD genotyping requested before starting.',
-  normal: 'DPYD genotype: no actionable variant.',
-  variant: 'DPYD genotype: actionable variant; fluoropyrimidine dose reduced accordingly.',
+  normal: 'DPYD genotype: No actionable variant.',
+  variant: 'DPYD genotype: Actionable variant; fluoropyrimidine dose reduced accordingly.',
 };
 const DECISION = {
   proceed: 'Wishes to proceed; consent obtained.',
@@ -84,7 +87,6 @@ const DECISION = {
   declined: 'Declined treatment.',
 };
 
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const stop = (s) => (/[.!?]$/.test(s) ? s : `${s}.`);
 
 // The note, as plain text. s: the form, plus drugs (keys), off (Set of unticked effects) and extra ({ tier: [text] }).
@@ -98,13 +100,13 @@ export function note(s) {
     lines.push(stop(`Counselled regarding ${what || 'treatment'}${s.dx ? ` for ${s.dx}` : ''}${s.interpreter ? `, with a ${s.interpreter} interpreter` : ''}`));
   }
   if (s.schedule) {
-    lines.push(stop(`Schedule: ${s.schedule}${s.duration ? `, for ${s.duration}` : ''}${s.rt ? ', with concurrent radiotherapy' : ''}`));
+    lines.push(stop(`Schedule: ${cap(s.schedule)}${s.duration ? `, for ${s.duration}` : ''}${s.rt ? ', with concurrent radiotherapy' : ''}`));
   }
   if (intent) lines.push(intent.text + (s.benefit ? ` ${stop(`Expected benefit: ${s.benefit}`)}` : ''));
 
   const tiers = TIERS.map(([tier, title]) => {
-    const items = tox[tier].filter((r) => !s.off.has(r.t)).map((r) => (r.all ? r.t : `${r.t} (${r.by.join(', ')})`));
-    items.push(...(s.extra?.[tier] || []));
+    const items = tox[tier].filter((r) => !s.off.has(r.t)).map((r) => (r.all ? cap(r.t) : `${cap(r.t)} (${r.by.join(', ')})`));
+    items.push(...(s.extra?.[tier] || []).map(cap));
     return items.length ? `${title}: ${items.join('; ')}.` : '';
   }).filter(Boolean);
   if (s.rt) tiers.push('Radiotherapy adds to fatigue and to skin and mucosal reactions in the treated area.');

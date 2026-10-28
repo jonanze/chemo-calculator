@@ -1,6 +1,6 @@
 import { REGIMENS } from './regimens.js';
 import { DRUGS, INTENT, SETTING_INTENT, CURATIVE_TUMOURS } from './counsel-data.js';
-import { TIERS, toxicities, note, scheduleText, noteName } from './counsel.js';
+import { TIERS, toxicities, note, scheduleText, noteName, cap } from './counsel.js';
 import { copyText, flash } from './clip.js';
 
 // Nothing here is stored: the note lives on screen only.
@@ -21,7 +21,7 @@ const PICK = [...new Map(Object.entries(DRUGS).map(([k, d]) => [d.name, k])).ent
 function fillAdd() {
   const add = $('#cn-add');
   add.replaceChildren(new Option('Add drug', ''));
-  for (const [name, k] of PICK) if (!drugs.includes(k)) add.add(new Option(`${name} · ${DRUGS[k].cls}`, k));
+  for (const [name, k] of PICK) if (!drugs.includes(k)) add.add(new Option(`${cap(name)} · ${DRUGS[k].cls}`, k));
 }
 
 let drugs = [];
@@ -35,7 +35,7 @@ function renderChips() {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'cn-chip';
-    b.textContent = `${DRUGS[k].name} ×`;
+    b.textContent = `${cap(DRUGS[k].name)} ×`;
     b.setAttribute('aria-label', `Remove ${DRUGS[k].name}`);
     b.addEventListener('click', () => { drugs = drugs.filter((x) => x !== k); changed(); });
     return b;
@@ -66,12 +66,12 @@ function renderTox() {
         if (x.own) renderTox();
         render();
       });
-      lab.append(tick, document.createTextNode(x.t));
+      lab.append(tick, document.createTextNode(cap(x.t)));
       li.append(lab);
       if (!x.all) {
         const by = document.createElement('span');
         by.className = 'by';
-        by.textContent = x.by.join(', ');
+        by.textContent = x.by.map(cap).join(', ');
         li.append(by);
       }
       ul.append(li);
