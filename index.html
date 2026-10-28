@@ -27,6 +27,7 @@
       <nav class="tabs" role="tablist" aria-label="Modules">
         <button type="button" role="tab" data-tab="schedule"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/></svg><span>Schedule</span></button>
         <button type="button" role="tab" data-tab="doses"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg><span>Doses</span></button>
+        <button type="button" role="tab" data-tab="counsel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6v3H9zM9 5.5H6v15h12v-15h-3M9 12h6M9 16h4"/></svg><span>Counsel</span></button>
       </nav>
       <span class="rail-fill"></span>
       <button id="theme" class="rail-icon" type="button" aria-label="Switch light or dark">
@@ -132,6 +133,83 @@
         <dl id="derived"></dl>
       </section>
     </div>
+    <div class="side panel" data-view="counsel" hidden>
+      <form id="counsel-inputs" autocomplete="off">
+        <section class="group">
+          <h2 class="group-title">Regimen</h2>
+          <div class="fields">
+            <label class="wide">Regimen
+              <select id="cn-regimen"></select>
+            </label>
+            <label class="wide">Name in note
+              <input type="text" id="cn-name" spellcheck="false">
+            </label>
+            <label class="wide">Schedule
+              <input type="text" id="cn-schedule">
+            </label>
+            <label class="wide">Duration
+              <input type="text" id="cn-duration">
+            </label>
+            <label class="wide">Concurrent RT
+              <input type="checkbox" id="cn-rt">
+            </label>
+          </div>
+        </section>
+        <section class="group">
+          <h2 class="group-title">Indication</h2>
+          <div class="fields">
+            <label class="wide">Intent
+              <select id="cn-intent">
+                <option value="adjuvant">Adjuvant</option>
+                <option value="neoadjuvant">Neoadjuvant</option>
+                <option value="perioperative">Perioperative</option>
+                <option value="definitive">Definitive (chemoradiation)</option>
+                <option value="curative">Curative (primary systemic)</option>
+                <option value="palliative">Palliative</option>
+              </select>
+            </label>
+            <label class="wide">Diagnosis
+              <input type="text" id="cn-dx">
+            </label>
+            <label class="wide">Benefit
+              <input type="text" id="cn-benefit">
+            </label>
+          </div>
+        </section>
+        <section class="group">
+          <h2 class="group-title">Discussion</h2>
+          <div class="fields">
+            <label class="wide">Fever advice <input type="checkbox" id="cn-fever" checked></label>
+            <label class="wide">HBV screening <input type="checkbox" id="cn-hbv" checked></label>
+            <label class="wide">Fertility <input type="checkbox" id="cn-fertility" checked></label>
+            <label class="wide">Written info <input type="checkbox" id="cn-written" checked></label>
+            <label class="wide">Questions <input type="checkbox" id="cn-questions" checked></label>
+            <label class="wide">Observation <input type="checkbox" id="cn-observation"></label>
+            <label class="wide">DPYD
+              <select id="cn-dpyd">
+                <option value="">Not mentioned</option>
+                <option value="discussed">Discussed</option>
+                <option value="planned">Planned</option>
+                <option value="normal">Done, no actionable variant</option>
+                <option value="variant">Done, variant, dose reduced</option>
+                <option value="alternatives">Alternatives discussed</option>
+              </select>
+            </label>
+            <label class="wide">Interpreter
+              <input type="text" id="cn-interpreter">
+            </label>
+            <label class="wide">Decision
+              <select id="cn-decision">
+                <option value="proceed">Proceed</option>
+                <option value="consider">To consider</option>
+                <option value="declined">Declined</option>
+                <option value="">Not stated</option>
+              </select>
+            </label>
+          </div>
+        </section>
+      </form>
+    </div>
   </aside>
 
   <main>
@@ -152,6 +230,15 @@
     </section>
     <div id="doses-view" data-view="doses" hidden>
       <div id="drugs"></div>
+    </div>
+    <div id="counsel-view" data-view="counsel" hidden>
+      <section class="cn-tox" id="cn-tox"></section>
+      <section class="cn-note">
+        <div class="cn-head"><span>Note</span><span id="cn-words"></span>
+          <button id="cn-copy" type="button" class="primary"><span>Copy</span></button>
+        </div>
+        <textarea id="cn-note" spellcheck="true"></textarea>
+      </section>
     </div>
   </main>
 
@@ -232,6 +319,7 @@
 
   <script type="module" src="js/app.js"></script>
   <script type="module" src="js/doses-ui.js"></script>
+  <script type="module" src="js/counsel-ui.js"></script>
   <script type="module" src="js/theme.js"></script>
 </body>
 </html>

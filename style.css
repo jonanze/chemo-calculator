@@ -636,3 +636,25 @@ fieldset.seg legend {
 .dialog-foot { background: var(--cell); border-top: 1px solid var(--hair); }
 #settings section { padding: 0 0 6px; }
 #settings h3 { margin: 0 -20px; padding: 7px 20px; }
+
+/* Counsel: the regimen's toxicities as a framed tick list beside the note */
+#counsel-view:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 18px; align-items: start; }
+.cn-tox { border: 1px solid var(--hair); }
+.cn-tox:empty { display: none; }
+.cn-tox h3 { margin: 0; padding: 7px 10px; background: var(--band); border-bottom: 1px solid var(--hair); font-size: 13px; font-weight: 700; text-transform: uppercase; }
+.cn-tox h3::before { content: "【"; }
+.cn-tox h3::after { content: "】"; }
+.cn-tox ul { margin: 0; padding: 0; list-style: none; }
+.cn-tox li { display: flex; gap: 10px; align-items: baseline; padding: 6px 10px; border-bottom: 1px solid var(--grid); }
+.cn-tox label { flex: 1; }
+.cn-tox input { accent-color: var(--solid); margin: 0 6px 0 0; }
+.cn-tox .by { color: var(--slate); font-size: 12px; font-style: italic; white-space: nowrap; }
+.cn-note { position: sticky; top: 18px; border: 1px solid var(--hair); }
+.cn-head { display: flex; align-items: center; gap: 12px; min-height: 38px; padding: 0 6px 0 10px; background: var(--cell); border-bottom: 1px solid var(--hair); font-size: 12px; font-weight: 700; }
+.cn-head #cn-words { flex: 1; color: var(--slate); font-weight: 400; }
+#cn-note { display: block; width: 100%; min-height: 60vh; padding: 10px; border: 0; resize: vertical; background: var(--paper); color: var(--ink); font: inherit; font-size: 14px; line-height: 1.55; }
+@media (max-width: 900px) { #counsel-view:not([hidden]) { grid-template-columns: 1fr; } .cn-note { position: static; } }
+#counsel-inputs .fields input[type=checkbox] { width: 16px; height: 16px; margin: 0 0 0 12px; justify-self: start; accent-color: var(--solid); }
+.cn-tox:empty + .cn-note { grid-column: 1 / -1; max-width: 760px; }
+#cn-copy { height: 26px; padding: 0 12px; }
+#counsel-inputs .fields > label:has(input[type=checkbox]) { min-height: 32px; }
