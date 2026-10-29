@@ -32,20 +32,25 @@ export function toxicities(keys) {
   return out;
 }
 
+// IV is the default and goes unsaid; any other route follows the drug in brackets
 const ROUTE = {
-  'IV': 'IV', 'IV bolus': 'IV bolus', 'PO': 'orally', 'SC': 'subcutaneously', 'IM': 'IM', 'IM/IV': 'IM or IV',
-  'IV over 12h': 'IV over 12 hours', 'IV CI 7 days': 'as a 7-day infusion',
+  'PO': 'oral', 'SC': 'subcutaneous', 'IM': 'IM', 'IM/IV': 'IM or IV', 'IV bolus': 'bolus',
+  'IV over 12h': 'over 12 hours', 'IV CI 7 days': '7-day infusion',
 };
-const route = (r) => ROUTE[r] || (/^IV CI (\d+)h$/.test(r) ? `as a ${r.match(/\d+/)[0]}-hour infusion` : r);
+const route = (r) => (r === 'IV' ? '' : ROUTE[r] || (/^IV CI (\d+)h$/.test(r) ? `${r.match(/\d+/)[0]}-hour infusion` : r));
 const list = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
-// "1-5" -> "days 1 to 5"; "1,8,15" -> "days 1, 8 and 15"
+// "1-5" -> "days 1–5"; "1,8,15" -> "days 1, 8 and 15"; "continuous" -> "continuously"
 function dayText(d) {
-  const parts = String(d).split(',').map((p) => p.trim().replace('-', ' to '));
-  return `${parts.length === 1 && !parts[0].includes(' to ') ? 'day' : 'days'} ${list(parts)}`;
+  if (d === 'continuous') return 'continuously';
+  if (d === 'daily') return 'daily';
+  const parts = String(d).split(',').map((p) => p.trim().replace('-', '–'));
+  return `${parts.length === 1 && !parts[0].includes('–') ? 'day' : 'days'} ${list(parts)}`;
 }
+const firstDay = (d) => parseInt(d, 10) || 0;
 
-// The schedule in words, without doses: doses stay reference only and never go into the record
+// The schedule in words, without doses: doses stay reference only and never go into the record.
+// Drugs given on the same days are named together: "Cisplatin and etoposide on days 1–5; bleomycin (IM or IV) on days 1, 8 and 15".
 export function scheduleText(reg) {
   if (!reg) return '';
   const byDrug = new Map();
@@ -56,16 +61,26 @@ export function scheduleText(reg) {
     if (d.cls === 'G-CSF') { gcsf = true; continue; }
     if (d.supportive && d.name !== 'leucovorin') continue;
     const e = byDrug.get(d.name) || { routes: [], days: [] };
-    if (!e.routes.includes(route(r))) e.routes.push(route(r));
-    if (!e.days.includes(dayText(days))) e.days.push(dayText(days));
+    const rt = route(r);
+    if (rt && !e.routes.includes(rt)) e.routes.push(rt);
+    if (!e.days.includes(String(days))) e.days.push(String(days));
     byDrug.set(d.name, e);
   }
-  const entries = [...byDrug.entries()];
-  const sameDays = new Set(entries.map(([, e]) => e.days.join())).size === 1;
-  const parts = entries.map(([name, e]) => `${name} ${e.routes.join(' then ')}${sameDays ? '' : ` on ${list(e.days)}`}`);
-  const when = sameDays && entries.length ? ` on ${list(entries[0][1].days)}` : '';
-  const every = reg.cycleDays ? `, every ${reg.cycleDays} days` : '';
-  return cap(`${sameDays ? list(parts) : parts.join('; ')}${when}${every}${gcsf ? ', with G-CSF support' : ''}`);
+  const groups = new Map();
+  for (const [name, e] of byDrug) {
+    const key = e.days.join('|');
+    const g = groups.get(key) || { first: Math.min(...e.days.map(firstDay)), when: list(e.days.map(dayText)), names: [] };
+    g.names.push(e.routes.length ? `${name} (${e.routes.join(' then ')})` : name);
+    groups.set(key, g);
+  }
+  const gs = [...groups.values()].sort((a, b) => a.first - b.first);
+  if (!gs.length) return '';
+    // One drug group on day 1 needs no day: "Docetaxel every 21 days", "Cisplatin weekly"
+  const day1 = gs.length === 1 && gs[0].when === 'day 1' && reg.cycleDays;
+  const weekly = day1 && reg.cycleDays === 7;
+  const body = day1 ? list(gs[0].names) : gs.map((g) => `${list(g.names)} ${g.when}`.replace(/ (days? )/, ' on $1')).join('; ');
+  const every = weekly ? ' weekly' : reg.cycleDays ? `${gs.length > 1 ? ';' : day1 ? '' : ','} every ${reg.cycleDays} days` : '';
+  return cap(`${body}${every}${gcsf ? ', with G-CSF support' : ''}`);
 }
 
 // The regimen's name as written in a note: the list's tumour tag dropped
@@ -82,13 +97,13 @@ export const CYCLES = {
   dpyd: [
     ['', 'DPYD genotyping not stated'],
     ['discussed', 'DPYD genotyping discussed.'],
-    ['planned', 'DPYD genotyping requested before starting.'],
-    ['normal', 'DPYD genotype: No actionable variant.'],
-    ['variant', 'DPYD genotype: Actionable variant; fluoropyrimidine dose reduced accordingly.'],
+    ['planned', 'DPYD genotyping sent before starting.'],
+    ['normal', 'DPYD genotyping: no actionable variant.'],
+    ['variant', 'DPYD genotyping: actionable variant; fluoropyrimidine dose reduced.'],
   ],
   decision: [
-    ['proceed', 'Wishes to proceed; consent obtained.'],
-    ['consider', 'Wishes to consider the options before deciding.'],
+    ['proceed', 'Agrees to proceed; consent obtained.'],
+    ['consider', 'Will consider the options before deciding.'],
     ['declined', 'Declined treatment.'],
     ['', 'Decision not stated'],
   ],
@@ -118,16 +133,16 @@ export function build(s) {
     ],
   })).filter((t) => t.items.length);
   if (tiers.length) parts.push({ id: 'tox', tiers, on: true });
-  if (s.rt) line('rt', 'Radiotherapy adds to fatigue and to skin and mucosal reactions in the treated area.');
-  if (s.trd) line('trd', `Estimated risk of treatment-related death about ${s.trd}%.`);
+  if (s.rt) line('rt', 'Radiotherapy adds fatigue and skin or mucosal reactions within the treated field.');
+  if (s.trd) line('trd', `Risk of treatment-related death estimated at about ${s.trd}%.`);
 
   if (intent) line('alt', intent.observation);
   if (s.drugs.some((k) => DRUGS[k]?.fp)) parts.push({ id: 'dpyd', cycle: CYCLES.dpyd, value: s.cycle.dpyd || '', on: true });
   line('hbv', 'Hepatitis B screening before treatment discussed.');
-  line('fertility', 'Effects on fertility and the need for contraception discussed.');
-  line('fever', 'Advised to seek urgent care for fever of 38 °C or above, or other warning symptoms.');
+  line('fertility', 'Effects on fertility and need for contraception discussed.');
+  line('fever', 'Advised to seek urgent care for fever ≥38 °C or other warning symptoms.');
   line('written', 'Written information given.');
-  line('questions', 'Questions answered; understanding verbalised.');
+  line('questions', 'Questions answered; patient verbalised understanding.');
   parts.push({ id: 'decision', cycle: CYCLES.decision, value: s.cycle.decision ?? 'proceed', on: true });
   for (const p of parts) if (p.cycle) { p.text = p.cycle.find(([v]) => v === p.value)[1]; p.on = p.value !== ''; }
   return parts;
