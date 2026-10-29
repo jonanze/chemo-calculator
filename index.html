@@ -145,17 +145,11 @@
               <input type="text" id="cn-regimen" list="cn-regimens" spellcheck="false">
             </label>
             <datalist id="cn-regimens"></datalist>
-            <label class="wide">Name in note
-              <input type="text" id="cn-name" spellcheck="false">
-            </label>
             <div class="wide cn-drugs">
               <span class="cn-key">Drugs</span>
               <div class="cn-chips" id="cn-chips"></div>
               <select id="cn-add" aria-label="Add a drug"></select>
             </div>
-            <label class="wide">Schedule
-              <textarea id="cn-schedule" rows="2"></textarea>
-            </label>
             <label class="wide">Duration
               <input type="text" id="cn-duration">
             </label>
@@ -179,36 +173,8 @@
             <label class="wide">Death risk
               <span class="suffix"><input type="number" id="cn-trd" min="0" step="any" inputmode="decimal"><span>%</span></span>
             </label>
-          </div>
-        </section>
-        <section class="group">
-          <h2 class="group-title">Discussion</h2>
-          <div class="fields">
-            <label class="wide">Alternative <input type="checkbox" id="cn-observation"></label>
-            <label class="wide" id="cn-dpyd-row">DPYD
-              <select id="cn-dpyd">
-                <option value="">Not stated</option>
-                <option value="discussed">Discussed</option>
-                <option value="planned">Requested</option>
-                <option value="normal">No variant</option>
-                <option value="variant">Variant, dose reduced</option>
-              </select>
-            </label>
-            <label class="wide">Hepatitis B <input type="checkbox" id="cn-hbv" checked></label>
-            <label class="wide">Fertility <input type="checkbox" id="cn-fertility" checked></label>
-            <label class="wide">Fever advice <input type="checkbox" id="cn-fever" checked></label>
-            <label class="wide">Written info <input type="checkbox" id="cn-written" checked></label>
-            <label class="wide">Questions <input type="checkbox" id="cn-questions" checked></label>
             <label class="wide">Interpreter
               <input type="text" id="cn-interpreter">
-            </label>
-            <label class="wide">Decision
-              <select id="cn-decision">
-                <option value="proceed">Proceed, consented</option>
-                <option value="consider">To consider</option>
-                <option value="declined">Declined</option>
-                <option value="">Not stated</option>
-              </select>
             </label>
           </div>
         </section>
@@ -236,7 +202,6 @@
       <div id="drugs"></div>
     </div>
     <div id="counsel-view" data-view="counsel" hidden>
-      <section class="cn-tox" id="cn-tox"></section>
       <section class="cn-note">
         <div class="cn-head"><span>Note</span><span id="cn-words"></span>
           <div class="seg-track" id="cn-layout">
@@ -245,7 +210,7 @@
           </div>
           <button id="cn-copy" type="button" class="primary"><span>Copy</span></button>
         </div>
-        <textarea id="cn-note" spellcheck="true" aria-label="Note"></textarea>
+        <div id="cn-doc" class="cn-doc"></div>
       </section>
     </div>
   </main>

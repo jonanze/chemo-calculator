@@ -75,57 +75,89 @@ export function noteName(name) {
   return /^[A-Z][a-z]/.test(n) ? n.charAt(0).toLowerCase() + n.slice(1) : n;
 }
 
-const DPYD = {
-  discussed: 'DPYD genotyping discussed.',
-  planned: 'DPYD genotyping requested before starting.',
-  normal: 'DPYD genotype: No actionable variant.',
-  variant: 'DPYD genotype: Actionable variant; fluoropyrimidine dose reduced accordingly.',
-};
-const DECISION = {
-  proceed: 'Wishes to proceed; consent obtained.',
-  consider: 'Wishes to consider the options before deciding.',
-  declined: 'Declined treatment.',
-};
-
 const stop = (s) => (/[.!?]$/.test(s) ? s : `${s}.`);
 
-// The note, as plain text. s: the form, plus drugs (keys), off (Set of unticked effects) and extra ({ tier: [text] }).
-export function note(s) {
+// Sentences with several possible readings: a click moves to the next; '' says nothing
+export const CYCLES = {
+  dpyd: [
+    ['', 'DPYD genotyping not stated'],
+    ['discussed', 'DPYD genotyping discussed.'],
+    ['planned', 'DPYD genotyping requested before starting.'],
+    ['normal', 'DPYD genotype: No actionable variant.'],
+    ['variant', 'DPYD genotype: Actionable variant; fluoropyrimidine dose reduced accordingly.'],
+  ],
+  decision: [
+    ['proceed', 'Wishes to proceed; consent obtained.'],
+    ['consider', 'Wishes to consider the options before deciding.'],
+    ['declined', 'Declined treatment.'],
+    ['', 'Decision not stated'],
+  ],
+};
+// Sentences the note offers; off is the set of those switched off, so 'alt' starts off
+export const OFF_BY_DEFAULT = ['alt'];
+
+// The note as parts the user can switch, cycle or edit. s: the facts from the rail, plus
+// drugs (keys), off (Set of part ids and effect texts), extra ({ tier: [text] }), cycle ({ id: value }).
+export function build(s) {
   const intent = INTENT[s.intent];
   const tox = toxicities(s.drugs);
-  const lines = [];
+  const on = (id) => !s.off.has(id);
+  const parts = [];
+  const line = (id, text) => text && parts.push({ id, text, on: on(id) });
 
   const what = [intent && s.intent !== 'curative' ? intent.label.toLowerCase() : '', s.name].filter(Boolean).join(' ');
-  if (what || s.dx) {
-    lines.push(stop(`Counselled regarding ${what || 'treatment'}${s.dx ? ` for ${s.dx}` : ''}${s.interpreter ? `, with a ${s.interpreter} interpreter` : ''}`));
-  }
-  if (s.schedule) {
-    lines.push(stop(`Schedule: ${cap(s.schedule)}${s.duration ? `, for ${s.duration}` : ''}${s.rt ? ', with concurrent radiotherapy' : ''}`));
-  }
-  if (intent) lines.push(intent.text + (s.benefit ? ` ${stop(`Expected benefit: ${s.benefit}`)}` : ''));
+  if (what || s.dx) line('head', stop(`Counselled regarding ${what || 'treatment'}${s.dx ? ` for ${s.dx}` : ''}${s.interpreter ? `, with a ${s.interpreter} interpreter` : ''}`));
+  if (s.schedule) parts.push({ id: 'schedule', edit: true, lead: 'Schedule: ', text: cap(s.schedule), tail: `${s.duration ? `, for ${s.duration}` : ''}${s.rt ? ', with concurrent radiotherapy' : ''}`, on: on('schedule') });
+  if (intent) line('intent', intent.text + (s.benefit ? ` ${stop(`Expected benefit: ${s.benefit}`)}` : ''));
 
-  const tiers = TIERS.map(([tier, title]) => {
-    const items = tox[tier].filter((r) => !s.off.has(r.t)).map((r) => (r.all ? cap(r.t) : `${cap(r.t)} (${r.by.join(', ')})`));
-    items.push(...(s.extra?.[tier] || []).map(cap));
-    return items.length ? `${title}: ${items.join('; ')}.` : '';
-  }).filter(Boolean);
-  if (s.rt) tiers.push('Radiotherapy adds to fatigue and to skin and mucosal reactions in the treated area.');
-  if (tiers.length) {
-    if (s.compact) lines.push(`Side effects discussed. ${tiers.join(' ')}`);
-    else lines.push('Side effects discussed:', ...tiers.map((t) => `・ ${t}`));
-  }
-  if (s.trd) lines.push(`Estimated risk of treatment-related death about ${s.trd}%.`);
+  const tiers = TIERS.map(([tier, title]) => ({
+    tier, title,
+    items: [
+      ...tox[tier].map((r) => ({ key: r.t, text: r.all ? cap(r.t) : `${cap(r.t)} (${r.by.join(', ')})`, on: on(r.t) })),
+      ...(s.extra?.[tier] || []).map((t) => ({ key: t, text: cap(t), on: on(t), own: true })),
+    ],
+  })).filter((t) => t.items.length);
+  if (tiers.length) parts.push({ id: 'tox', tiers, on: true });
+  if (s.rt) line('rt', 'Radiotherapy adds to fatigue and to skin and mucosal reactions in the treated area.');
+  if (s.trd) line('trd', `Estimated risk of treatment-related death about ${s.trd}%.`);
 
-  const other = [];
-  if (s.observation && intent) other.push(intent.observation);
-  if (s.dpyd && s.drugs.some((k) => DRUGS[k]?.fp)) other.push(DPYD[s.dpyd]);
-  if (s.hbv) other.push('Hepatitis B screening before treatment discussed.');
-  if (s.fertility) other.push('Effects on fertility and the need for contraception discussed.');
-  if (s.fever) other.push('Advised to seek urgent care for fever of 38 °C or above, or other warning symptoms.');
-  if (s.written) other.push('Written information given.');
-  if (s.questions) other.push('Questions answered; understanding verbalised.');
-  if (other.length) lines.push(other.join(' '));
-  if (DECISION[s.decision]) lines.push(DECISION[s.decision]);
-
-  return (s.compact ? lines.join(' ') : lines.join('\n')).replace(/^./, cap);
+  if (intent) line('alt', intent.observation);
+  if (s.drugs.some((k) => DRUGS[k]?.fp)) parts.push({ id: 'dpyd', cycle: CYCLES.dpyd, value: s.cycle.dpyd || '', on: true });
+  line('hbv', 'Hepatitis B screening before treatment discussed.');
+  line('fertility', 'Effects on fertility and the need for contraception discussed.');
+  line('fever', 'Advised to seek urgent care for fever of 38 °C or above, or other warning symptoms.');
+  line('written', 'Written information given.');
+  line('questions', 'Questions answered; understanding verbalised.');
+  parts.push({ id: 'decision', cycle: CYCLES.decision, value: s.cycle.decision ?? 'proceed', on: true });
+  for (const p of parts) if (p.cycle) { p.text = p.cycle.find(([v]) => v === p.value)[1]; p.on = p.value !== ''; }
+  return parts;
 }
+
+// The sentences that follow the side effects run together as one paragraph
+const RUN_ON = ['alt', 'dpyd', 'hbv', 'fertility', 'fever', 'written', 'questions'];
+
+// Plain text of what is switched on
+export function toText(parts, compact = false) {
+  const lines = [];
+  let run = [];
+  const flush = () => { if (run.length) lines.push(run.join(' ')); run = []; };
+  for (const p of parts) {
+    if (!p.on) continue;
+    if (p.tiers) {
+      const t = p.tiers.map(({ title, items }) => {
+        const on = items.filter((i) => i.on).map((i) => i.text);
+        return on.length ? `${title}: ${on.join('; ')}.` : '';
+      }).filter(Boolean);
+      if (!t.length) continue;
+      flush();
+      if (compact) lines.push(`Side effects discussed. ${t.join(' ')}`);
+      else lines.push('Side effects discussed:', ...t.map((x) => `・ ${x}`));
+    } else if (RUN_ON.includes(p.id)) run.push(p.text);
+    else { flush(); lines.push(p.edit ? stop(`${p.lead}${p.text}${p.tail}`) : p.text); }
+  }
+  flush();
+  return (compact ? lines.join(' ') : lines.join('\n')).replace(/^./, cap);
+}
+
+// Convenience for tests and samples: the note straight from the facts
+export const note = (s) => toText(build({ off: new Set(OFF_BY_DEFAULT), extra: {}, cycle: {}, ...s }), s.compact);

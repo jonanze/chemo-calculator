@@ -637,51 +637,43 @@ fieldset.seg legend {
 #settings section { padding: 0 0 6px; }
 #settings h3 { margin: 0 -20px; padding: 7px 20px; }
 
-/* Counsel: the regimen's side effects as a framed tick list beside the note */
-#counsel-view:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 18px; align-items: start; }
-.cn-tox { border: 1px solid var(--hair); }
-.cn-tox:empty { display: none; }
-.cn-tox:empty + .cn-note { grid-column: 1 / -1; max-width: 760px; }
-.cn-tox h3 { margin: 0; padding: 7px 10px; background: var(--band); border-bottom: 1px solid var(--hair); font-size: 13px; font-weight: 700; text-transform: uppercase; }
-.cn-tox ul + h3 { border-top: 1px solid var(--hair); }
-.cn-tox h3::before { content: "【"; }
-.cn-tox h3::after { content: "】"; }
-.cn-tox ul { margin: 0; padding: 0; list-style: none; }
-.cn-tox li { display: flex; gap: 10px; align-items: baseline; padding: 5px 10px; border-bottom: 1px solid var(--grid); font-size: 13px; line-height: 1.4; }
-.cn-tox li:last-child { border-bottom: 0; }
-.cn-tox label { flex: 1; display: flex; gap: 8px; align-items: baseline; cursor: pointer; }
-.cn-tox label:has(input:not(:checked)) { color: var(--muted); text-decoration: line-through; }
-.cn-tox input[type=checkbox] { flex: none; margin: 0; accent-color: var(--solid); transform: translateY(1px); }
-.cn-tox .by { flex: none; color: var(--slate); font-size: 12px; font-style: italic; }
-.cn-tox .cn-other { padding: 0; }
-.cn-tox .cn-other input { width: 100%; height: 28px; padding: 0 10px 0 31px; border: 0; background: transparent; font-size: 13px; }
-.cn-tox .cn-other input:focus { box-shadow: inset 0 0 0 2px var(--accent); }
-.cn-note { position: sticky; top: 18px; border: 1px solid var(--hair); }
+/* Counsel: the note is the interface. Each sentence and side effect is a button: on, or struck through. */
+#counsel-view:not([hidden]) { display: block; max-width: 820px; }
+.cn-note { border: 1px solid var(--hair); }
 .cn-head { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 6px 0 10px; background: var(--cell); border-bottom: 1px solid var(--hair); font-size: 12px; font-weight: 700; }
-.cn-head #cn-words { flex: 1; color: var(--slate); font-weight: 400; }
-.cn-head .seg-track { height: 26px; width: 150px; }
+.cn-head #cn-words { flex: 1; color: var(--slate); font-weight: 400; white-space: nowrap; }
+.cn-head .seg-track { height: 26px; width: 172px; }
 .cn-head .seg-track span { font-size: 12px; }
 #cn-copy { height: 26px; padding: 0 12px; }
-#cn-note { display: block; width: 100%; min-height: calc(100vh - 120px); padding: 10px 12px; border: 0; resize: vertical; background: var(--paper); color: var(--ink); font: inherit; font-size: 13px; line-height: 1.55; }
+.cn-doc { padding: 8px 12px 12px; font-size: 13px; line-height: 1.55; }
+.cn-doc:empty { min-height: 40vh; }
+.cn-part, .cn-item, .cn-lead, .cn-tier { display: block; width: 100%; min-height: 0; height: auto; padding: 3px 0; margin: 0; border: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; white-space: normal; line-height: inherit; }
+.cn-part { cursor: pointer; }
+.cn-part:hover, .cn-item:hover { background: var(--cell); }
+.cn-part.off, .cn-item.off { color: var(--muted); text-decoration: line-through; }
+.cn-cycle::after { content: " ⟳"; color: var(--slate); font-size: 11px; }
+.cn-tiers { padding: 3px 0; }
+.cn-tier { padding-left: 1.2em; text-indent: -1.2em; }
+.cn-tier::before { content: "・"; }
+.cn-title { font-weight: 700; }
+.cn-item { display: inline; width: auto; padding: 0; cursor: pointer; text-indent: 0; }
+.cn-item.off { text-decoration-thickness: 1px; }
+.cn-sep { color: var(--slate); }
+.cn-add { display: inline-block; width: 5em; height: 22px; margin-left: 6px; padding: 0 6px; border: 0; border-bottom: 1px solid var(--grid); background: transparent; font: inherit; font-size: 12px; text-indent: 0; vertical-align: baseline; }
+.cn-add:focus { border-bottom-color: var(--accent); box-shadow: none; }
+.cn-edit { cursor: default; }
+.cn-edit .cn-mark { display: inline-block; width: 9px; height: 9px; min-width: 0; margin: 0 8px 1px 0; padding: 0; border: 1.5px solid var(--ink); background: var(--ink); cursor: pointer; vertical-align: baseline; }
+.cn-edit.off .cn-mark { background: transparent; }
+.cn-edit .cn-text { outline: none; border-bottom: 1px dotted var(--slate); }
+.cn-edit .cn-text:focus { border-bottom: 1px solid var(--accent); }
+.cn-part:focus-visible, .cn-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 #counsel-inputs .fields input[type=checkbox] { width: 16px; height: 16px; margin: 0 0 0 12px; justify-self: start; accent-color: var(--solid); }
 #counsel-inputs .fields > label:has(input[type=checkbox]) { min-height: 32px; }
-#counsel-inputs .fields textarea { min-height: 32px; padding: 6px 12px; border: 0; background: transparent; font: inherit; font-size: 13px; line-height: 1.4; resize: vertical; }
 .cn-drugs { display: grid; grid-template-columns: calc(var(--label-w) - 10px) minmax(0, 1fr); align-items: center; padding-left: 10px; font-size: 12px; font-weight: 700;
   background: linear-gradient(to right, var(--cell) var(--label-w), var(--grid) var(--label-w), var(--grid) calc(var(--label-w) + 1px), transparent calc(var(--label-w) + 1px)); }
 .cn-drugs .cn-key { grid-row: 1 / span 2; }
 .cn-chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 5px 8px 0 12px; }
 .cn-chips:empty { display: none; }
-.cn-chip { height: 22px; padding: 0 7px; border: 0; box-shadow: inset 0 0 0 1px var(--hair); background: var(--paper); font-size: 12px; font-weight: 400; }
+.cn-chip { width: auto; flex: none; height: 22px; padding: 0 6px; border: 0; box-shadow: inset 0 0 0 1px var(--hair); background: var(--paper); font-size: 12px; font-weight: 400; }
 .cn-chip:hover { box-shadow: inset 0 0 0 1px var(--ink); }
 #cn-add { height: 32px; padding-left: 12px; border: 0; background-color: transparent; font-weight: 400; color: var(--slate); }
-@media (max-width: 900px) { #counsel-view:not([hidden]) { grid-template-columns: 1fr; } .cn-note { position: static; } #cn-note { min-height: 50vh; } }
-.cn-tox input[type=checkbox] { width: 14px; height: 14px; min-width: 0; padding: 0; border: 0; box-shadow: none; }
-.cn-tox label { font-size: 13px; font-weight: 400; color: var(--ink); text-transform: none; letter-spacing: 0; }
-#counsel-inputs .fields textarea { font-weight: 400; color: var(--ink); }
-.cn-chip { width: auto; flex: none; }
-.cn-tox h3 { color: var(--ink); }
-.cn-tox .cn-other { position: relative; }
-.cn-tox .cn-other::before { content: "+"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--slate); pointer-events: none; }
-#counsel-inputs .fields textarea { field-sizing: content; }
-.cn-head .seg-track { width: 172px; }
-.cn-chip { padding: 0 6px; }
