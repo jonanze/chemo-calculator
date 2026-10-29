@@ -1,6 +1,6 @@
 import { REGIMENS } from './regimens.js';
 import { DRUGS, INTENT, SETTING_INTENT, CURATIVE_TUMOURS } from './counsel-data.js';
-import { build, toText, scheduleText, noteName, cap, OFF_BY_DEFAULT } from './counsel.js';
+import { build, toText, tierPieces, scheduleText, noteName, cap, OFF_BY_DEFAULT } from './counsel.js';
 import { copyText, flash } from './clip.js';
 import { searchRegimens } from './picker.js';
 
@@ -63,30 +63,31 @@ function el(tag, cls, text) {
   return e;
 }
 
-// A sentence: click switches it off and back; off ones stay visible, struck through
-function sentence(p) {
-  const b = el('button', `cn-part${p.on ? '' : ' off'}`, p.text);
-  b.type = 'button';
-  b.setAttribute('aria-pressed', String(p.on));
-  b.addEventListener('click', () => toggle(p.id));
+// The note reads as prose: each sentence sits inline in its paragraph and is a click away from off.
+// A span with a button role, not a button, so sentences flow as one paragraph.
+function clickable(cls, text, on, hit) {
+  const b = el('span', `${cls}${on ? '' : ' off'}`, text);
+  b.setAttribute('role', 'button');
+  b.tabIndex = 0;
+  b.setAttribute('aria-pressed', String(on));
+  b.addEventListener('click', hit);
+  b.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); hit(); } });
   return b;
 }
 
+// A sentence: click switches it off and back; off ones stay visible, struck through
+const sentence = (p) => clickable('cn-part', p.text, p.on, () => toggle(p.id));
+
 // A sentence with several readings: click moves to the next
-function cycler(p) {
-  const b = el('button', `cn-part cn-cycle${p.on ? '' : ' off'}`, p.text);
-  b.type = 'button';
-  b.addEventListener('click', () => {
-    const i = p.cycle.findIndex(([v]) => v === p.value);
-    cycle[p.id] = p.cycle[(i + 1) % p.cycle.length][0];
-    render();
-  });
-  return b;
-}
+const cycler = (p) => clickable('cn-part cn-cycle', p.text, p.on, () => {
+  const i = p.cycle.findIndex(([v]) => v === p.value);
+  cycle[p.id] = p.cycle[(i + 1) % p.cycle.length][0];
+  render();
+});
 
 // The schedule: edited in place, switched off by its marker
 function editable(p) {
-  const row = el('div', `cn-part cn-edit${p.on ? '' : ' off'}`);
+  const row = el('span', `cn-edit${p.on ? '' : ' off'}`);
   const mark = el('button', 'cn-mark');
   mark.type = 'button';
   mark.setAttribute('aria-label', 'Include the schedule');
@@ -97,46 +98,37 @@ function editable(p) {
   text.spellcheck = false;
   text.addEventListener('input', () => { schedule = text.textContent; parts = build(facts()); words(); });
   text.addEventListener('blur', () => render());
-  row.append(mark, el('span', null, p.lead), text, el('span', null, `${p.tail}.`));
+  row.append(mark, p.lead, text, `${p.tail}.`);
   return row;
 }
 
-// Side effects: each one a click away from gone, and a field at the end of each tier for one more
-function tiers(p) {
-  const box = el('div', 'cn-tiers');
-  box.append(el('div', 'cn-lead', 'Side effects discussed:'));
-  for (const t of p.tiers) {
-    const row = el('div', 'cn-tier');
-    row.append(el('span', 'cn-title', `${t.title}: `));
-    t.items.forEach((i, n) => {
-      // A span, not a button, so the items flow as one sentence
-      const b = el('span', `cn-item${i.on ? '' : ' off'}`, i.text);
-      b.setAttribute('role', 'button');
-      b.tabIndex = 0;
-      b.setAttribute('aria-pressed', String(i.on));
-      const hit = () => {
-        if (i.own) { extra[t.tier] = extra[t.tier].filter((x) => x !== i.key); render(); return; }
-        toggle(i.key);
-      };
-      b.addEventListener('click', hit);
-      b.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); hit(); } });
-      row.append(b, el('span', 'cn-sep', n < t.items.length - 1 ? '; ' : '.'));
-    });
-    const add = el('input', 'cn-add');
-    add.type = 'text';
-    add.setAttribute('aria-label', `Add to ${t.title.toLowerCase()}`);
-    add.addEventListener('keydown', (ev) => {
-      if (ev.key !== 'Enter' || !add.value.trim()) return;
-      ev.preventDefault();
-      extra[t.tier].push(add.value.trim());
-      render();
-      doc.querySelectorAll('.cn-add')[p.tiers.indexOf(t)]?.focus();
-    });
-    row.append(add);
-    box.append(row);
-  }
-  return box;
+// A tier of side effects: one sentence of the effects that are on; those switched off follow it, struck
+// through, and a field at the end takes one more
+function tier(p) {
+  const out = [];
+  const item = (i) => clickable('cn-item', i.text, i.on, () => {
+    if (i.own) { extra[p.tier] = extra[p.tier].filter((x) => x !== i.key); render(); return; }
+    toggle(i.key);
+  });
+  for (const x of tierPieces(p)) out.push(typeof x === 'string' ? x : item(x));
+  if (!out.length) out.push(el('span', 'cn-lead off', p.lead.replace(/, $|\s$/, '.')));
+  for (const i of p.items.filter((x) => !x.on)) out.push(' ', item(i));
+  const add = el('input', 'cn-add');
+  add.type = 'text';
+  add.setAttribute('aria-label', `Add to ${p.title.toLowerCase()} side effects`);
+  add.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter' || !add.value.trim()) return;
+    ev.preventDefault();
+    extra[p.tier].push(add.value.trim());
+    render();
+    doc.querySelector(`.cn-add[data-tier="${p.tier}"]`)?.focus();
+  });
+  add.dataset.tier = p.tier;
+  out.push(add);
+  return out;
 }
+
+const piece = (p) => (p.tier ? tier(p) : p.cycle ? [cycler(p)] : p.edit ? [editable(p)] : [sentence(p)]);
 
 const words = () => {
   const t = toText(parts).trim();
@@ -146,7 +138,15 @@ const words = () => {
 function render() {
   renderChips();
   parts = drugs.length || $('#cn-dx').value.trim() ? build(facts()) : [];
-  doc.replaceChildren(...parts.map((p) => (p.tiers ? tiers(p) : p.cycle ? cycler(p) : p.edit ? editable(p) : sentence(p))));
+  // Paragraphs as the copy has them; sentences in a paragraph are separated by a space
+  const paras = new Map();
+  for (const p of parts) {
+    if (!paras.has(p.para)) paras.set(p.para, el('p', 'cn-para'));
+    const box = paras.get(p.para);
+    if (box.childNodes.length) box.append(' ');
+    box.append(...piece(p));
+  }
+  doc.replaceChildren(...paras.values());
   words();
 }
 

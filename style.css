@@ -645,22 +645,16 @@ fieldset.seg legend {
 #cn-copy { height: 26px; padding: 0 12px; }
 .cn-doc { padding: 8px 12px 12px; font-size: 13px; line-height: 1.55; }
 .cn-doc:empty { min-height: 40vh; }
-.cn-part, .cn-item, .cn-lead, .cn-tier { display: block; width: 100%; min-height: 0; height: auto; padding: 3px 0; margin: 0; border: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; white-space: normal; line-height: inherit; }
-.cn-part { cursor: pointer; }
+.cn-para { margin: 0 0 10px; }
+.cn-para:last-child { margin-bottom: 0; }
+.cn-part, .cn-item { cursor: pointer; }
 .cn-part:hover, .cn-item:hover { background: var(--cell); }
-.cn-part.off, .cn-item.off { color: var(--muted); text-decoration: line-through; }
+.cn-part.off, .cn-item.off, .cn-lead.off { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
 .cn-cycle::after { content: " ⟳"; color: var(--slate); font-size: 11px; }
-.cn-tiers { padding: 3px 0; }
-.cn-tier { padding-left: 1.2em; text-indent: -1.2em; }
-.cn-tier::before { content: "・"; }
-.cn-title { font-weight: 700; }
-.cn-item { display: inline; width: auto; padding: 0; cursor: pointer; text-indent: 0; }
-.cn-item.off { text-decoration-thickness: 1px; }
-.cn-sep { color: var(--slate); }
-.cn-add { display: inline-block; width: 5em; height: 22px; margin-left: 6px; padding: 0 6px; border: 0; border-bottom: 1px solid var(--grid); background: transparent; font: inherit; font-size: 12px; text-indent: 0; vertical-align: baseline; }
+.cn-add { display: inline-block; width: 5em; height: 20px; margin-left: 6px; padding: 0 6px; border: 0; border-bottom: 1px solid var(--grid); background: transparent; font: inherit; font-size: 12px; vertical-align: baseline; }
 .cn-add:focus { border-bottom-color: var(--accent); box-shadow: none; }
-.cn-edit { cursor: default; }
-.cn-edit .cn-mark { display: inline-block; width: 9px; height: 9px; min-width: 0; margin: 0 8px 1px 0; padding: 0; border: 1.5px solid var(--ink); background: var(--ink); cursor: pointer; vertical-align: baseline; }
+.cn-edit .cn-mark { display: inline-block; width: 9px; height: 9px; min-width: 0; margin: 0 6px 1px 0; padding: 0; border: 1.5px solid var(--ink); background: var(--ink); cursor: pointer; vertical-align: baseline; }
+.cn-edit.off { color: var(--muted); text-decoration: line-through; }
 .cn-edit.off .cn-mark { background: transparent; }
 .cn-edit .cn-text { outline: none; border-bottom: 1px dotted var(--slate); }
 .cn-edit .cn-text:focus { border-bottom: 1px solid var(--accent); }
