@@ -46,7 +46,7 @@
             <label for="name">Name</label>
             <input type="text" id="name" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="regimen-list" spellcheck="false">
             <div class="combo-pop" id="regimen-pop" hidden>
-              <ul id="regimen-list" role="listbox" aria-label="Regimens"></ul>
+              <ul id="regimen-list" class="regimen-list" role="listbox" aria-label="Regimens"></ul>
             </div>
           </div>
           <ul class="wide ref-doses" id="ref-doses" hidden></ul>
@@ -141,10 +141,13 @@
             <button type="button" id="cn-clear" class="ghost small">Clear</button>
           </div>
           <div class="fields">
-            <label class="wide">Regimen
-              <input type="text" id="cn-regimen" list="cn-regimens" spellcheck="false">
-            </label>
-            <datalist id="cn-regimens"></datalist>
+            <div class="wide combo">
+              <label for="cn-regimen">Regimen</label>
+              <input type="text" id="cn-regimen" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cn-list" spellcheck="false">
+              <div class="combo-pop" id="cn-pop" hidden>
+                <ul id="cn-list" class="regimen-list" role="listbox" aria-label="Regimens"></ul>
+              </div>
+            </div>
             <div class="wide cn-drugs">
               <span class="cn-key">Drugs</span>
               <div class="cn-chips" id="cn-chips"></div>

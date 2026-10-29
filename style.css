@@ -297,17 +297,17 @@ fieldset.seg legend { padding: 0; margin-bottom: 5px; }
 /* Regimen search under the Name box */
 .combo { position: relative; display: flex; flex-direction: column; gap: 5px; }
 .combo-pop {
-  position: absolute; z-index: 20; top: 100%; left: 0; width: max(100%, 460px); margin-top: 4px;
+  position: absolute; z-index: 20; top: 100%; left: 0; width: 100%; margin-top: 4px;
   background: var(--paper); border: 1px solid var(--hair); border-radius: var(--r-md);
   box-shadow: var(--shadow-pop); overflow: hidden;
 }
-#regimen-list { list-style: none; margin: 0; padding: 4px; max-height: min(360px, 50vh); overflow-y: auto; }
-#regimen-list li { padding: 6px 10px; border-radius: var(--r-sm); cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 1px 10px; }
-#regimen-list li:hover { background: var(--hover); }
-#regimen-list li[aria-selected="true"] { background: var(--accent-soft); }
-#regimen-list .rn { font-weight: 550; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#regimen-list .rs { grid-column: 2; grid-row: 1; font-size: 12px; color: var(--accent); font-weight: 550; font-variant-numeric: tabular-nums; white-space: nowrap; }
-#regimen-list .rm { grid-column: 1 / -1; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.regimen-list { list-style: none; margin: 0; padding: 4px; max-height: min(360px, 50vh); overflow-y: auto; }
+.regimen-list li { padding: 6px 10px; border-radius: var(--r-sm); cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 1px 10px; }
+.regimen-list li:hover { background: var(--hover); }
+.regimen-list li[aria-selected="true"] { background: var(--accent-soft); }
+.regimen-list .rn { grid-column: 1 / -1; font-weight: 550; color: var(--ink); overflow-wrap: anywhere; }
+.regimen-list .rs { grid-column: 2; grid-row: 2; font-size: 12px; color: var(--accent); font-weight: 550; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.regimen-list .rm { grid-column: 1; grid-row: 2; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .ref-doses {
   list-style: none; margin: -2px 0 0; padding: 2px 0 2px 12px; border-left: 2px solid var(--hair);
@@ -564,11 +564,11 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .seg-track span, .seg-track button, .days label span { color: var(--ink); font-weight: 400; }
 .seg-track input:checked + span, .seg-track button[aria-pressed="true"], .days label input:checked + span { background: var(--band); font-weight: 700; }
 .dose-labs input[type=checkbox] { accent-color: var(--solid); }
-#regimen-list { padding: 0; }
-#regimen-list li { border-bottom: 1px solid var(--grid); }
-#regimen-list li:hover { background: var(--cell); }
-#regimen-list li[aria-selected="true"] { background: var(--band); }
-#regimen-list .rn, .ref-doses b { font-weight: 700; }
+.regimen-list { padding: 0; }
+.regimen-list li { border-bottom: 1px solid var(--grid); }
+.regimen-list li:hover { background: var(--cell); }
+.regimen-list li[aria-selected="true"] { background: var(--band); }
+.regimen-list .rn, .ref-doses b { font-weight: 700; }
 .ref-doses { margin: 0; padding: 6px 10px 6px 12px; border-left: 0; }
 
 /* The form: one framed column of rows, a grey label cell on the left and the input filling the rest */

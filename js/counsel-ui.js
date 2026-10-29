@@ -2,6 +2,7 @@ import { REGIMENS } from './regimens.js';
 import { DRUGS, INTENT, SETTING_INTENT, CURATIVE_TUMOURS } from './counsel-data.js';
 import { build, toText, scheduleText, noteName, cap, OFF_BY_DEFAULT } from './counsel.js';
 import { copyText, flash } from './clip.js';
+import { searchRegimens } from './picker.js';
 
 // The note is the interface: the rail holds the facts, and every sentence and side effect in the
 // note is clicked on or off, cycled or edited in place. Nothing is stored.
@@ -9,10 +10,6 @@ const $ = (sel) => document.querySelector(sel);
 const form = $('#counsel-inputs');
 const doc = $('#cn-doc');
 
-// One option per regimen; the tumour tells apart regimens that share a name
-const label = (r) => `${r.name} · ${r.tumour}`;
-const byLabel = new Map(REGIMENS.map((r) => [label(r), r]));
-$('#cn-regimens').append(...REGIMENS.map((r) => new Option(label(r))));
 for (const [k, v] of Object.entries(INTENT)) $('#cn-intent').add(new Option(v.label, k));
 $('#cn-intent').value = 'palliative';
 
@@ -165,7 +162,70 @@ function pick(r) {
   render();
 }
 
-$('#cn-regimen').addEventListener('input', () => { const r = byLabel.get($('#cn-regimen').value); if (r) pick(r); });
+// Regimen search: the same list as Schedule, full names with tumour and setting
+const box = $('#cn-regimen');
+const pop = $('#cn-pop');
+const list = $('#cn-list');
+let matches = [];
+let active = -1;
+function openList() {
+  matches = searchRegimens(box.value, REGIMENS);
+  active = -1;
+  if (!matches.length) return closeList();
+  list.replaceChildren(...matches.map((r, i) => {
+    const li = document.createElement('li');
+    li.id = `cn-rg-${i}`;
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', 'false');
+    const span = (cls, text) => Object.assign(document.createElement('span'), { className: cls, textContent: text });
+    li.append(span('rn', r.name), span('rs', r.cycleDays ? `q${r.cycleDays}d · ${r.days}` : r.days), span('rm', `${r.tumour} · ${r.setting}`));
+    li.addEventListener('mousedown', (ev) => ev.preventDefault());
+    li.addEventListener('click', () => choose(r));
+    li.addEventListener('mousemove', () => { if (active !== i) setActive(i, false); });
+    return li;
+  }));
+  pop.hidden = false;
+  box.setAttribute('aria-expanded', 'true');
+}
+function closeList() {
+  pop.hidden = true;
+  matches = [];
+  active = -1;
+  box.setAttribute('aria-expanded', 'false');
+  box.removeAttribute('aria-activedescendant');
+}
+function setActive(i, scroll = true) {
+  list.children[active]?.setAttribute('aria-selected', 'false');
+  active = i;
+  const li = list.children[i];
+  if (!li) return box.removeAttribute('aria-activedescendant');
+  li.setAttribute('aria-selected', 'true');
+  box.setAttribute('aria-activedescendant', li.id);
+  if (scroll) li.scrollIntoView({ block: 'nearest' });
+}
+function choose(r) {
+  box.value = r.name;
+  closeList();
+  pick(r);
+}
+box.addEventListener('input', () => { if (box.value.trim().length >= 2) openList(); else closeList(); });
+box.addEventListener('keydown', (ev) => {
+  if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+    if (pop.hidden) openList();
+    if (pop.hidden) return;
+    ev.preventDefault();
+    const n = matches.length;
+    setActive(ev.key === 'ArrowDown' ? (active + 1) % n : (active <= 0 ? n - 1 : active - 1));
+  } else if (ev.key === 'Enter' && !pop.hidden) {
+    ev.preventDefault();
+    if (active >= 0) choose(matches[active]); else closeList();
+  } else if (ev.key === 'Escape' && !pop.hidden) {
+    ev.stopPropagation();
+    closeList();
+  }
+});
+box.addEventListener('blur', closeList);
 $('#cn-add').addEventListener('change', (ev) => { if (ev.target.value) { drugs.push(ev.target.value); render(); } });
 form.addEventListener('input', (ev) => { if (!['cn-regimen', 'cn-add'].includes(ev.target.id)) render(); });
 $('#cn-copy').addEventListener('click', async () => { await copyText(toText(parts)); flash($('#cn-copy')); });
@@ -181,7 +241,7 @@ $('#cn-clear').addEventListener('click', () => {
 document.querySelector('[data-tab="counsel"]').addEventListener('click', () => {
   if (drugs.length) return;
   const r = REGIMENS.find((x) => x.name === $('#name')?.value);
-  if (r) { $('#cn-regimen').value = label(r); pick(r); }
+  if (r) choose(r);
 });
 
 render();
