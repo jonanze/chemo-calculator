@@ -133,14 +133,9 @@ export function build(s) {
   return parts;
 }
 
-// The sentences that follow the side effects run together as one paragraph
-const RUN_ON = ['alt', 'dpyd', 'hbv', 'fertility', 'fever', 'written', 'questions'];
-
-// Plain text of what is switched on
-export function toText(parts, compact = false) {
+// Plain text of what is switched on, line for line as the note shows it
+export function toText(parts) {
   const lines = [];
-  let run = [];
-  const flush = () => { if (run.length) lines.push(run.join(' ')); run = []; };
   for (const p of parts) {
     if (!p.on) continue;
     if (p.tiers) {
@@ -148,16 +143,11 @@ export function toText(parts, compact = false) {
         const on = items.filter((i) => i.on).map((i) => i.text);
         return on.length ? `${title}: ${on.join('; ')}.` : '';
       }).filter(Boolean);
-      if (!t.length) continue;
-      flush();
-      if (compact) lines.push(`Side effects discussed. ${t.join(' ')}`);
-      else lines.push('Side effects discussed:', ...t.map((x) => `・ ${x}`));
-    } else if (RUN_ON.includes(p.id)) run.push(p.text);
-    else { flush(); lines.push(p.edit ? stop(`${p.lead}${p.text}${p.tail}`) : p.text); }
+      if (t.length) lines.push('Side effects discussed:', ...t.map((x) => `・ ${x}`));
+    } else lines.push(p.edit ? stop(`${p.lead}${p.text}${p.tail}`) : p.text);
   }
-  flush();
-  return (compact ? lines.join(' ') : lines.join('\n')).replace(/^./, cap);
+  return lines.join('\n').replace(/^./, cap);
 }
 
 // Convenience for tests and samples: the note straight from the facts
-export const note = (s) => toText(build({ off: new Set(OFF_BY_DEFAULT), extra: {}, cycle: {}, ...s }), s.compact);
+export const note = (s) => toText(build({ off: new Set(OFF_BY_DEFAULT), extra: {}, cycle: {}, ...s }));

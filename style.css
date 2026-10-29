@@ -642,8 +642,6 @@ fieldset.seg legend {
 .cn-note { border: 1px solid var(--hair); }
 .cn-head { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 6px 0 10px; background: var(--cell); border-bottom: 1px solid var(--hair); font-size: 12px; font-weight: 700; }
 .cn-head #cn-words { flex: 1; color: var(--slate); font-weight: 400; white-space: nowrap; }
-.cn-head .seg-track { height: 26px; width: 172px; }
-.cn-head .seg-track span { font-size: 12px; }
 #cn-copy { height: 26px; padding: 0 12px; }
 .cn-doc { padding: 8px 12px 12px; font-size: 13px; line-height: 1.55; }
 .cn-doc:empty { min-height: 40vh; }

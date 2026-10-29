@@ -30,7 +30,6 @@ let schedule = '';
 let off = new Set(OFF_BY_DEFAULT);
 let extra = { common: [], serious: [], rare: [] };
 let cycle = {};
-let layout = 'lines';
 let parts = [];
 let picked = null;
 
@@ -143,7 +142,7 @@ function tiers(p) {
 }
 
 const words = () => {
-  const t = toText(parts, layout === 'compact').trim();
+  const t = toText(parts).trim();
   $('#cn-words').textContent = t ? `${t.split(/\s+/).length} words` : '';
 };
 
@@ -169,8 +168,7 @@ function pick(r) {
 $('#cn-regimen').addEventListener('input', () => { const r = byLabel.get($('#cn-regimen').value); if (r) pick(r); });
 $('#cn-add').addEventListener('change', (ev) => { if (ev.target.value) { drugs.push(ev.target.value); render(); } });
 form.addEventListener('input', (ev) => { if (!['cn-regimen', 'cn-add'].includes(ev.target.id)) render(); });
-for (const r of document.querySelectorAll('[name="cn-layout"]')) r.addEventListener('change', () => { layout = r.value; words(); });
-$('#cn-copy').addEventListener('click', async () => { await copyText(toText(parts, layout === 'compact')); flash($('#cn-copy')); });
+$('#cn-copy').addEventListener('click', async () => { await copyText(toText(parts)); flash($('#cn-copy')); });
 $('#cn-clear').addEventListener('click', () => {
   form.reset();
   $('#cn-intent').value = 'palliative';
