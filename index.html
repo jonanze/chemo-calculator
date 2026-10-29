@@ -27,6 +27,7 @@
       <nav class="tabs" role="tablist" aria-label="Modules">
         <button type="button" role="tab" data-tab="schedule"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/></svg><span>Schedule</span></button>
         <button type="button" role="tab" data-tab="doses"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg><span>Doses</span></button>
+        <button type="button" role="tab" data-tab="counsel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6v3H9zM9 5.5H6v15h12v-15h-3M9 12h6M9 16h4"/></svg><span>Counsel</span></button>
       </nav>
       <span class="rail-fill"></span>
       <button id="theme" class="rail-icon" type="button" aria-label="Switch light or dark">
@@ -132,6 +133,53 @@
         <dl id="derived"></dl>
       </section>
     </div>
+    <div class="side panel" data-view="counsel" hidden>
+      <form id="counsel-inputs" autocomplete="off">
+        <section class="group">
+          <div class="group-head">
+            <h2 class="group-title">Regimen</h2>
+            <button type="button" id="cn-clear" class="ghost small">Clear</button>
+          </div>
+          <div class="fields">
+            <label class="wide">Regimen
+              <input type="text" id="cn-regimen" list="cn-regimens" spellcheck="false">
+            </label>
+            <datalist id="cn-regimens"></datalist>
+            <div class="wide cn-drugs">
+              <span class="cn-key">Drugs</span>
+              <div class="cn-chips" id="cn-chips"></div>
+              <select id="cn-add" aria-label="Add a drug"></select>
+            </div>
+            <label class="wide">Duration
+              <input type="text" id="cn-duration">
+            </label>
+            <label class="wide">With radiotherapy
+              <input type="checkbox" id="cn-rt">
+            </label>
+          </div>
+        </section>
+        <section class="group">
+          <h2 class="group-title">Indication</h2>
+          <div class="fields">
+            <label class="wide">Intent
+              <select id="cn-intent"></select>
+            </label>
+            <label class="wide">Diagnosis
+              <input type="text" id="cn-dx">
+            </label>
+            <label class="wide">Benefit
+              <input type="text" id="cn-benefit">
+            </label>
+            <label class="wide">Death risk
+              <span class="suffix"><input type="number" id="cn-trd" min="0" step="any" inputmode="decimal"><span>%</span></span>
+            </label>
+            <label class="wide">Interpreter
+              <input type="text" id="cn-interpreter">
+            </label>
+          </div>
+        </section>
+      </form>
+    </div>
   </aside>
 
   <main>
@@ -152,6 +200,18 @@
     </section>
     <div id="doses-view" data-view="doses" hidden>
       <div id="drugs"></div>
+    </div>
+    <div id="counsel-view" data-view="counsel" hidden>
+      <section class="cn-note">
+        <div class="cn-head"><span>Note</span><span id="cn-words"></span>
+          <div class="seg-track" id="cn-layout">
+            <label><input type="radio" name="cn-layout" value="lines" checked><span>Lines</span></label>
+            <label><input type="radio" name="cn-layout" value="compact"><span>Paragraph</span></label>
+          </div>
+          <button id="cn-copy" type="button" class="primary"><span>Copy</span></button>
+        </div>
+        <div id="cn-doc" class="cn-doc"></div>
+      </section>
     </div>
   </main>
 
@@ -232,6 +292,7 @@
 
   <script type="module" src="js/app.js"></script>
   <script type="module" src="js/doses-ui.js"></script>
+  <script type="module" src="js/counsel-ui.js"></script>
   <script type="module" src="js/theme.js"></script>
 </body>
 </html>

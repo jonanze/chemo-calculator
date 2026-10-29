@@ -7,7 +7,7 @@ const $ = (sel, root = document) => root.querySelector(sel);
 // The open tab lives in the URL hash so a reload stays put.
 
 function showTab(name) {
-  const tab = name === 'doses' ? 'doses' : 'schedule';
+  const tab = ['doses', 'counsel'].includes(name) ? name : 'schedule';
   // Each tab owns its inputs in the sidebar and its output in main
   for (const el of document.querySelectorAll('[data-view]')) el.hidden = el.dataset.view !== tab;
   $('#open-settings').hidden = tab !== 'schedule';
