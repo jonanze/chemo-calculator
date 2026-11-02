@@ -90,7 +90,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const labOK = open(S.labDays, 'labs');
   const chemoOK = open(S.chemoDays, 'chemo');
   // Why a day is closed for this kind of event: a PH, a closed date, or not one of its weekdays
-  const why = (n, ctx) => (ph.has(n) ? { t: 'ph', name: ph.get(n) } : closed[ctx]?.has(n) ? { t: 'closed' } : { t: 'off', ctx });
+  const why = (n, ctx) => (ph.has(n) ? { t: 'ph', name: ph.get(n), on: n } : closed[ctx]?.has(n) ? { t: 'closed' } : { t: 'off', ctx });
   // Flags for a treatment or labs day. Inpatient care is given on the ward, so PHs, closed
   // dates and unit days don't apply and nothing moves; a PH is still labelled so it can be
   // seen (Jonan, 15 Oct 2026).
@@ -420,7 +420,11 @@ function emrLines(result, input, S) {
     : '';
   const head = `${R.name ? `${R.name} ` : ''}${days}q${R.cycleDays}d${inp.note ? ` (${inp.note})` : ''}`;
   const lines = result.events.filter((e) => !e.off || e.tcu).map((e) => {
-    const flags = e.flags.map((f) => flagText(f, S.dateFormat)).filter(Boolean);
+    // A day moved off a PH says so in one phrase: "moved due to PH on Mon 9/11/26" (Jonan, 2 Nov 2026)
+    const ph = e.flags.find((f) => f.t === 'ph' && f.on != null);
+    const merged = ph && e.flags.some((f) => f.t === 'moved');
+    const flags = e.flags.filter((f) => !merged || (f.t !== 'ph' && f.t !== 'moved')).map((f) => flagText(f, S.dateFormat)).filter(Boolean);
+    if (merged) flags.unshift(`moved due to PH on ${formatDay(ph.on, S.dateFormat)}`);
     if (e.pending) flags.push('reschedule');
     const visit = e.kind === 'review' || !!e.tcu;
     return {
@@ -434,11 +438,11 @@ function emrLines(result, input, S) {
   return { head, lines };
 }
 
-// The copy marks each line as the schedule does, flags after ※
+// The copy marks each line as the schedule does, flags in 《》 (Jonan, 2 Nov 2026)
 export function toText(result, input, S) {
   const { head, lines } = emrLines(result, input, S);
   const out = lines.flatMap((l) => {
-    const line = `${l.mark} ${l.date} ${l.text}${l.flags.length ? ` ※${l.flags.join(', ')}` : ''}`;
+    const line = `${l.mark} ${l.date} ${l.text}${l.flags.length ? ` 《${l.flags.join(', ')}》` : ''}`;
     return l.gap ? ['', line] : [line];
   });
   return [head, ...out].join('\n');

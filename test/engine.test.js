@@ -157,9 +157,9 @@ test('EMR text', () => {
   assert.equal(lines[0], 'FOLFOX q14d');
   assert.equal(lines[1], '');
   assert.equal(lines[2], '□ Fri 9/10/26 TCU with labs on arrival');
-  assert.ok(lines.includes('■ Tue 10/11/26 C5 ※PH, moved from Mon 9/11/26'));
-  assert.ok(lines.includes('■ Mon 23/11/26 C6 ※13d interval'));
-  assert.ok(lines.includes('□ Fri 1/1/27 TCU with labs on arrival ※PH, reschedule'));
+  assert.ok(lines.includes('■ Tue 10/11/26 C5 《moved due to PH on Mon 9/11/26》'));
+  assert.ok(lines.includes('■ Mon 23/11/26 C6 《13d interval》'));
+  assert.ok(lines.includes('□ Fri 1/1/27 TCU with labs on arrival 《PH, reschedule》'));
 });
 
 test('review stays on its usual day when the chemo it precedes moves off a PH', () => {
@@ -537,7 +537,7 @@ test('inpatient: chemo and its labs stay put on PHs and weekends, PH still label
   assert.deepEqual(find(res, 'chemo', 6).flags, []);
   const text = toText(res, { ...folfoxInput, inpDays: [1] }, S());
   assert.equal(text.split('\n')[0], 'FOLFOX q14d (inpatient)');
-  assert.match(text, /■ Mon 9\/11\/26 C5 ※PH\n/); // said once, in the header
+  assert.match(text, /■ Mon 9\/11\/26 C5 《PH》\n/); // said once, in the header
   assert.doesNotMatch(text, /C\d+ \(inpatient\)/);
 });
 
