@@ -65,11 +65,16 @@ const everyOf = (input) => Math.max(1, Math.floor(input.every) || 1);
 export function plan(input, settings, holidays, choices = {}, edits = {}) {
   const S = settings;
   const R = input.regimen;
-  if (!R || !input.review || !input.chemo) return { error: 'incomplete', events: [] };
+  if (!R || !input.chemo) return { error: 'incomplete', events: [] };
 
-  const review0 = toDay(input.review);
+  // The app starts from the next treatment date: the clinic before it is the one being prepared
+  // for, so it isn't shown (Jonan, 4 Nov 2026). Later TCUs fall on the last clinic day at least
+  // tcuGap days before their treatment. Given a clinic date (input.review), the first TCU is shown
+  // and every TCU keeps its gap from treatment.
   const chemo0 = toDay(input.chemo);
-  const offset = chemo0 - review0;
+  const firstShown = !!input.review;
+  const review0 = firstShown ? toDay(input.review) : null;
+  let offset = firstShown ? chemo0 - review0 : null;
   if (offset < 0) return { error: 'Treatment date is before clinic date', events: [] };
   // A clinic visit is never more than a week before its treatment (Jonan, 16 Oct 2026)
   if (offset > MAX_TCU_GAP) return { error: 'Treatment date is more than a week after clinic date', events: [] };
@@ -98,6 +103,14 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     if (inpatient) return ph.has(n) ? [why(n, ctx)] : [];
     const ok = ctx === 'chemo' ? chemoOK : ctx === 'labs' ? labOK : clinicOK;
     return ok(n) ? [] : [why(n, ctx)];
+  };
+
+  // The clinic day a TCU falls on for a treatment on day c: the last clinic weekday at least
+  // tcuGap days before it (a PH or closed date there is handled as any TCU on a closed day)
+  const tcuGap = Math.min(MAX_TCU_GAP, Math.max(0, Math.floor(S.tcuGap ?? 1)));
+  const tcuAt = (c) => {
+    for (let n = c - tcuGap; n >= c - MAX_TCU_GAP; n--) if (S.clinicDays.includes(weekday(n))) return n;
+    return c - tcuGap;
   };
 
   const step = (from, dir, okFn, limit = 60) => {
@@ -192,6 +205,7 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     const tcuEdit = isReview && k > 0 ? edits[`tcu:${k}`] : undefined;
     const d1Edit = k > 0 ? edits[`chemo:${k}:${blocks[0][0]}`] : undefined;
     const scheduled = planned;
+    if (!firstShown) offset = scheduled - tcuAt(scheduled);
     // A rescheduled PH TCU moves its chemo at the usual gap. Like a chemo moved off a PH,
     // later cycles keep the original schedule unless Settings says to count from the moved date.
     const phPick = isReview && k > 0 && !tcuEdit && choices[k] != null && !clinicOK(planned - offset)
@@ -249,7 +263,8 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     let review = null;
     if (isReview) {
       const base = { kind: 'review', cycle, k, labs: false };
-      if (k === 0) review = scheduleReview(review0, 0, base, { maxDate: treatments[0].date, earliest: chemo0 - MAX_TCU_GAP });
+      if (k === 0 && !firstShown) review = { ...base, date: chemo0 - offset, flags: [], hidden: true };
+      else if (k === 0) review = scheduleReview(review0, 0, base, { maxDate: treatments[0].date, earliest: chemo0 - MAX_TCU_GAP });
       else if (tcuEdit) {
         const t = toDay(tcuEdit);
         review = { ...base, date: t, flags: [...closure(t, 'clinic', false), { t: 'edited' }] };
@@ -276,13 +291,15 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
       // A physical TCU's scan is undated ("prior"), so it can be booked flexibly.
       // A technical visit's scan is on the visit day itself.
       review.scanPrior = current.scan && !current.tech;
-      events.push(review);
+      if (!review.hidden) events.push(review);
     }
 
     if (current.labs) {
       for (const t of treatments) {
         if (S.blockLabs === 'first' && !t.blockStart) continue;
         if (tcuLabsOnly && (!review || t.day !== treatments[0].day)) continue;
+        // The entered treatment's own labs are taken at the clinic being prepared for
+        if (review?.hidden && t.day === treatments[0].day) continue;
         if (t.day === treatments[0].day && review?.scanPrior && S.scanLabs === 'scan') {
           review.labsAtScan = true;
           continue;

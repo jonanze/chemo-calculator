@@ -5,6 +5,7 @@ export const DEFAULT_SETTINGS = {
   clinicDays: [1, 2, 3, 4, 5],
   labDays: [1, 2, 3, 4, 5],
   chemoDays: [1, 2, 3, 4, 5, 6],
+  tcuGap: 1,                // a TCU is on the last clinic day at least this many days before its treatment
   labsBefore: 1,            // days before a treatment day
   scanLabs: 'tcu',          // labs for a TCU with a scan: 'tcu' day or 'scan' day
   preCycleLabs: 'review',   // 'review' = same day as the review, 'offset' = labsBefore rule

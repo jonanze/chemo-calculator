@@ -76,9 +76,6 @@
       <section class="group">
         <h2 class="group-title">Visit</h2>
         <div class="fields">
-          <label>Clinic date
-            <input type="date" id="review">
-          </label>
           <label>Treatment date
             <input type="date" id="chemo">
           </label>
@@ -229,6 +226,7 @@
           <div class="row"><span>Clinic days</span><div class="days" data-key="clinicDays"></div></div>
           <div class="row"><span>Lab days</span><div class="days" data-key="labDays"></div></div>
           <div class="row"><span>Chemo unit days</span><div class="days" data-key="chemoDays"></div></div>
+          <label class="row"><span>TCU before treatment, days</span><input type="number" min="0" max="7" data-key="tcuGap" data-num></label>
         </section>
 
         <section>

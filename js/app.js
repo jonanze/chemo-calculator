@@ -33,11 +33,10 @@ const inpDays = new Set();
 let lastText = '';
 // Recent-regimen chips were removed (Jonan, 14 Oct 2026); clear what they stored
 try { localStorage.removeItem('cc.recent'); } catch { /* storage unavailable */ }
-// Clinic date opens on today and treatment on the day after (Jonan, 16 Oct 2026); the
-// treatment date follows the clinic date until it is typed over
+// The schedule starts from the next treatment date, which opens on tomorrow; the clinic before it
+// is the one being prepared for, so there is no clinic date (Jonan, 4 Nov 2026)
 const AUTO_GAP = 1;
 try { localStorage.removeItem('cc.gap'); } catch { /* storage unavailable */ }
-let chemoAuto = false;
 const todayISO = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -47,7 +46,7 @@ const BY_KEY = new Map(REGIMENS.map((r) => [r.key, r]));
 let pickedKey = entry.ref ?? null;
 
 const el = {
-  name: $('#name'), cycleDays: $('#cycleDays'), days: $('#days'), review: $('#review'), chemo: $('#chemo'),
+  name: $('#name'), cycleDays: $('#cycleDays'), days: $('#days'), chemo: $('#chemo'),
   cycle: $('#cycle'), labTests: $('#labTests'), midLabTests: $('#midLabTests'),
   error: $('#error'), timeline: $('#timeline'), copy: $('#copy'),
 };
@@ -172,7 +171,7 @@ function pickRegimen(r) {
   renderRefDoses();
   // Chemoradiation and continuous orals have no cycle length; otherwise the next thing is a date
   if (!r.cycleDays) el.cycleDays.select();
-  else if (!el.review.value) el.review.focus();
+  else el.chemo.focus();
 }
 
 el.name.addEventListener('input', () => {
@@ -211,7 +210,6 @@ function readInput() {
   return {
     regimen: cycleDays && days ? { name: el.name.value.trim(), cycleDays, days } : null,
     days, // parsed treatment days, or null while the box is invalid
-    review: date(el.review),
     chemo: date(el.chemo),
     every: num($('#every')) || 1,
     tcuOpts,
@@ -419,7 +417,7 @@ function render() {
   el.timeline.innerHTML = '';
   el.copy.hidden = true;
   el.error.hidden = true;
-  if (!input.regimen || !input.review || !input.chemo) return;
+  if (!input.regimen || !input.chemo) return;
 
   const res = plan(input, settings, SG_HOLIDAYS, choices, edits);
   if (res.error) {
@@ -552,14 +550,6 @@ function resetPlan() {
 }
 
 $('#inputs').addEventListener('input', (ev) => {
-  // The treatment date follows the clinic date at D+1 until it is typed over
-  if (ev.target === el.chemo) chemoAuto = false;
-  if (ev.target === el.review && (chemoAuto || !el.chemo.value)) {
-    if (el.review.value >= '2000') {
-      el.chemo.value = fromDay(toDay(el.review.value) + AUTO_GAP);
-      chemoAuto = true;
-    } else if (chemoAuto) el.chemo.value = '';
-  }
   // Name and lab tests only change wording; anything else re-plans from scratch
   if (![el.name, el.labTests, el.midLabTests].includes(ev.target)) resetPlan();
   saveEntry(readInput());
@@ -567,14 +557,12 @@ $('#inputs').addEventListener('input', (ev) => {
   renderRefDoses();
 });
 
-// Next patient (Esc): keep the regimen, put the dates back to today and D+1, clear the cycle
+// Next patient (Esc): keep the regimen, put the treatment date back to tomorrow, clear the cycle
 // and per-visit choices. The Clear button was removed (Jonan, 16 Oct 2026); the shortcut stays.
 function setDefaultDates() {
-  el.review.value = todayISO();
-  el.chemo.value = fromDay(toDay(el.review.value) + AUTO_GAP);
-  chemoAuto = true;
+  el.chemo.value = fromDay(toDay(todayISO()) + AUTO_GAP);
 }
-const hasVisit = () => el.review.value !== todayISO() || !chemoAuto || !!el.cycle.value || inpDays.size > 0
+const hasVisit = () => el.chemo.value !== fromDay(toDay(todayISO()) + AUTO_GAP) || !!el.cycle.value || inpDays.size > 0
   || [choices, edits, tcuOpts, labOpts, inpOpts].some((o) => Object.keys(o).length > 0);
 function nextPatient() {
   setDefaultDates();
@@ -582,7 +570,7 @@ function nextPatient() {
   inpDays.clear();
   resetPlan();
   render();
-  el.review.focus();
+  el.chemo.focus();
 }
 
 // ---------- Settings ----------

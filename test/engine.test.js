@@ -679,3 +679,32 @@ test('cycle and day labels: C or #, and D8 or the day\'s place in the cycle', ()
   assert.match(b, / #2 D8\n/);
   assert.doesNotMatch(b, /#2\./);
 });
+
+// From the next treatment date (Jonan, 4 Nov 2026): no clinic date, the first TCU not shown
+test('starting from the treatment date: first TCU hidden, later TCUs on the last clinic day before', () => {
+  const input = { regimen: R.gemcis, chemo: '2026-10-12', every: 2, cycle: 3 }; // Mon
+  const res = plan(input, S(), SG_HOLIDAYS);
+  assert.equal(res.error, null);
+  const first = res.events[0];
+  assert.equal(first.kind, 'chemo'); // C3 D1, with no TCU or labs row before it
+  assert.equal(fromDay(first.date), '2026-10-12');
+  assert.ok(!res.events.some((e) => e.kind === 'review' && e.cycle === 3));
+  assert.ok(!res.events.some((e) => e.kind === 'labs' && e.cycle === 3 && e.day === 1));
+  assert.equal(fromDay(find(res, 'labs', 3, 8).date), '2026-10-16'); // D8 labs still there (Fri before Mon)
+  // C5 D1 Mon 23/11: TCU on the last clinic day at least a day before, Fri 20/11
+  assert.equal(fromDay(find(res, 'review', 5).date), '2026-11-20');
+  // C7 D1 Mon 4/1/27: Fri 1/1/27 is a PH, so that TCU waits for a reschedule pick
+  const r7 = find(res, 'review', 7);
+  assert.equal(fromDay(r7.date), '2027-01-01');
+  assert.equal(r7.pending, true);
+  const text = toText(res, input, S());
+  assert.equal(text.split('\n')[1], '■ Mon 12/10/26 C3 D1');
+});
+
+test('TCU before treatment is a setting', () => {
+  const input = { regimen: R.folfox, chemo: '2026-10-14', every: 1, cycle: 1 }; // Wed
+  const res = plan(input, S({ tcuGap: 2 }), SG_HOLIDAYS);
+  assert.equal(fromDay(find(res, 'review', 2).date), '2026-10-26'); // Mon before Wed 28/10
+  const res1 = plan(input, S(), SG_HOLIDAYS);
+  assert.equal(fromDay(find(res1, 'review', 2).date), '2026-10-27'); // Tue
+});
