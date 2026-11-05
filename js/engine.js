@@ -206,11 +206,13 @@ export function plan(input, settings, holidays, choices = {}, edits = {}) {
     const d1Edit = k > 0 ? edits[`chemo:${k}:${blocks[0][0]}`] : undefined;
     const scheduled = planned;
     if (!firstShown) offset = scheduled - tcuAt(scheduled);
-    // A rescheduled PH TCU moves its chemo at the usual gap. Like a chemo moved off a PH,
-    // later cycles keep the original schedule unless Settings says to count from the moved date.
+    // A TCU moved later (a PH reschedule or an edit) takes its chemo with it at the usual gap. Like a
+    // chemo moved off a PH, later cycles keep the original schedule unless Settings says to count from
+    // the moved date. A TCU moved earlier leaves its chemo where it was (Jonan, 5 Nov 2026).
     const phPick = isReview && k > 0 && !tcuEdit && choices[k] != null && !clinicOK(planned - offset)
       ? choices[k] : undefined;
-    const tcuMove = tcuEdit || phPick;
+    const tcuLater = (tcuEdit || phPick) && toDay(tcuEdit || phPick) > scheduled - offset;
+    const tcuMove = tcuLater ? tcuEdit || phPick : undefined;
     if (d1Edit || tcuMove) {
       planned = d1Edit ? toDay(d1Edit) : toDay(tcuMove) + offset;
       if (d1Edit || tcuEdit) {

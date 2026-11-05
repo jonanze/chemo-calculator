@@ -224,6 +224,14 @@ test('editing a TCU moves its chemo by the same gap and re-anchors the rest', ()
   assert.equal(fromDay(find(res, 'chemo', 5).date), '2026-11-10');
 });
 
+test('editing a TCU earlier leaves its chemo where it was', () => {
+  const res = plan(folfoxInput, S(), SG_HOLIDAYS, {}, { 'tcu:3': '2026-11-18' });
+  assert.equal(fromDay(find(res, 'review', 6).date), '2026-11-18');
+  assert.equal(fromDay(find(res, 'chemo', 6).date), '2026-11-23');
+  assert.ok(!find(res, 'chemo', 6).flags.some((f) => f.t === 'edited' || f.t === 'moved'));
+  assert.equal(fromDay(find(res, 'chemo', 7).date), '2026-12-07');
+});
+
 test('editing a D8 moves only that treatment day', () => {
   const input = { regimen: R.gemcis, review: '2026-10-13', chemo: '2026-10-14', every: 1, labs: true, cycle: 1 };
   const res = plan(input, S(), SG_HOLIDAYS, {}, { 'chemo:1:8': '2026-11-12' });
@@ -419,11 +427,11 @@ test('a PH TCU moved to another clinic day takes its chemo with it', () => {
   assert.deepEqual(tcu.options.map(fromDay), ['2026-11-06', '2026-11-10']);
   assert.equal(fromDay(find(pending, 'chemo', 2).date), '2026-11-10');
 
-  // Brought forward to Fri 6 Nov: chemo follows at the usual gap (Sat 7 Nov); C3 is back on schedule
+  // Brought forward to Fri 6 Nov: the chemo stays on Tue 10 Nov (Jonan, 5 Nov 2026)
   const fwd = plan(input, S(), SG_HOLIDAYS, { 1: '2026-11-06' });
   assert.equal(fromDay(find(fwd, 'review', 2).date), '2026-11-06');
-  assert.equal(fromDay(find(fwd, 'chemo', 2).date), '2026-11-07');
-  assert.deepEqual(find(fwd, 'chemo', 2).flags.find((f) => f.t === 'short'), { t: 'short', days: 11 });
+  assert.equal(fromDay(find(fwd, 'chemo', 2).date), '2026-11-10');
+  assert.equal(find(fwd, 'chemo', 2).flags.find((f) => f.t === 'short'), undefined);
   assert.equal(fromDay(find(fwd, 'review', 3).date), '2026-11-23');
   assert.equal(fromDay(find(fwd, 'chemo', 3).date), '2026-11-24');
 
@@ -433,9 +441,9 @@ test('a PH TCU moved to another clinic day takes its chemo with it', () => {
   assert.equal(fromDay(find(back, 'review', 3).date), '2026-11-23');
 
   // Counting from the moved date instead
-  const re = plan(input, S({ knockOn: 'reanchor' }), SG_HOLIDAYS, { 1: '2026-11-06' });
-  assert.equal(fromDay(find(re, 'chemo', 3).date), '2026-11-21');
-  assert.equal(fromDay(find(re, 'review', 3).date), '2026-11-20');
+  const re = plan(input, S({ knockOn: 'reanchor' }), SG_HOLIDAYS, { 1: '2026-11-10' });
+  assert.equal(fromDay(find(re, 'chemo', 3).date), '2026-11-25');
+  assert.equal(fromDay(find(re, 'review', 3).date), '2026-11-24');
 
   // Only days whose chemo still lands after C1 are offered
   assert.equal(find(pending, 'review', 2).minDate, toDay('2026-10-27'));

@@ -254,8 +254,8 @@ function editDate(button, e) {
 // PH reschedule picks after cycle k may no longer apply. With laterDays, D8/D15 edits from
 // cycle k on go too, since they were typed against a schedule that has now moved.
 function dropDownstream(k, laterDays) {
-  for (const key of Object.keys(choices)) if (Number(key) > k) delete choices[key];
   if (!laterDays) return;
+  for (const key of Object.keys(choices)) if (Number(key) > k) delete choices[key];
   const first = parseDays(el.days.value)?.[0];
   for (const key of Object.keys(edits)) {
     const [kind, ek, day] = key.split(':');
@@ -264,16 +264,18 @@ function dropDownstream(k, laterDays) {
 }
 
 // A TCU or D1 change re-anchors this cycle and those after it
+// A TCU brought earlier leaves its chemo, so what follows stays (Jonan, 5 Nov 2026)
 function setEdit(e, value) {
+  const moves = e.kind === 'review' ? !value || value > fromDay(e.date) || !!edits[e.editKey] : e.day === parseDays(el.days.value)?.[0];
   if (value) edits[e.editKey] = value;
   else delete edits[e.editKey];
-  dropDownstream(e.k, e.kind === 'review' || e.day === parseDays(el.days.value)?.[0]);
+  dropDownstream(e.k, moves);
   render();
 }
 
-// A PH TCU's new day carries its chemo, like a TCU edit
+// A PH TCU's new day carries its chemo when it is later, like a TCU edit
 function choosePH(e, value) {
-  dropDownstream(e.k, true);
+  dropDownstream(e.k, value > fromDay(e.date));
   choices[e.key] = value;
   render();
 }
